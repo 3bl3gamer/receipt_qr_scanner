@@ -1,0 +1,31 @@
+{
+	"name": "qr_check_scan_www",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "./node_modules/.bin/rollup --config rollup.config.js --watch",
+		"build": "./node_modules/.bin/rollup --config rollup.config.js --environment NODE_ENV:production"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@rollup/plugin-typescript": "^2.1.0",
+		"jsqr": "github:cozmo/jsQR#01d3b0a3889b6da02486ea5c26e5bfaaa268d61a",
+		"rollup": "^1.23.1",
+		"rollup-plugin-commonjs": "^10.1.0",
+		"rollup-plugin-node-resolve": "^5.2.0",
+		"rollup-pluginutils": "^2.8.2",
+		"tslib": "^1.10.0",
+		"typescript": "^3.7.4"
+	},
+	"devDependencies": {
+		"eslint": "^6.5.1",
+		"eslint-config-prettier": "^6.7.0",
+		"eslint-plugin-prettier": "^3.1.2",
+		"prettier": "^1.19.1",
+		"rollup-plugin-livereload": "^1.0.4",
+		"rollup-plugin-serve": "^1.0.1"
+	}
+}
