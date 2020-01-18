@@ -66,7 +66,7 @@ func saveRecieptRef(db *sql.DB, ref *ReceiptRef, refText string) error {
 func saveReceiptFailure(db *sql.DB, ref *ReceiptRef) error {
 	_, err := db.Exec(`
 		UPDATE receipts
-		SET next_retry_at = datetime(CURRENT_TIMESTAMP, '+'||((1-retries_left%2)*30 + (retries_left%2)*24*3600)||' seconds'),
+		SET next_retry_at = datetime(CURRENT_TIMESTAMP, '+'||((1-retries_left%2)*30 + (retries_left%2)*20*3600)||' seconds'),
 		    retries_left = MAX(0, retries_left-1)
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)

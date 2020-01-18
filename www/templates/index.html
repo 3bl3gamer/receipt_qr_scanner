@@ -5,25 +5,71 @@
 		<style>
 			body {
 				margin: 0;
+				display: flex;
+				justify-content: center;
 			}
 
-			.info-box {
+			.receipt-info-box-wrap {
 				position: fixed;
-				left: 0;
+				display: flex;
+				flex-direction: column-reverse;
 				top: 0;
 				z-index: 1;
+				max-height: 55px;
+			}
+
+			.receipt-info-box {
+				height: 25px;
+				padding: 3px;
+				margin: 7px 0 0 0;
+				box-sizing: border-box;
+				border-radius: 4px;
+				background-color: white;
+				box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+				text-align: center;
+				opacity: 0.8;
+				transition: opacity 0.8s ease, height 0.3s ease, padding 0.3s ease, background-color 0.2s ease;
+			}
+
+			.receipt-info-box.collapsed {
+				height: 0;
+				opacity: 0;
+				padding: 0;
+			}
+
+			.receipt-info-box:not(:first-child) {
+				opacity: 0.4;
+			}
+
+			.receipt-info-box:empty {
+				opacity: 0;
+			}
+
+			.receipt-info-box[data-status="saving"] {
+				background-color: gray;
+			}
+
+			.receipt-info-box[data-status="error"] {
+				background-color: salmon;
+			}
+
+			.receipt-info-box[data-status="saved"] {
+				background-color: lightgreen;
+			}
+
+			.receipt-info-box[data-status="exists"] {
+				background-color: khaki;
 			}
 
 			.video-wrap {
 				position: relative;
 				width: 100vw;
 				height: 100vh;
-				outline: 1px solid red;
 			}
 		</style>
 	</head>
 	<body>
-		<div class="info-box"></div>
+		<div class="receipt-info-box-wrap"></div>
 		<div class="video-wrap"></div>
 		<script src="{{.BundleFPath}}"></script>
 	</body>
