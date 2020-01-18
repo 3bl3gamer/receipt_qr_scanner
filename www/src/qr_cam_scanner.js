@@ -24,6 +24,8 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 	let videoUIYOffset = 0
 	let videoUIScale = 1
 
+	let uiScale = 1
+
 	// ---
 
 	function resize() {
@@ -40,6 +42,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 			canvas.width = width
 			canvas.height = height
 		}
+		uiScale = Math.min(canvas.width, canvas.height) / 512
 	}
 	function resizeVideo() {
 		if (video.srcObject === null) return
@@ -176,13 +179,13 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		rc.fillStyle = 'rgba(255,255,255,0.2)'
 		rc.fill()
 		rc.strokeStyle = 'rgba(0,0,0,0.2)'
+		rc.lineWidth = uiScale * 1.5
 		rc.stroke()
 	}
 
 	function dot(rc, x, y, color) {
-		const size = Math.min(rc.canvas.width, rc.canvas.height) / 150
 		rc.beginPath()
-		rc.arc(x, y, size, 0, 2 * Math.PI, false)
+		rc.arc(x, y, uiScale * 4, 0, 2 * Math.PI, false)
 		rc.fillStyle = color
 		rc.fill()
 	}
