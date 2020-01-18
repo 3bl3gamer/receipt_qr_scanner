@@ -189,7 +189,11 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 		stylesFPath = "http://" + devServerAddress + "/bundle.css"
 	} else {
 		distPath := baseDir + "/www/dist"
-		bundleFPath, stylesFPath, err = httputils.LastJSAndCSSFNames(distPath, "bundle.", "bundle.")
+		// bundleFPath, stylesFPath, err = httputils.LastJSAndCSSFNames(distPath, "bundle.", "bundle.")
+		bundleFPath, err = httputils.LastBundleFName(distPath, "bundle.", ".js")
+		if err != nil {
+			return merry.Wrap(err)
+		}
 		if err != nil {
 			return merry.Wrap(err)
 		}
