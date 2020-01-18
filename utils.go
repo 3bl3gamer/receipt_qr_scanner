@@ -1,8 +1,8 @@
 package main
 
 import (
-	"database/sql"
 	"os"
+	"strconv"
 
 	"github.com/ansel1/merry"
 )
@@ -47,35 +47,6 @@ func MakeConfigDir() (string, error) {
 	return dir, nil
 }
 
-func SetupDB(configDir string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", configDir+"/main.db")
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
-
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS receipts (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-			fiscal_num INTEGER,
-			fiscal_doc INTEGER,
-			fiscal_sign INTEGER,
-			kind INTEGER,
-			created_at DATETIME,
-
-			ref_text TEXT,
-			data blob,
-
-			retries_left INTEGER NOT NULL DEFAULT 10,
-			next_retry_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-			UNIQUE(fiscal_num, fiscal_doc, fiscal_sign, kind, created_at)
-		)`)
-	if err != nil {
-		db.Close()
-		return nil, merry.Wrap(err)
-	}
-	return db, nil
+func itoa(val int64) string {
+	return strconv.FormatInt(val, 10)
 }
