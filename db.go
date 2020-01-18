@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/mattn/go-sqlite3"
@@ -26,7 +27,7 @@ func createTables(db *sql.DB) error {
 		is_correct INTEGER,
 
 		ref_text TEXT,
-		data blob,
+		data BLOB,
 
 		retries_left INTEGER NOT NULL DEFAULT 10,
 		next_retry_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -66,7 +67,7 @@ func saveReceiptFailure(db *sql.DB, ref *ReceiptRef) error {
 	_, err := db.Exec(`
 		UPDATE receipts
 		SET next_retry_at = datetime(CURRENT_TIMESTAMP, '+'||((1-retries_left%2)*30 + (retries_left%2)*24*3600)||' seconds'),
-		    retries_left = MAX(0, retries_left-1),
+		    retries_left = MAX(0, retries_left-1)
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
@@ -77,6 +78,14 @@ func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
 		UPDATE receipts SET is_correct = 1
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
+	return merry.Wrap(err)
+}
+
+func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
+	_, err := db.Exec(`
+		UPDATE receipts SET data = ?
+		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
+		data, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
 }
 
@@ -107,4 +116,19 @@ func loadPendingReceipts(db *sql.DB, limit int64) ([]*Receipt, error) {
 		return nil, merry.Wrap(err)
 	}
 	return recs, nil
+}
+
+func loadNextRetryTime(db *sql.DB) (time.Time, error) {
+	var nextRetryAt time.Time
+	err := db.QueryRow(`
+		SELECT next_retry_at FROM receipts
+		WHERE data IS NULL AND retries_left > 0
+		ORDER BY next_retry_at`).Scan(&nextRetryAt)
+	if err == sql.ErrNoRows {
+		return time.Date(2200, 12, 31, 23, 59, 59, 0, time.UTC), nil //timedelta can store ~292 years
+	}
+	if err != nil {
+		return time.Time{}, merry.Wrap(err)
+	}
+	return nextRetryAt, nil
 }

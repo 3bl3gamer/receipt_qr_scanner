@@ -34,13 +34,15 @@ func main() {
 	}
 	defer db.Close()
 
+	triggerChan := make(chan struct{}, 10)
+
 	go func() {
-		if err := StartUpdater(db); err != nil {
+		if err := StartUpdater(db, triggerChan); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
 	}()
 
-	if err := StartHTTPServer(db, serverAddr, env); err != nil {
+	if err := StartHTTPServer(db, env, serverAddr, triggerChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
 }

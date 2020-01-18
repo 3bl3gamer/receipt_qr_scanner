@@ -23,6 +23,7 @@ type ctxKey string
 
 const CtxKeyEnv = ctxKey("env")
 const CtxKeyDB = ctxKey("db")
+const CtxKeyTrigger = ctxKey("trigger")
 
 func receiptString(values url.Values, name string) (string, *httputils.JsonError) {
 	if _, ok := values[name]; !ok {
@@ -62,6 +63,10 @@ func receiptTime(values url.Values, name string) (time.Time, *httputils.JsonErro
 	}
 	value, err := time.Parse("20060102T150405", valueStr)
 	if err != nil {
+		value, err = time.Parse("20060102T1504", valueStr)
+	}
+	if err != nil {
+		log.Debug().Str("name", name).Str("value", valueStr).Err(err).Msg("wrong value")
 		return time.Time{}, &httputils.JsonError{Code: 400, Error: "WRONG_VALUE_" + strings.ToUpper(name), Description: valueStr}
 	}
 	return value, nil
@@ -114,13 +119,16 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	err = saveRecieptRef(db, &ref, text)
 	if merry.Is(err, ErrReceiptRefAlreadyExists) {
 		return httputils.JsonError{Code: 400, Error: "ALREADY_EXISTS"}, nil
-	} else {
+	} else if err != nil {
 		return nil, merry.Wrap(err)
 	}
+
+	updaterTriggerChan := r.Context().Value(CtxKeyTrigger).(chan struct{})
+	updaterTriggerChan <- struct{}{}
 	return "ok", nil
 }
 
-func StartHTTPServer(db *sql.DB, address string, env Env) error {
+func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan chan struct{}) error {
 	ex, err := os.Executable()
 	if err != nil {
 		return merry.Wrap(err)
@@ -137,6 +145,7 @@ func StartHTTPServer(db *sql.DB, address string, env Env) error {
 				log.Debug().Str("method", r.Method).Str("path", r.URL.Path).Msg("request")
 				r = r.WithContext(context.WithValue(r.Context(), CtxKeyEnv, env))
 				r = r.WithContext(context.WithValue(r.Context(), CtxKeyDB, db))
+				r = r.WithContext(context.WithValue(r.Context(), CtxKeyTrigger, updaterTriggerChan))
 				return merry.Wrap(handle(wr, r, params))
 			}
 		},
