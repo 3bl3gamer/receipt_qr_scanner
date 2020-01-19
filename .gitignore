@@ -1,4 +1,5 @@
 receipt_qr_scanner
+receipt_qr_scanner.service
 www/node_modules
 www/dist
 .vscode

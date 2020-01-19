@@ -1,0 +1,12 @@
+[Unit]
+Description=Receipt QR Scanner
+After=network.target
+
+[Service]
+User=<user>
+WorkingDirectory=/home/<user>/receipt_qr_scanner
+ExecStart=/home/<user>/receipt_qr_scanner/receipt_qr_scanner
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

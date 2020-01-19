@@ -197,8 +197,8 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 		if err != nil {
 			return merry.Wrap(err)
 		}
-		bundleFPath = "/dist/" + bundleFPath
-		stylesFPath = "/dist/" + stylesFPath
+		bundleFPath = "./dist/" + bundleFPath
+		stylesFPath = "./dist/" + stylesFPath
 		router.ServeFiles("/dist/*filepath", http.Dir(distPath))
 	}
 	log.Info().Str("fpath", bundleFPath).Msg("bundle")

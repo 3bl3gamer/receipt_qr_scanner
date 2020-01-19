@@ -14,7 +14,7 @@ function ScannedQR(text) {
 }
 
 ScannedQR.prototype._save = function() {
-	fetch('api/receipt', { method: 'POST', body: this.text })
+	fetch('./api/receipt', { method: 'POST', body: this.text })
 		.then(r => r.json())
 		.then(res => {
 			if (res.ok) {
