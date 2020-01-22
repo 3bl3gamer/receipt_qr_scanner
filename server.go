@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -86,12 +85,12 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 		return nil, merry.Wrap(err)
 	}
 	text := string(buf)
+	log.Debug().Str("text", text).Msg("receipt ref text")
 
 	values, err := url.ParseQuery(text)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	fmt.Println(text, values)
 	var jsonErr *httputils.JsonError
 	var ref ReceiptRef
 	ref.FiscalNum, jsonErr = receiptInt64(values, "fn")

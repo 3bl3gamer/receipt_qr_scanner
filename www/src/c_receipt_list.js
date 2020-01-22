@@ -1,12 +1,26 @@
 let receiptSource = null
+const receipts = []
+const receiptById = new Map()
+const receiptElemById = new Map()
+
 function reopen() {
 	if (receiptSource !== null) receiptSource.close()
-	receiptSource = new EventSource('./api/receipts_list')
+
+	let path = './api/receipts_list'
+	if (receipts.length > 0) {
+		const maxUpdatedAt = receipts.map(x => x.updatedAt).reduce((a, b) => (a > b ? a : b))
+		path += '?time_from=' + new Date(maxUpdatedAt).toISOString()
+	}
+
+	receiptSource = new EventSource(path)
 	receiptSource.addEventListener('initial_receipts', event => {
 		JSON.parse(event.data).forEach(handleInitialReceipt)
 	})
 	receiptSource.addEventListener('receipt', event => {
 		handleReceipt(JSON.parse(event.data))
+	})
+	receiptSource.addEventListener('error', () => {
+		setTimeout(reopen, 2000)
 	})
 }
 reopen()
@@ -14,10 +28,6 @@ reopen()
 document.querySelector('.receipt-list-wrap').onclick = function() {
 	this.classList.toggle('hidden')
 }
-
-const receipts = []
-const receiptById = new Map()
-const receiptElemById = new Map()
 
 function handleInitialReceipt(rec) {
 	addRceipt(rec, true)
