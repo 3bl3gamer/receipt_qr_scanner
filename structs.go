@@ -1,18 +1,17 @@
 package main
 
-import "time"
-
-import "database/sql"
-
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type ReceiptRef struct {
-	FiscalNum  int64
-	FiscalDoc  int64
-	FiscalSign int64
-	Kind       int64
-	Summ       float64
-	CreatedAt  time.Time
+	FiscalNum  int64     `json:"fiscalNum"`
+	FiscalDoc  int64     `json:"fiscalDoc"`
+	FiscalSign int64     `json:"fiscalSign"`
+	Kind       int64     `json:"kind"`
+	Summ       float64   `json:"summ"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 func (r ReceiptRef) String() string {
@@ -21,6 +20,13 @@ func (r ReceiptRef) String() string {
 }
 
 type Receipt struct {
-	Ref       ReceiptRef
-	IsCorrect sql.NullBool
+	ID          int64      `json:"id"`
+	SavedAt     time.Time  `json:"savedAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	Ref         ReceiptRef `json:"ref"`
+	IsCorrect   bool       `json:"isCorrect"`
+	RefText     string     `json:"refText"`
+	Data        string     `json:"data"`
+	RetriesLeft int64      `json:"retriesLeft"`
+	NextRetryAt time.Time  `json:"nextRetryAt"`
 }

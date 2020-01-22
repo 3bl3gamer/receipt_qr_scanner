@@ -35,14 +35,15 @@ func main() {
 	defer db.Close()
 
 	triggerChan := make(chan struct{}, 10)
+	updatedReceiptIDsChan := make(chan int64, 10)
 
 	go func() {
-		if err := StartUpdater(db, triggerChan); err != nil {
+		if err := StartUpdater(db, triggerChan, updatedReceiptIDsChan); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
 	}()
 
-	if err := StartHTTPServer(db, env, serverAddr, triggerChan); err != nil {
+	if err := StartHTTPServer(db, env, serverAddr, triggerChan, updatedReceiptIDsChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
 }

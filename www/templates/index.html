@@ -7,6 +7,11 @@
 				margin: 0;
 				display: flex;
 				justify-content: center;
+				overflow: hidden;
+			}
+
+			.template {
+				display: none
 			}
 
 			.receipt-info-box-wrap {
@@ -66,11 +71,100 @@
 				width: 100vw;
 				height: 100vh;
 			}
+
+			.receipt-list-wrap {
+				position: absolute;
+				right: 0;
+				width: 320px;
+				height: 100vh;
+				overflow-y: auto;
+				background-color: white;
+				border-left: 2px solid lightgray;
+				transition: transform 0.3s ease;
+			}
+
+			.receipt-list-wrap.hidden {
+				transform: translateX(95%);
+			}
+
+			.receipt-list-item {
+				white-space: nowrap;
+				padding: 5px;
+				height: 82px;
+				overflow: hidden;
+				transition: height 0.3s ease;
+				box-sizing: border-box;
+			}
+
+			.receipt-list-item.collapsed {
+				height: 0;
+			}
+
+			.receipt-list-item.correct {
+				background-color: #DFD;
+			}
+
+			.receipt-list-item.failed {
+				background-color: #FDD;
+			}
+
+			.receipt-list-item .title>* {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				font-weight: bold;
+			}
+
+			.receipt-list-item .main-info {
+				display: flex;
+				justify-content: space-between;
+				font-size: 90%;
+				margin: 4px 0;
+			}
+
+			.receipt-list-item .sub-info {
+				display: flex;
+				justify-content: space-between;
+				font-size: 70%;
+				color: gray;
+			}
+
+			.receipt-list-item .total_sum::after {
+				content: " ₽";
+			}
+
+			.receipt-list-item .retail_place_address {
+				max-width: 100%;
+				direction: rtl;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.receipt-list-item:not(:first-child) {
+				border-top: 1px solid lightgray;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="receipt-info-box-wrap"></div>
 		<div class="video-wrap"></div>
+		<div class="receipt-list-wrap hidden"></div>
 		<script src="{{.BundleFPath}}"></script>
+		<div class="template receipt-list-item">
+			<div class="title">
+				<div class="user"></div>
+			</div>
+			<div class="main-info">
+				<time class="created_at"></time>
+				<div class="total_sum"></div>
+			</div>
+			<div class="sub-info">
+				<div class="retail_place_address"></div>
+			</div>
+			<div class="sub-info">
+				<div class="id"></div>
+				<div class="items_count"></div>
+				<div class="retries_left"></div>
+			</div>
+		</div>
 	</body>
 </html>

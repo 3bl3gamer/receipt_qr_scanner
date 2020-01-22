@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -11,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	httputils "github.com/3bl3gamer/go-http-utils"
@@ -24,6 +27,7 @@ type ctxKey string
 const CtxKeyEnv = ctxKey("env")
 const CtxKeyDB = ctxKey("db")
 const CtxKeyTrigger = ctxKey("trigger")
+const CtxKeyUpdateRec = ctxKey("updateRec")
 
 func receiptString(values url.Values, name string) (string, *httputils.JsonError) {
 	if _, ok := values[name]; !ok {
@@ -116,7 +120,7 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 
 	db := r.Context().Value(CtxKeyDB).(*sql.DB)
-	err = saveRecieptRef(db, &ref, text)
+	recID, err := saveRecieptRef(db, &ref, text)
 	if merry.Is(err, ErrReceiptRefAlreadyExists) {
 		return httputils.JsonError{Code: 400, Error: "ALREADY_EXISTS"}, nil
 	} else if err != nil {
@@ -125,10 +129,126 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 
 	updaterTriggerChan := r.Context().Value(CtxKeyTrigger).(chan struct{})
 	updaterTriggerChan <- struct{}{}
+	updatedReceiptIDsChan := r.Context().Value(CtxKeyUpdateRec).(chan int64)
+	updatedReceiptIDsChan <- recID
 	return "ok", nil
 }
 
-func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan chan struct{}) error {
+type ReceiptsBroadcaster struct {
+	InReceiptsChan chan *Receipt
+	clients        map[chan *Receipt]struct{}
+	mutex          sync.RWMutex
+}
+
+func NewReceiptsBroadcaster() *ReceiptsBroadcaster {
+	b := &ReceiptsBroadcaster{
+		InReceiptsChan: make(chan *Receipt, 10),
+		clients:        make(map[chan *Receipt]struct{}),
+	}
+	go func() {
+		for rec := range b.InReceiptsChan {
+			b.broadcast(rec)
+		}
+	}()
+	return b
+}
+
+func (b *ReceiptsBroadcaster) AddClient() chan *Receipt {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	client := make(chan *Receipt, 10)
+	b.clients[client] = struct{}{}
+	return client
+}
+
+func (b *ReceiptsBroadcaster) RemoveClient(client chan *Receipt) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	if _, ok := b.clients[client]; ok {
+		close(client)
+		delete(b.clients, client)
+	}
+}
+
+func (b *ReceiptsBroadcaster) broadcast(rec *Receipt) {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+	for client := range b.clients {
+		client <- rec
+	}
+}
+
+func writeSseJson(wr io.Writer, name string, obj interface{}) error {
+	if _, err := wr.Write([]byte("event: " + name + "\ndata: ")); err != nil {
+		return merry.Wrap(err)
+	}
+	if err := json.NewEncoder(wr).Encode(obj); err != nil {
+		return merry.Wrap(err)
+	}
+	if _, err := wr.Write([]byte("\n\n")); err != nil {
+		return merry.Wrap(err)
+	}
+	return nil
+}
+
+func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
+	var err error
+	timeFromStr := r.URL.Query().Get("time_from")
+	timeFrom := time.Time{}
+	if timeFromStr != "" {
+		timeFrom, err = time.Parse(time.RFC3339, timeFromStr)
+		if err != nil {
+			return httputils.JsonError{Code: 400, Error: "WRONG_TIME_FORMAT"}, nil
+		}
+	}
+
+	db := r.Context().Value(CtxKeyDB).(*sql.DB)
+	receipts, err := loadUpdatedReceipts(db, timeFrom)
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+
+	flusher, ok := wr.(http.Flusher)
+	if !ok {
+		log.Debug().Msg("SSE: flushing not available, aborting")
+		return receipts, nil
+	}
+	log.Debug().Msg("SSE: starting loop")
+
+	recsChan := b.AddClient()
+	defer b.RemoveClient(recsChan)
+
+	closeNotify := wr.(http.CloseNotifier).CloseNotify()
+
+	wr.Header().Set("Content-Type", "text/event-stream")
+
+	if receipts == nil {
+		receipts = []*Receipt{}
+	}
+	if err := writeSseJson(wr, "initial_receipts", receipts); err != nil {
+		return nil, merry.Wrap(err)
+	}
+	flusher.Flush()
+
+sseLoop:
+	for {
+		select {
+		case rec := <-recsChan:
+			log.Debug().Msg("SSE: got receipt")
+			// errors.Is(err, syscall.EPIPE)
+			if err := writeSseJson(wr, "receipt", rec); err != nil {
+				return nil, merry.Wrap(err)
+			}
+			flusher.Flush()
+		case <-closeNotify:
+			log.Debug().Msg("SSE: client closed connection, aborting loop")
+			break sseLoop
+		}
+	}
+	return nil, nil
+}
+
+func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	ex, err := os.Executable()
 	if err != nil {
 		return merry.Wrap(err)
@@ -136,6 +256,17 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 	baseDir := filepath.Dir(ex)
 
 	var bundleFPath, stylesFPath string
+
+	receiptsBroadcaster := NewReceiptsBroadcaster()
+	go func() {
+		for recID := range updatedReceiptIDsChan {
+			rec, err := loadReceipt(db, recID)
+			if err != nil {
+				log.Fatal().Stack().Err(err).Msg("")
+			}
+			receiptsBroadcaster.InReceiptsChan <- rec
+		}
+	}()
 
 	// Config
 	wrapper := &httputils.Wrapper{
@@ -146,6 +277,7 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 				r = r.WithContext(context.WithValue(r.Context(), CtxKeyEnv, env))
 				r = r.WithContext(context.WithValue(r.Context(), CtxKeyDB, db))
 				r = r.WithContext(context.WithValue(r.Context(), CtxKeyTrigger, updaterTriggerChan))
+				r = r.WithContext(context.WithValue(r.Context(), CtxKeyUpdateRec, updatedReceiptIDsChan))
 				return merry.Wrap(handle(wr, r, params))
 			}
 		},
@@ -172,6 +304,7 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 	// Routes
 	route("GET", "/", HandleIndex)
 	route("POST", "/api/receipt", HandleAPIReceipt)
+	route("GET", "/api/receipts_list", receiptsBroadcaster.HandleAPIReceiptsList)
 
 	route("GET", "/api/explode", func(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
 		return nil, merry.New("test API error")

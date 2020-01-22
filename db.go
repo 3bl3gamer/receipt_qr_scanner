@@ -50,17 +50,24 @@ func setupDB(configDir string) (*sql.DB, error) {
 	return db, nil
 }
 
-func saveRecieptRef(db *sql.DB, ref *ReceiptRef, refText string) error {
-	_, err := db.Exec(`
+func saveRecieptRef(db *sql.DB, ref *ReceiptRef, refText string) (int64, error) {
+	res, err := db.Exec(`
 		INSERT INTO receipts (ref_text, fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at)
 		VALUES (?,?,?,?,?,?,?)`,
 		refText, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	if sqlite3Error, ok := err.(sqlite3.Error); ok {
 		if sqlite3Error.ExtendedCode == sqlite3.ErrConstraintUnique {
-			return ErrReceiptRefAlreadyExists.Here()
+			return 0, ErrReceiptRefAlreadyExists.Here()
 		}
 	}
-	return merry.Wrap(err)
+	if err != nil {
+		return 0, merry.Wrap(err)
+	}
+	rowID, err := res.LastInsertId()
+	if err != nil {
+		return 0, merry.Wrap(err)
+	}
+	return rowID, nil
 }
 
 func saveReceiptFailure(db *sql.DB, ref *ReceiptRef) error {
@@ -91,7 +98,8 @@ func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
 
 func loadPendingReceipts(db *sql.DB, limit int64) ([]*Receipt, error) {
 	rows, err := db.Query(`
-		SELECT fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at, is_correct FROM receipts
+		SELECT id, fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at, COALESCE(is_correct, 0)
+		FROM receipts
 		WHERE (is_correct IS NULL OR data IS NULL)
 		  AND next_retry_at <= CURRENT_TIMESTAMP
 		  AND retries_left > 0
@@ -104,7 +112,8 @@ func loadPendingReceipts(db *sql.DB, limit int64) ([]*Receipt, error) {
 	var recs []*Receipt
 	for rows.Next() {
 		rec := &Receipt{}
-		err = rows.Scan(&rec.Ref.FiscalNum, &rec.Ref.FiscalDoc, &rec.Ref.FiscalSign,
+		err = rows.Scan(&rec.ID,
+			&rec.Ref.FiscalNum, &rec.Ref.FiscalDoc, &rec.Ref.FiscalSign,
 			&rec.Ref.Kind, &rec.Ref.Summ, &rec.Ref.CreatedAt, &rec.IsCorrect)
 		if err != nil {
 			return nil, merry.Wrap(err)
@@ -131,4 +140,59 @@ func loadNextRetryTime(db *sql.DB) (time.Time, error) {
 		return time.Time{}, merry.Wrap(err)
 	}
 	return nextRetryAt, nil
+}
+
+type SQLMultiScanner interface {
+	Scan(...interface{}) error
+}
+
+const receiptSQLFields = `id, saved_at, updated_at,
+fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at,
+COALESCE(is_correct, FALSE), ref_text, CAST(COALESCE(data, '') AS text),
+retries_left, next_retry_at`
+
+func scanReceipt(row SQLMultiScanner, rec *Receipt) error {
+	err := row.Scan(
+		&rec.ID, &rec.SavedAt, &rec.UpdatedAt,
+		&rec.Ref.FiscalNum, &rec.Ref.FiscalDoc, &rec.Ref.FiscalSign,
+		&rec.Ref.Kind, &rec.Ref.Summ, &rec.Ref.CreatedAt,
+		&rec.IsCorrect, &rec.RefText, &rec.Data,
+		&rec.RetriesLeft, &rec.NextRetryAt)
+	return merry.Wrap(err)
+}
+
+func loadReceipt(db *sql.DB, id int64) (*Receipt, error) {
+	row := db.QueryRow(`SELECT `+receiptSQLFields+` FROM receipts WHERE id = ?`, id)
+	rec := &Receipt{}
+	err := scanReceipt(row, rec)
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+	return rec, nil
+}
+
+func loadUpdatedReceipts(db *sql.DB, timeFrom time.Time) ([]*Receipt, error) {
+	rows, err := db.Query(`
+		SELECT `+receiptSQLFields+`
+		FROM receipts
+		WHERE updated_at > ?
+		ORDER BY saved_at`, timeFrom)
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+
+	var recs []*Receipt
+	for rows.Next() {
+		rec := &Receipt{}
+		err = scanReceipt(rows, rec)
+		if err != nil {
+			return nil, merry.Wrap(err)
+		}
+		recs = append(recs, rec)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+	return recs, nil
 }

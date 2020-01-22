@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func updateIter(db *sql.DB) error {
+func updateIter(db *sql.DB, updatedReceiptIDsChan chan int64) error {
 	receipts, err := loadPendingReceipts(db, 5)
 	if err != nil {
 		return merry.Wrap(err)
@@ -23,16 +23,18 @@ func updateIter(db *sql.DB) error {
 			if err := saveReceiptFailure(db, &rec.Ref); err != nil {
 				return merry.Wrap(err)
 			}
+			updatedReceiptIDsChan <- rec.ID
 			continue
 		}
 
 		log.Info().Msgf("receipt %s seems correct", rec.Ref)
 
-		if !rec.IsCorrect.Valid || !rec.IsCorrect.Bool {
+		if !rec.IsCorrect {
 			if err := saveReceiptCorrectness(db, &rec.Ref); err != nil {
 				return merry.Wrap(err)
 			}
 		}
+		updatedReceiptIDsChan <- rec.ID
 
 		log.Info().Msgf("fetching receipt %s", rec.Ref)
 
@@ -51,6 +53,7 @@ func updateIter(db *sql.DB) error {
 			if err := saveReceiptFailure(db, &rec.Ref); err != nil {
 				return merry.Wrap(err)
 			}
+			updatedReceiptIDsChan <- rec.ID
 			continue
 		}
 
@@ -60,14 +63,15 @@ func updateIter(db *sql.DB) error {
 		if err := saveRecieptData(db, &rec.Ref, data); err != nil {
 			return merry.Wrap(err)
 		}
+		updatedReceiptIDsChan <- rec.ID
 	}
 	return nil
 }
 
-func StartUpdater(db *sql.DB, triggerChan chan struct{}) error {
+func StartUpdater(db *sql.DB, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	timer := time.NewTimer(200 * 365 * 24 * time.Hour) //timedelta can store ~292 years
 	for {
-		if err := updateIter(db); err != nil {
+		if err := updateIter(db, updatedReceiptIDsChan); err != nil {
 			return merry.Wrap(err)
 		}
 		nextRetryAt, err := loadNextRetryTime(db)
