@@ -77,35 +77,45 @@
 				right: 0;
 				width: 320px;
 				height: 100vh;
+				z-index: 2;
 				overflow-y: auto;
+				overflow-x: visible;
 				background-color: white;
 				border-left: 2px solid lightgray;
-				transition: transform 0.3s ease;
+				transition: transform 0.3s ease, opacity 0.2s ease;
 			}
 
 			.receipt-list-wrap.hidden {
-				transform: translateX(95%);
+				transform: translateX(92%);
+				opacity: 0.8;
 			}
 
 			.receipt-list-item {
 				white-space: nowrap;
 				padding: 5px;
-				height: 82px;
 				overflow: hidden;
-				transition: height 0.3s ease;
+				transition: margin 0.3s ease, background-color 1s ease;
 				box-sizing: border-box;
 			}
 
-			.receipt-list-item.collapsed {
-				height: 0;
+			.receipt-list-item.correct {
+				background-color: #FFB;
 			}
 
-			.receipt-list-item.correct {
+			.receipt-list-item.filled {
 				background-color: #DFD;
 			}
 
 			.receipt-list-item.failed {
 				background-color: #FDD;
+			}
+
+			.receipt-list-item.collapsed {
+				margin-top: -82px;
+			}
+
+			.receipt-list-wrap.hidden .receipt-list-item.collapsed {
+				background-color: yellow;
 			}
 
 			.receipt-list-item .title>* {
@@ -126,10 +136,6 @@
 				justify-content: space-between;
 				font-size: 70%;
 				color: gray;
-			}
-
-			.receipt-list-item .total_sum::after {
-				content: " ₽";
 			}
 
 			.receipt-list-item .retail_place_address {

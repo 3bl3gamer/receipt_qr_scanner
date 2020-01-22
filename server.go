@@ -221,6 +221,7 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 	closeNotify := wr.(http.CloseNotifier).CloseNotify()
 
 	wr.Header().Set("Content-Type", "text/event-stream")
+	wr.Header().Set("X-Accel-Buffering", "no") //disabling Nginx buffering
 
 	if receipts == nil {
 		receipts = []*Receipt{}

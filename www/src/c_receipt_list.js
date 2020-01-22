@@ -39,7 +39,7 @@ function addRceipt(rec, isInitial) {
 	receiptById.set(rec.id, rec)
 	if (isInitial) {
 		receipts.push(rec)
-		receipts.sort((a, b) => b.savedAt.localeCompare(b.ref.savedAt))
+		receipts.sort((a, b) => b.savedAt.localeCompare(a.savedAt))
 	} else {
 		receipts.unshift(rec)
 	}
@@ -60,10 +60,11 @@ function updateRceipt(rec) {
 	const elem = receiptElemById.get(rec.id)
 	const data = rec.data ? JSON.parse(rec.data).document.receipt : null
 	elem.classList.toggle('correct', rec.isCorrect)
+	elem.classList.toggle('filled', !!data)
 	elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)
 	elem.querySelector('.id').textContent = '#' + rec.id
 	elem.querySelector('.created_at').textContent = new Date(rec.ref.createdAt).toLocaleString()
-	elem.querySelector('.total_sum').textContent = data && (data.totalSum / 100).toFixed(2)
+	elem.querySelector('.total_sum').textContent = data && (data.totalSum / 100).toFixed(2) + ' ₽'
 	elem.querySelector('.user').textContent = (data && data.user) || '—'
 	elem.querySelector('.items_count').textContent = ((data && data.items.length) || '??') + ' шт'
 	elem.querySelector('.items_count').textContent = ((data && data.items.length) || '??') + ' шт'
