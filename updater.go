@@ -84,7 +84,7 @@ func StartUpdater(db *sql.DB, triggerChan chan struct{}, updatedReceiptIDsChan c
 		}
 
 		log.Debug().Msgf("waiting %s", delay)
-		if !timer.Stop() {
+		if !timer.Stop() && len(timer.C) > 0 {
 			<-timer.C
 		}
 		timer.Reset(delay)
