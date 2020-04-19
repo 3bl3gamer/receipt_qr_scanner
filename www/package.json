@@ -15,6 +15,7 @@
 		"jsqr": "github:cozmo/jsQR#01d3b0a3889b6da02486ea5c26e5bfaaa268d61a",
 		"rollup": "^1.23.1",
 		"rollup-plugin-commonjs": "^10.1.0",
+		"rollup-plugin-copy": "^3.3.0",
 		"rollup-plugin-node-resolve": "^5.2.0",
 		"rollup-pluginutils": "^2.8.2",
 		"tslib": "^1.10.0",

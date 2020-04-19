@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -318,8 +319,12 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 		if err != nil {
 			return merry.Wrap(err)
 		}
-		bundleFPath = "http://" + devServerAddress + "/bundle.js"
-		stylesFPath = "http://" + devServerAddress + "/bundle.css"
+		bundleFPath = "./bundle.js"
+		stylesFPath = "./bundle.css"
+		router.NotFound = &httputil.ReverseProxy{Director: func(req *http.Request) {
+			req.URL.Scheme = "http"
+			req.URL.Host = devServerAddress
+		}}
 	} else {
 		distPath := baseDir + "/www/dist"
 		// bundleFPath, stylesFPath, err = httputils.LastJSAndCSSFNames(distPath, "bundle.", "bundle.")
@@ -327,12 +332,11 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 		if err != nil {
 			return merry.Wrap(err)
 		}
-		if err != nil {
-			return merry.Wrap(err)
-		}
-		bundleFPath = "./dist/" + bundleFPath
-		stylesFPath = "./dist/" + stylesFPath
-		router.ServeFiles("/dist/*filepath", http.Dir(distPath))
+		bundleFPath = "./" + bundleFPath
+		stylesFPath = "./" + stylesFPath
+		router.NotFound = http.HandlerFunc(func(wr http.ResponseWriter, r *http.Request) {
+			http.ServeFile(wr, r, distPath+r.URL.Path)
+		})
 	}
 	log.Info().Str("fpath", bundleFPath).Msg("bundle")
 	log.Info().Str("fpath", stylesFPath).Msg("styles")
