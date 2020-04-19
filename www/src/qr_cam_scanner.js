@@ -102,6 +102,27 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		rc.fillRect(0, y1, uiCanvas.width, uiCanvas.height - y1)
 	}
 
+	/** @param {ImageData} imageData */
+	function scanFrameCanvasData(imageData) {
+		const { data, width, height } = imageData
+
+		const shouldInvert = false
+		const { binarized, inverted } = binarize(data, width, height, shouldInvert)
+
+		const matrix = binarized
+		const location = locate(matrix)
+		if (location === null) return
+
+		showLocation(location)
+
+		const extracted = extract(matrix, location)
+		const decoded = decode(extracted.matrix)
+		if (decoded === null) return
+
+		highlightQR(extracted.mappingFunction, location.dimension)
+		handleDecodedQR(decoded.text)
+	}
+
 	function scanCurVideoFrame() {
 		const vidMinSize = Math.min(videoSettings.width, videoSettings.height)
 
@@ -117,23 +138,8 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 			scanSize,
 			scanSize,
 		)
-		const { data } = rc.getImageData(0, 0, scanSize, scanSize)
 
-		const shouldInvert = false
-		const { binarized, inverted } = binarize(data, scanSize, scanSize, shouldInvert)
-
-		const matrix = binarized
-		const location = locate(matrix)
-		if (location === null) return
-
-		showLocation(location)
-
-		const extracted = extract(matrix, location)
-		const decoded = decode(extracted.matrix)
-		if (decoded === null) return
-
-		highlightQR(extracted.mappingFunction, location.dimension)
-		handleDecodedQR(decoded.text)
+		scanFrameCanvasData(rc.getImageData(0, 0, scanSize, scanSize))
 	}
 
 	function xyFromScanToUI(x, y) {
@@ -189,6 +195,10 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		rc.fillStyle = color
 		rc.fill()
 	}
+
+	// ---
+
+	this.scanFrameCanvasData = scanFrameCanvasData
 
 	// ---
 

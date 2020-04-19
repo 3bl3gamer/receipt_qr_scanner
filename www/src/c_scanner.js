@@ -57,22 +57,6 @@ ScannedQR.onStatusChange = function(scannedQR) {
 	if (shownScannedQRs.includes(scannedQR)) updateQRInfo(scannedQR)
 }
 
-const scannedQRs = new Map()
-let shownScannedQRs = []
-
-new QRCamScanner(document.querySelector('.video-wrap'), function(text) {
-	if (text == '') return
-	text = text
-		.split('&')
-		.sort()
-		.join('&')
-	if (!scannedQRs.has(text)) scannedQRs.set(text, new ScannedQR(text))
-	const scannedQR = scannedQRs.get(text)
-	if (shownScannedQRs[0] != scannedQR) {
-		addQRInfo(scannedQR)
-	}
-})
-
 function addQRInfo(scannedQR) {
 	shownScannedQRs.unshift(scannedQR)
 	const infoBox = document.createElement('div')
@@ -101,4 +85,44 @@ function removeQRInfo(scannedQR) {
 	shownScannedQRs.splice(index, 1)
 	const wrap = document.querySelector('.receipt-info-box-wrap')
 	wrap.removeChild(wrap.children[index])
+}
+
+const scannedQRs = new Map()
+let shownScannedQRs = []
+
+const qrCamScanner = new QRCamScanner(document.querySelector('.video-wrap'), function(text) {
+	if (text == '') return
+	text = text
+		.split('&')
+		.sort()
+		.join('&')
+	if (!scannedQRs.has(text)) scannedQRs.set(text, new ScannedQR(text))
+	const scannedQR = scannedQRs.get(text)
+	if (shownScannedQRs[0] != scannedQR) {
+		addQRInfo(scannedQR)
+	}
+})
+
+document.querySelector('.open-image').onclick = () => {
+	const fileInput = document.createElement('input')
+	fileInput.type = 'file'
+	fileInput.accept = 'image/*'
+	fileInput.onchange = e => {
+		const img = new Image()
+		img.src = window.URL.createObjectURL(e.target.files[0])
+		img.onload = () => {
+			window.URL.revokeObjectURL(img.src)
+			const canvas = document.createElement('canvas')
+			canvas.width = img.naturalWidth
+			canvas.height = img.naturalHeight
+			const rc = canvas.getContext('2d')
+			rc.drawImage(img, 0, 0)
+			const data = rc.getImageData(0, 0, canvas.width, canvas.height)
+			qrCamScanner.scanFrameCanvasData(data)
+		}
+		img.onerror = () => {
+			window.URL.revokeObjectURL(img.src)
+		}
+	}
+	fileInput.click()
 }

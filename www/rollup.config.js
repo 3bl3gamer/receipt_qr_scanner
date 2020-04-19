@@ -35,6 +35,7 @@ export default async function(commandOptions) {
 				copy({
 					targets: [
 						{ src: 'src/icon-256.png', dest: 'dist' },
+						{ src: 'src/image_icon.svg', dest: 'dist' },
 						{ src: 'src/receipt_qr_scanner.webmanifest', dest: 'dist' },
 					],
 				}),
