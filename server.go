@@ -335,6 +335,7 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 		bundleFPath = "./" + bundleFPath
 		stylesFPath = "./" + stylesFPath
 		router.NotFound = http.HandlerFunc(func(wr http.ResponseWriter, r *http.Request) {
+			log.Debug().Str("path", r.URL.Path).Msg("serving static")
 			http.ServeFile(wr, r, distPath+r.URL.Path)
 		})
 	}
