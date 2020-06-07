@@ -1,4 +1,4 @@
-const cacheName = 'receipt_qr_scanner'
+const cacheName = 'receipt_qr_scanner_v0.2'
 
 /*
 self.addEventListener('install', e => {

@@ -13,7 +13,7 @@ function ScannedQR(text) {
 	this._save()
 }
 
-ScannedQR.prototype._save = function() {
+ScannedQR.prototype._save = function () {
 	fetch('./api/receipt', { method: 'POST', body: this.text })
 		.then(r => r.json())
 		.then(res => {
@@ -30,7 +30,7 @@ ScannedQR.prototype._save = function() {
 		.catch(onError)
 }
 
-ScannedQR.prototype._extractInfoFields = function() {
+ScannedQR.prototype._extractInfoFields = function () {
 	for (const item of this.text.split('&')) {
 		let match
 		if ((match = item.match(/^t=(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)/))) {
@@ -42,7 +42,7 @@ ScannedQR.prototype._extractInfoFields = function() {
 	}
 }
 
-ScannedQR.prototype.label = function() {
+ScannedQR.prototype.label = function () {
 	return (
 		this.time +
 		', ' +
@@ -53,7 +53,7 @@ ScannedQR.prototype.label = function() {
 	)
 }
 
-ScannedQR.onStatusChange = function(scannedQR) {
+ScannedQR.onStatusChange = function (scannedQR) {
 	if (shownScannedQRs.includes(scannedQR)) updateQRInfo(scannedQR)
 }
 
@@ -90,18 +90,19 @@ function removeQRInfo(scannedQR) {
 const scannedQRs = new Map()
 let shownScannedQRs = []
 
-const qrCamScanner = new QRCamScanner(document.querySelector('.video-wrap'), function(text) {
+const qrCamScanner = new QRCamScanner(document.querySelector('.video-wrap'), function (text) {
 	if (text == '') return
-	text = text
-		.split('&')
-		.sort()
-		.join('&')
+	text = text.split('&').sort().join('&')
 	if (!scannedQRs.has(text)) scannedQRs.set(text, new ScannedQR(text))
 	const scannedQR = scannedQRs.get(text)
 	if (shownScannedQRs[0] != scannedQR) {
 		addQRInfo(scannedQR)
 	}
 })
+
+document.querySelector('.debug-mode-image').onclick = () => {
+	qrCamScanner.toggleDebug()
+}
 
 document.querySelector('.open-image').onclick = () => {
 	const fileInput = document.createElement('input')

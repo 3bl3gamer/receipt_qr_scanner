@@ -11,6 +11,7 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
+		"@rollup/plugin-replace": "^2.3.2",
 		"@rollup/plugin-typescript": "^4.1.1",
 		"@types/jest": "^25.2.1",
 		"jsqr": "github:cozmo/jsQR#01d3b0a3889b6da02486ea5c26e5bfaaa268d61a",

@@ -4,7 +4,7 @@ import typescript from '@rollup/plugin-typescript'
 import replace from '@rollup/plugin-replace'
 import copy from 'rollup-plugin-copy'
 
-export default async function(commandOptions) {
+export default async function (commandOptions) {
 	const isProd = process.env.NODE_ENV === 'production'
 	return [
 		{
@@ -36,6 +36,7 @@ export default async function(commandOptions) {
 					targets: [
 						{ src: 'src/icon-256.png', dest: 'dist' },
 						{ src: 'src/image_icon.svg', dest: 'dist' },
+						{ src: 'src/developer_mode_icon.svg', dest: 'dist' },
 						{ src: 'src/receipt_qr_scanner.webmanifest', dest: 'dist' },
 					],
 				}),
