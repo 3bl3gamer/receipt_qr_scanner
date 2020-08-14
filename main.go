@@ -16,6 +16,12 @@ func main() {
 	flag.StringVar(&serverAddr, "addr", "127.0.0.1:9010", "HTTP server address:port")
 	flag.Parse()
 
+	sessionID := os.Getenv("SESSION_ID")
+	if sessionID == "" {
+		println("missing SESSION_ID environment variable")
+		os.Exit(1)
+	}
+
 	// Logger
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.ErrorStackMarshaler = func(err error) interface{} { return merry.Details(err) }
@@ -38,7 +44,7 @@ func main() {
 	updatedReceiptIDsChan := make(chan int64, 10)
 
 	go func() {
-		if err := StartUpdater(db, triggerChan, updatedReceiptIDsChan); err != nil {
+		if err := StartUpdater(db, sessionID, triggerChan, updatedReceiptIDsChan); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
 	}()

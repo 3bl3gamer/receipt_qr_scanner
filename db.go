@@ -98,7 +98,7 @@ func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
 
 func loadPendingReceipts(db *sql.DB, limit int64) ([]*Receipt, error) {
 	rows, err := db.Query(`
-		SELECT id, fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at, COALESCE(is_correct, 0)
+		SELECT id, ref_text, fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at, COALESCE(is_correct, 0)
 		FROM receipts
 		WHERE (is_correct IS NULL OR data IS NULL)
 		  AND next_retry_at <= CURRENT_TIMESTAMP
@@ -112,7 +112,7 @@ func loadPendingReceipts(db *sql.DB, limit int64) ([]*Receipt, error) {
 	var recs []*Receipt
 	for rows.Next() {
 		rec := &Receipt{}
-		err = rows.Scan(&rec.ID,
+		err = rows.Scan(&rec.ID, &rec.RefText,
 			&rec.Ref.FiscalNum, &rec.Ref.FiscalDoc, &rec.Ref.FiscalSign,
 			&rec.Ref.Kind, &rec.Ref.Summ, &rec.Ref.CreatedAt, &rec.IsCorrect)
 		if err != nil {

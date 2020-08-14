@@ -25,7 +25,7 @@ function reopen() {
 }
 reopen()
 
-document.querySelector('.receipt-list-wrap').onclick = function() {
+document.querySelector('.receipt-list-wrap').onclick = function () {
 	this.classList.toggle('hidden')
 }
 
@@ -66,9 +66,14 @@ function addRceipt(rec, isInitial) {
 	updateRceipt(rec)
 }
 
+function getReceiptFrom(data) {
+	if ('ticket' in data) data = data.ticket //FNS API version 2
+	return data.document.receipt
+}
+
 function updateRceipt(rec) {
 	const elem = receiptElemById.get(rec.id)
-	const data = rec.data ? JSON.parse(rec.data).document.receipt : null
+	const data = rec.data ? getReceiptFrom(JSON.parse(rec.data)) : null
 	elem.classList.toggle('correct', rec.isCorrect)
 	elem.classList.toggle('filled', !!data)
 	elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)

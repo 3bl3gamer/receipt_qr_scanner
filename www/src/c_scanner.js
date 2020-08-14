@@ -92,7 +92,6 @@ let shownScannedQRs = []
 
 const qrCamScanner = new QRCamScanner(document.querySelector('.video-wrap'), function (text) {
 	if (text == '') return
-	text = text.split('&').sort().join('&')
 	if (!scannedQRs.has(text)) scannedQRs.set(text, new ScannedQR(text))
 	const scannedQR = scannedQRs.get(text)
 	if (shownScannedQRs[0] != scannedQR) {

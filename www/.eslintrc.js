@@ -4,10 +4,6 @@ module.exports = {
 		es6: true,
 	},
 	extends: 'plugin:prettier/recommended',
-	globals: {
-		Atomics: 'readonly',
-		SharedArrayBuffer: 'readonly',
-	},
 	parserOptions: {
 		ecmaVersion: 2020,
 		sourceType: 'module',
@@ -19,6 +15,8 @@ module.exports = {
 		'no-undef': 'error',
 	},
 	globals: {
+		Atomics: 'readonly',
+		SharedArrayBuffer: 'readonly',
 		process: true,
 	},
 }
