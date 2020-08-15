@@ -15,20 +15,29 @@ func updateIter(db *sql.DB, sessonID string, updatedReceiptIDsChan chan int64) e
 	}
 
 	for _, rec := range receipts {
-		log.Info().Msgf("fetching receipt %s", rec.RefText)
+		log.Info().Str("ref_text", rec.RefText).Msg("fetching receipt")
 
 		data, err := fetchReceipt(rec.RefText, sessonID)
+
+		if !rec.IsCorrect && merry.Is(err, ErrReceiptMaybeNotReadyYet) {
+			if err := saveReceiptCorrectness(db, &rec.Ref); err != nil {
+				return merry.Wrap(err)
+			}
+			updatedReceiptIDsChan <- rec.ID
+		}
+
 		for i := 0; i < 3; i++ {
-			if merry.Is(err, ErrWaitingForConnection) || merry.Is(err, ErrCashboxOffline) {
-				log.Info().Msgf("receipt seems not checked to FNS, waiting a bit more x%d", i+1)
+			if merry.Is(err, ErrWaitingForConnection) || merry.Is(err, ErrCashboxOffline) || merry.Is(err, ErrReceiptMaybeNotReadyYet) {
+				log.Info().Int("iter", i+i).Msg("receipt seems not checked to FNS, waiting a bit more")
 				time.Sleep(2 * time.Second)
 				data, err = fetchReceipt(rec.RefText, sessonID)
 			} else {
 				break
 			}
 		}
+
 		if err != nil {
-			log.Warn().Err(err).Msgf("receipt %s error: %s", rec.RefText, err)
+			log.Warn().Err(err).Str("ref_text", rec.RefText).Msg("receipt error")
 			if err := saveReceiptFailure(db, &rec.Ref); err != nil {
 				return merry.Wrap(err)
 			}
@@ -36,11 +45,8 @@ func updateIter(db *sql.DB, sessonID string, updatedReceiptIDsChan chan int64) e
 			continue
 		}
 
-		log.Info().Msgf("got receipt %s data", rec.RefText)
+		log.Info().Str("ref_text", rec.RefText).Msg("got receipt data")
 
-		if err := saveReceiptCorrectness(db, &rec.Ref); err != nil {
-			return merry.Wrap(err)
-		}
 		if err := saveRecieptData(db, &rec.Ref, data); err != nil {
 			return merry.Wrap(err)
 		}
@@ -64,7 +70,7 @@ func StartUpdater(db *sql.DB, sessionID string, triggerChan chan struct{}, updat
 			delay = time.Second
 		}
 
-		log.Debug().Msgf("waiting %s", delay)
+		log.Debug().Str("delay", delay.String()).Msgf("pausing updater")
 		if !timer.Stop() && len(timer.C) > 0 {
 			<-timer.C
 		}
@@ -72,7 +78,7 @@ func StartUpdater(db *sql.DB, sessionID string, triggerChan chan struct{}, updat
 
 		select {
 		case <-triggerChan:
-			log.Debug().Int("chan len", len(triggerChan)).Msg("updater triggered")
+			log.Debug().Int("chan_len", len(triggerChan)).Msg("updater triggered")
 		case <-timer.C:
 		}
 		//emptying triggerChan

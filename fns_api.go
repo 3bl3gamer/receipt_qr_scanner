@@ -15,11 +15,14 @@ import (
 //   АПИ изменилось, теперь нужен айди сессии
 //   https://github.com/kosov/fns-check/issues/3#issuecomment-673966281
 
-var ErrWaitingForConnection = merry.New("Ожидает соединения")                                   //
+var ErrReceiptMaybeNotReadyYet = merry.New("Чек (возможно) ещё не подгружен") // точное название статусов (0/1) неизвестно, но при их получении стоит повторить запрос после небольшой паузы
+var ErrWaitingForConnection = merry.New("Ожидает соединения")
 var ErrCashboxOffline = merry.New("Чек корректен, но отсутствует в хранилище: касса автономна") // (Автономная касса)
-var ErrReceiveFailed = merry.New("Ошибка получения")                                            //
-var ErrWrongReceipt = merry.New("Чек не является кассовым чеком или БСО")                       // (Не кассовый чек)
+var ErrReceiveFailed = merry.New("Ошибка получения")
+var ErrWrongReceipt = merry.New("Чек не является кассовым чеком или БСО") // (Не кассовый чек)
 var ErrByStatus = map[int64]merry.Error{
+	0:  ErrReceiptMaybeNotReadyYet,
+	1:  ErrReceiptMaybeNotReadyYet,
 	5:  ErrWaitingForConnection,
 	8:  ErrCashboxOffline,
 	9:  ErrReceiveFailed,

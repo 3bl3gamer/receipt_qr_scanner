@@ -90,7 +90,7 @@ func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
 
 func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
 	_, err := db.Exec(`
-		UPDATE receipts SET data = ?
+		UPDATE receipts SET is_correct = 1, data = ?
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		data, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)

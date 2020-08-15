@@ -343,6 +343,6 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 	log.Info().Str("fpath", stylesFPath).Msg("styles")
 
 	// Server
-	log.Info().Msg("starting server on " + address)
+	log.Info().Str("address", address).Msg("starting server")
 	return merry.Wrap(http.ListenAndServe(address, router))
 }
