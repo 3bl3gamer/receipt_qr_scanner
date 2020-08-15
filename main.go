@@ -26,7 +26,11 @@ func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.ErrorStackMarshaler = func(err error) interface{} { return merry.Details(err) }
 	zerolog.ErrorStackFieldName = "message" //TODO: https://github.com/rs/zerolog/issues/157
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000"})
+	var tsFmt zerolog.Formatter
+	if env.IsProd() { //removeing timestamps in prod mode (systemd will add them)
+		tsFmt = func(arg interface{}) string { return "" }
+	}
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
 
 	// DB
 	cfgDir, err := MakeConfigDir()

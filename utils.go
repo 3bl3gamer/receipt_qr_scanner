@@ -13,7 +13,7 @@ type Env struct {
 
 func (e *Env) Set(name string) error {
 	if name != "dev" && name != "prod" {
-		return merry.New("wrong env: " + name)
+		return merry.New("must be 'dev' or 'prod'")
 	}
 	e.Val = name
 	return nil
