@@ -11,16 +11,10 @@ import (
 
 func main() {
 	var env Env
-	var serverAddr string
 	flag.Var(&env, "env", "evironment, dev or prod")
-	flag.StringVar(&serverAddr, "addr", "127.0.0.1:9010", "HTTP server address:port")
+	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
+	mustInitSession := flag.Bool("init-session", false, "init FNS session")
 	flag.Parse()
-
-	sessionID := os.Getenv("SESSION_ID")
-	if sessionID == "" {
-		println("missing SESSION_ID environment variable")
-		os.Exit(1)
-	}
 
 	// Logger
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
@@ -31,6 +25,37 @@ func main() {
 		tsFmt = func(arg interface{}) string { return "" }
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
+
+	// Session
+	var err error
+	var session *Session
+	if *mustInitSession {
+		args := flag.Args()
+		if len(args) != 2 {
+			log.Fatal().Msg("exactly two arguments (refreshToken and clientSecret) are required for session init")
+		}
+		session, err = initSession(args[0], args[1])
+	} else {
+		session, err = loadSession()
+		if merry.Is(err, ErrSessionNotFound) {
+			log.Fatal().Msg("session file not found, forgot to --init-session?")
+		}
+	}
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("")
+	}
+	if err := updateSessionIfOld(session); err != nil {
+		log.Fatal().Stack().Err(err).Msg("")
+	}
+	// Checking session
+	profile, err := fnsGetProfile(session.SessonID)
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("")
+	}
+	log.Info().Str("phone", profile.Phone).Msg("profile")
+	if *mustInitSession {
+		os.Exit(0)
+	}
 
 	// DB
 	cfgDir, err := MakeConfigDir()
@@ -48,12 +73,12 @@ func main() {
 	updatedReceiptIDsChan := make(chan int64, 10)
 
 	go func() {
-		if err := StartUpdater(db, sessionID, triggerChan, updatedReceiptIDsChan); err != nil {
+		if err := StartUpdater(db, session, triggerChan, updatedReceiptIDsChan); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
 	}()
 
-	if err := StartHTTPServer(db, env, serverAddr, triggerChan, updatedReceiptIDsChan); err != nil {
+	if err := StartHTTPServer(db, env, *serverAddr, triggerChan, updatedReceiptIDsChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
 }

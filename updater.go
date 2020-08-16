@@ -8,7 +8,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func updateIter(db *sql.DB, sessonID string, updatedReceiptIDsChan chan int64) error {
+func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) error {
+	if err := updateSessionIfOld(session); err != nil {
+		return merry.Wrap(err)
+	}
+
 	receipts, err := loadPendingReceipts(db, 5)
 	if err != nil {
 		return merry.Wrap(err)
@@ -17,7 +21,7 @@ func updateIter(db *sql.DB, sessonID string, updatedReceiptIDsChan chan int64) e
 	for _, rec := range receipts {
 		log.Info().Str("ref_text", rec.RefText).Msg("fetching receipt")
 
-		data, err := fetchReceipt(rec.RefText, sessonID)
+		data, err := fnsFetchReceipt(rec.RefText, session.SessonID)
 
 		if !rec.IsCorrect && merry.Is(err, ErrReceiptMaybeNotReadyYet) {
 			if err := saveReceiptCorrectness(db, &rec.Ref); err != nil {
@@ -30,7 +34,7 @@ func updateIter(db *sql.DB, sessonID string, updatedReceiptIDsChan chan int64) e
 			if merry.Is(err, ErrWaitingForConnection) || merry.Is(err, ErrCashboxOffline) || merry.Is(err, ErrReceiptMaybeNotReadyYet) {
 				log.Info().Int("iter", i+i).Msg("receipt seems not checked to FNS, waiting a bit more")
 				time.Sleep(2 * time.Second)
-				data, err = fetchReceipt(rec.RefText, sessonID)
+				data, err = fnsFetchReceipt(rec.RefText, session.SessonID)
 			} else {
 				break
 			}
@@ -55,10 +59,10 @@ func updateIter(db *sql.DB, sessonID string, updatedReceiptIDsChan chan int64) e
 	return nil
 }
 
-func StartUpdater(db *sql.DB, sessionID string, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
+func StartUpdater(db *sql.DB, session *Session, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	timer := time.NewTimer(200 * 365 * 24 * time.Hour) //timedelta can store ~292 years
 	for {
-		if err := updateIter(db, sessionID, updatedReceiptIDsChan); err != nil {
+		if err := updateIter(db, session, updatedReceiptIDsChan); err != nil {
 			return merry.Wrap(err)
 		}
 		nextRetryAt, err := loadNextRetryTime(db)
