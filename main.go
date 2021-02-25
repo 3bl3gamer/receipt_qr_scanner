@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	var env Env
+	env := Env{"dev"}
 	flag.Var(&env, "env", "evironment, dev or prod")
 	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
 	mustInitSession := flag.Bool("init-session", false, "init FNS session")

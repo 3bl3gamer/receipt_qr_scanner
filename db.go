@@ -70,13 +70,14 @@ func saveRecieptRef(db *sql.DB, ref *ReceiptRef, refText string) (int64, error) 
 	return rowID, nil
 }
 
-func saveReceiptFailure(db *sql.DB, ref *ReceiptRef) error {
+func saveReceiptFailure(db *sql.DB, ref *ReceiptRef, decreaseRetries bool) error {
 	_, err := db.Exec(`
 		UPDATE receipts
-		SET next_retry_at = datetime(CURRENT_TIMESTAMP, '+'||((1-retries_left%2)*30 + (retries_left%2)*20*3600)||' seconds'),
-		    retries_left = MAX(0, retries_left-1)
+		SET next_retry_at = datetime(CURRENT_TIMESTAMP,
+		        '+' || ((1-retries_left%2)*30 + (retries_left%2 | not ?)*20*3600) || ' seconds'),
+		    retries_left = CASE ? WHEN true THEN MAX(0, retries_left-1) ELSE retries_left END
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
-		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
+		decreaseRetries, decreaseRetries, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
 }
 

@@ -31,6 +31,7 @@ var ErrByStatus = map[int64]merry.Error{
 }
 var ErrUnexpectedHttpStatus = merry.New("unexpected HTTP status")
 var ErrNoReceiptData = merry.New("no receipt data in response")
+var ErrToManyRequests = merry.New("too many requests")
 
 type ReceiptInfoResponse struct {
 	ID     string `json:"id"`
@@ -89,7 +90,11 @@ func sendRequestAndRead(req *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	log.Debug().Str("status", resp.Status).Str("path", req.URL.Path).Str("data", string(buf)).Msg("response")
+	log.Debug().Int("code", resp.StatusCode).Str("status", resp.Status).Str("path", req.URL.Path).Str("data", string(buf)).Msg("response")
+
+	if resp.StatusCode == 429 {
+		return nil, ErrToManyRequests.Here()
+	}
 
 	if resp.Status != "200 OK" {
 		return nil, ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))

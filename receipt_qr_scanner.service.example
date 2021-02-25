@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=<user>
 WorkingDirectory=/home/<user>/receipt_qr_scanner
-ExecStart=/home/<user>/receipt_qr_scanner/receipt_qr_scanner
+ExecStart=/home/<user>/receipt_qr_scanner/receipt_qr_scanner --env=prod
 Restart=on-failure
 
 [Install]

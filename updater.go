@@ -42,7 +42,8 @@ func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) 
 
 		if err != nil {
 			log.Warn().Err(err).Str("ref_text", rec.RefText).Msg("receipt error")
-			if err := saveReceiptFailure(db, &rec.Ref); err != nil {
+			decreaseRetries := !merry.Is(err, ErrToManyRequests)
+			if err := saveReceiptFailure(db, &rec.Ref, decreaseRetries); err != nil {
 				return merry.Wrap(err)
 			}
 			updatedReceiptIDsChan <- rec.ID
