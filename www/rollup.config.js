@@ -13,9 +13,11 @@ export default async function (commandOptions) {
 				format: 'esm',
 				dir: 'dist',
 				entryFileNames: isProd ? 'bundle.[hash].js' : 'bundle.js',
+				assetFileNames: isProd ? '[name].[hash][extname]' : '[name][extname]',
 				sourcemap: true,
 			},
 			plugins: [
+				css({ name: 'bundle.css' }),
 				replace({ 'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development') }),
 				!isProd &&
 					(await import('rollup-plugin-serve').then(({ default: serve }) =>
@@ -53,4 +55,21 @@ export default async function (commandOptions) {
 			},
 		},
 	]
+}
+
+function css({ name }) {
+	let style = null
+	return {
+		name: 'css',
+		transform(code, id) {
+			if (!id.endsWith('.css')) return
+			if (style !== null) throw new Error('multiple css files not supported here')
+			style = code
+			return ''
+		},
+		generateBundle(opts) {
+			this.emitFile({ type: 'asset', name, source: style })
+			style = null
+		},
+	}
 }
