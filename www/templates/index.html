@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-		<link rel="manifest" href="./receipt_qr_scanner.webmanifest">
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="manifest" href="./receipt_qr_scanner.webmanifest" />
 		<style>
 			body {
 				margin: 0;
@@ -13,7 +13,7 @@
 			}
 
 			.template {
-				display: none
+				display: none;
 			}
 
 			.receipt-info-box-wrap {
@@ -52,19 +52,19 @@
 				opacity: 0;
 			}
 
-			.receipt-info-box[data-status="saving"] {
+			.receipt-info-box[data-status='saving'] {
 				background-color: gray;
 			}
 
-			.receipt-info-box[data-status="error"] {
+			.receipt-info-box[data-status='error'] {
 				background-color: salmon;
 			}
 
-			.receipt-info-box[data-status="saved"] {
+			.receipt-info-box[data-status='saved'] {
 				background-color: lightgreen;
 			}
 
-			.receipt-info-box[data-status="exists"] {
+			.receipt-info-box[data-status='exists'] {
 				background-color: khaki;
 			}
 
@@ -125,15 +125,15 @@
 			}
 
 			.receipt-list-item.correct {
-				background-color: #FFB;
+				background-color: #ffb;
 			}
 
 			.receipt-list-item.filled {
-				background-color: #DFD;
+				background-color: #dfd;
 			}
 
 			.receipt-list-item.failed {
-				background-color: #FDD;
+				background-color: #fdd;
 			}
 
 			.receipt-list-item.collapsed {
@@ -144,7 +144,7 @@
 				background-color: yellow;
 			}
 
-			.receipt-list-item .title>* {
+			.receipt-list-item .title > * {
 				overflow: hidden;
 				text-overflow: ellipsis;
 				font-weight: bold;
@@ -179,10 +179,12 @@
 	<body>
 		<div class="receipt-info-box-wrap"></div>
 		<div class="video-wrap"></div>
-		<button class="debug-mode-image"><img src="developer_mode_icon.svg"></button>
-		<button class="open-image"><img src="image_icon.svg"></button>
+		<button class="debug-mode-image"><img src="developer_mode_icon.svg" /></button>
+		<button class="open-image"><img src="image_icon.svg" /></button>
 		<div class="receipt-list-wrap hidden"></div>
+
 		<script src="{{.BundleFPath}}"></script>
+
 		<div class="template receipt-list-item">
 			<div class="title">
 				<div class="user"></div>

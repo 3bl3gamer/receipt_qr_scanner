@@ -1,5 +1,5 @@
-import './c_scanner'
-import './c_receipt_list'
+import { setupReceiptListComponent } from './comp_receipt_list'
+import { setupScannerComponent } from './comp_scanner'
 
 if ('serviceWorker' in navigator) {
 	if (process.env.NODE_ENV === 'development') {
@@ -8,3 +8,6 @@ if ('serviceWorker' in navigator) {
 		navigator.serviceWorker.register('./service_worker.js')
 	}
 }
+
+setupScannerComponent()
+setupReceiptListComponent()
