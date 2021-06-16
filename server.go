@@ -192,20 +192,47 @@ func writeSseJson(wr io.Writer, name string, obj interface{}) error {
 }
 
 func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
-	var err error
-	timeFromStr := r.URL.Query().Get("time_from")
-	timeFrom := time.Time{}
-	if timeFromStr != "" {
-		timeFrom, err = time.Parse(time.RFC3339, timeFromStr)
-		if err != nil {
-			return httputils.JsonError{Code: 400, Error: "WRONG_TIME_FORMAT"}, nil
-		}
+	db := r.Context().Value(CtxKeyDB).(*sql.DB)
+	query := r.URL.Query()
+
+	sortMode := query.Get("sort_mode")
+	if sortMode == "" {
+		sortMode = "id"
+	}
+	if sortMode != "id" && sortMode != "created_at" {
+		return httputils.JsonError{Code: 400, Error: "WRONG_SORT_MODE"}, nil
 	}
 
-	db := r.Context().Value(CtxKeyDB).(*sql.DB)
-	receipts, err := loadUpdatedReceipts(db, timeFrom)
+	var err error
+	var receipts []*Receipt
+	if sortMode == "id" {
+		beforeIDStr := query.Get("before_id")
+		beforeID := int64(0)
+		if beforeIDStr != "" {
+			beforeID, err = strconv.ParseInt(beforeIDStr, 10, 64)
+			if err != nil {
+				return httputils.JsonError{Code: 400, Error: "WRONG_NUMBER_FORMAT"}, nil
+			}
+		}
+		receipts, err = loadReceiptsSortedByID(db, beforeID)
+	} else if sortMode == "created_at" {
+		beforeTimeStr := query.Get("before_time")
+		beforeTime := time.Time{}
+		if beforeTimeStr != "" {
+			beforeTime, err = time.Parse(time.RFC3339, beforeTimeStr)
+			if err != nil {
+				return httputils.JsonError{Code: 400, Error: "WRONG_TIME_FORMAT"}, nil
+			}
+		}
+		receipts, err = loadReceiptsSortedByCreatedAt(db, beforeTime)
+	}
 	if err != nil {
 		return nil, merry.Wrap(err)
+	}
+
+	startSSE := query.Get("sse")
+	if startSSE == "" || startSSE == "0" {
+		return receipts, nil
 	}
 
 	flusher, ok := wr.(http.Flusher)

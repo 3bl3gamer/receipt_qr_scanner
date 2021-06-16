@@ -11,7 +11,22 @@
 		<div class="video-wrap"></div>
 		<button class="debug-mode-image"><img src="developer_mode_icon.svg" /></button>
 		<button class="open-image"><img src="image_icon.svg" /></button>
-		<div class="receipt-list-wrap hidden"></div>
+		<div class="receipt-side-panel">
+			<div class="receipt-filter-wrap">
+				<button class="receipt-side-panel-collapse-btn">&gt;&gt;</button>
+				<form class="receipt-filter-form">
+					<div>
+						⇅
+						<label><input type="radio" name="sort_mode" value="id" checked />id</label>
+						<label><input type="radio" name="sort_mode" value="created_at" />время</label>
+					</div>
+					<div>
+						<input type="text" placeholder="поиск" />
+					</div>
+				</form>
+			</div>
+			<div class="receipt-list-wrap"></div>
+		</div>
 
 		<script src="{{.BundleFPath}}"></script>
 

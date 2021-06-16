@@ -68,6 +68,7 @@ function css({ name }) {
 			return ''
 		},
 		generateBundle(opts) {
+			if (style === null) return
 			this.emitFile({ type: 'asset', name, source: style })
 			style = null
 		},

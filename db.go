@@ -75,7 +75,8 @@ func saveReceiptFailure(db *sql.DB, ref *ReceiptRef, decreaseRetries bool) error
 		UPDATE receipts
 		SET next_retry_at = datetime(CURRENT_TIMESTAMP,
 		        '+' || ((1-retries_left%2)*30 + (retries_left%2 | not ?)*20*3600) || ' seconds'),
-		    retries_left = CASE ? WHEN true THEN MAX(0, retries_left-1) ELSE retries_left END
+		    retries_left = CASE ? WHEN true THEN MAX(0, retries_left-1) ELSE retries_left END,
+		    updated_at = CURRENT_TIMESTAMP
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		decreaseRetries, decreaseRetries, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
@@ -83,7 +84,7 @@ func saveReceiptFailure(db *sql.DB, ref *ReceiptRef, decreaseRetries bool) error
 
 func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
 	_, err := db.Exec(`
-		UPDATE receipts SET is_correct = 1
+		UPDATE receipts SET is_correct = 1, updated_at = CURRENT_TIMESTAMP
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
@@ -91,7 +92,7 @@ func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
 
 func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
 	_, err := db.Exec(`
-		UPDATE receipts SET is_correct = 1, data = ?
+		UPDATE receipts SET is_correct = 1, data = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
 		data, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
@@ -172,28 +173,49 @@ func loadReceipt(db *sql.DB, id int64) (*Receipt, error) {
 	return rec, nil
 }
 
-func loadUpdatedReceipts(db *sql.DB, timeFrom time.Time) ([]*Receipt, error) {
-	rows, err := db.Query(`
-		SELECT `+receiptSQLFields+`
-		FROM receipts
-		WHERE updated_at > ?
-		ORDER BY saved_at`, timeFrom)
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
-
+func readReceiptsFromRows(rows *sql.Rows) ([]*Receipt, error) {
 	var recs []*Receipt
 	for rows.Next() {
 		rec := &Receipt{}
-		err = scanReceipt(rows, rec)
-		if err != nil {
+		if err := scanReceipt(rows, rec); err != nil {
 			return nil, merry.Wrap(err)
 		}
 		recs = append(recs, rec)
 	}
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, merry.Wrap(err)
 	}
 	return recs, nil
+}
+
+func loadReceiptsSortedByID(db *sql.DB, beforeID int64) ([]*Receipt, error) {
+	if beforeID == 0 {
+		beforeID = 1 << 30
+	}
+	rows, err := db.Query(`
+		SELECT `+receiptSQLFields+`
+		FROM receipts
+		WHERE id < ?
+		ORDER BY id DESC
+		LIMIT 25`, beforeID)
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+	return readReceiptsFromRows(rows)
+}
+
+func loadReceiptsSortedByCreatedAt(db *sql.DB, beforeTime time.Time) ([]*Receipt, error) {
+	if beforeTime.IsZero() {
+		beforeTime = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+	rows, err := db.Query(`
+		SELECT `+receiptSQLFields+`
+		FROM receipts
+		WHERE created_at < ?
+		ORDER BY created_at DESC
+		LIMIT 25`, beforeTime)
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+	return readReceiptsFromRows(rows)
 }

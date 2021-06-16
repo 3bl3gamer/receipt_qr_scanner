@@ -34,11 +34,15 @@ export function setupReceiptListComponent() {
 	function reopen() {
 		if (receiptSource !== null) receiptSource.close()
 
-		let path = './api/receipts_list'
-		if (receipts.length > 0) {
-			const maxUpdatedAt = receipts.map(x => x.updatedAt).reduce((a, b) => (a > b ? a : b))
-			path += '?time_from=' + new Date(maxUpdatedAt).toISOString()
-		}
+		// const maxUpdatedAt = receipts.length == 0 ? null : receipts.map(x => x.updatedAt).reduce((a, b) => (a > b ? a : b))
+		const sortMode = $('.receipt-filter-form', HTMLFormElement).sort_mode.value
+
+		let path = `./api/receipts_list?sse=1&sort_mode=${sortMode}`
+		// if (receipts.length > 0) {
+		// 	const maxUpdatedAt = receipts.map(x => x.updatedAt).reduce((a, b) => (a > b ? a : b))
+		// 	path += '?time_from=' + new Date(maxUpdatedAt).toISOString()
+		// 	TODO
+		// }
 
 		receiptSource = new EventSource(path)
 		receiptSource.addEventListener('initial_receipts', event => {
@@ -110,9 +114,22 @@ export function setupReceiptListComponent() {
 		elem.querySelector('.retail_place_address').textContent = (data && data.retailPlaceAddress) || '—'
 	}
 
-	const wrap = $('.receipt-list-wrap', HTMLDivElement)
-	wrap.onclick = () => {
-		wrap.classList.toggle('hidden')
+	function clearReceipts() {
+		receipts.length = 0
+		receiptById.clear()
+		receiptElemById.clear()
+		$('.receipt-list-wrap', HTMLDivElement).innerHTML = ''
 	}
+
+	const panel = $('.receipt-side-panel', HTMLDivElement)
+	panel.onclick = () => {
+		panel.classList.toggle('hidden')
+	}
+
+	$('.receipt-filter-form', HTMLFormElement).onchange = () => {
+		clearReceipts()
+		reopen()
+	}
+
 	reopen()
 }
