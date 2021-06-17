@@ -132,8 +132,12 @@ body {
 	justify-content: space-between;
 	width: 100%;
 }
-.receipt-filter-form input[type="text"] {
+.receipt-filter-form input[type='text'] {
 	width: 110px;
+}
+
+.receipt-list-wrap.stale {
+	opacity: 0.5;
 }
 
 .receipt-list-item {
@@ -143,23 +147,18 @@ body {
 	transition: margin 0.3s ease, background-color 1s ease;
 	box-sizing: border-box;
 }
-
 .receipt-list-item.correct {
 	background-color: #ffb;
 }
-
 .receipt-list-item.filled {
 	background-color: #dfd;
 }
-
 .receipt-list-item.failed {
 	background-color: #fdd;
 }
-
 .receipt-list-item.collapsed {
 	margin-top: -82px;
 }
-
 .receipt-side-panel.hidden .receipt-list-item.collapsed {
 	background-color: yellow;
 }

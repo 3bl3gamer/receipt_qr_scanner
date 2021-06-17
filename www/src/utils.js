@@ -57,3 +57,43 @@ export function $(selector, class_) {
 export function cloneNodeDeep(node) {
 	return /** @type {T} */ (node.cloneNode(true))
 }
+
+/**
+ * @template T
+ * @param {T[]} arr
+ * @param {T} elem
+ * @param {(a: T, b: T) => number} sortFunc
+ * @returns {[number,boolean]}
+ */
+export function searchBinary(arr, elem, sortFunc) {
+	/*
+	f = (a,b) => a-b
+	;[
+		[[],    0, 0, false],
+		[[1],   0, 0, false],
+		[[1],   1, 0, true],
+		[[1],   2, 1, false],
+		[[1,2], 0, 0, false],
+		[[1,2], 1, 0, true],
+		[[1,2], 2, 1, true],
+		[[1,2], 3, 2, false],
+	].forEach(([arr, elem, index, exists]) => {
+		console.assert(searchBinary(arr, elem, f)[0] === index, `index: ${arr} ${elem}`)
+		console.assert(searchBinary(arr, elem, f)[1] === exists, `exists: ${arr} ${elem}`)
+	})
+	*/
+	let startI = 0
+	let endI = arr.length
+	while (startI < endI) {
+		let midI = Math.floor((startI + endI) / 2)
+		const cmp = sortFunc(elem, arr[midI])
+		if (cmp < 0) {
+			endI = midI
+		} else if (cmp > 0) {
+			startI = midI + 1
+		} else {
+			return [midI, true]
+		}
+	}
+	return [startI, false]
+}
