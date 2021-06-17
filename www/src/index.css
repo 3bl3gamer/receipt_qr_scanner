@@ -93,12 +93,12 @@ body {
 
 .receipt-side-panel {
 	position: absolute;
+	display: flex;
+	flex-direction: column;
 	right: 0;
 	width: 320px;
 	height: 100vh;
 	z-index: 2;
-	overflow-y: auto;
-	overflow-x: visible;
 	background-color: white;
 	border-left: 2px solid lightgray;
 	transition: transform 0.3s ease, opacity 0.2s ease;
@@ -112,7 +112,7 @@ body {
 	display: flex;
 	flex-direction: row;
 	justify-content: stretch;
-	margin: 3px;
+	margin: 3px 3px 4px 3px;
 	white-space: nowrap;
 }
 
@@ -136,6 +136,10 @@ body {
 	width: 110px;
 }
 
+.receipt-list-wrap {
+	overflow-y: auto;
+	overflow-x: visible;
+}
 .receipt-list-wrap.stale {
 	opacity: 0.5;
 }

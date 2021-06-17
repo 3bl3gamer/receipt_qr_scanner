@@ -191,6 +191,15 @@ func writeSseJson(wr io.Writer, name string, obj interface{}) error {
 	return nil
 }
 
+var emptyReceipts = []*Receipt{}
+
+func ensureRecsNotNil(receipts []*Receipt) []*Receipt {
+	if receipts == nil {
+		return emptyReceipts
+	}
+	return receipts
+}
+
 func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
 	db := r.Context().Value(CtxKeyDB).(*sql.DB)
 	query := r.URL.Query()
@@ -232,13 +241,13 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 
 	startSSE := query.Get("sse")
 	if startSSE == "" || startSSE == "0" {
-		return receipts, nil
+		return ensureRecsNotNil(receipts), nil
 	}
 
 	flusher, ok := wr.(http.Flusher)
 	if !ok {
 		log.Debug().Msg("SSE: flushing not available, aborting")
-		return receipts, nil
+		return ensureRecsNotNil(receipts), nil
 	}
 	log.Debug().Msg("SSE: starting loop")
 
