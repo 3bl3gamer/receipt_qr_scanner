@@ -6,35 +6,75 @@ import (
 
 	"github.com/ansel1/merry"
 	"github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog/log"
 )
 
 var ErrReceiptRefAlreadyExists = merry.New("receipt ref already exists")
 
+var migrations = []func(*sql.Tx) error{
+	func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+		CREATE TABLE migrations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			version INTEGER NOT NULL,
+			migrated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`)
+		return merry.Wrap(err)
+	},
+	func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+		CREATE TABLE IF NOT EXISTS receipts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+			fiscal_num INTEGER,
+			fiscal_doc INTEGER,
+			fiscal_sign INTEGER,
+			kind INTEGER,
+			summ FLOAT,
+			created_at DATETIME,
+
+			is_correct INTEGER,
+
+			ref_text TEXT,
+			data BLOB,
+
+			retries_left INTEGER NOT NULL DEFAULT 10,
+			next_retry_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+			UNIQUE(fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at)
+		)`)
+		return merry.Wrap(err)
+	},
+}
+
 func createTables(db *sql.DB) error {
-	_, err := db.Exec(`
-	CREATE TABLE IF NOT EXISTS receipts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-		fiscal_num INTEGER,
-		fiscal_doc INTEGER,
-		fiscal_sign INTEGER,
-		kind INTEGER,
-		summ FLOAT,
-		created_at DATETIME,
-
-		is_correct INTEGER,
-
-		ref_text TEXT,
-		data BLOB,
-
-		retries_left INTEGER NOT NULL DEFAULT 10,
-		next_retry_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-		UNIQUE(fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at)
-	)`)
-	return merry.Wrap(err)
+	lastVersion := -1
+	err := db.QueryRow(`SELECT version FROM migrations ORDER BY migrated_at DESC LIMIT 1`).Scan(&lastVersion)
+	if err != nil && err != sql.ErrNoRows && err.Error() != "no such table: migrations" {
+		merry.Wrap(err)
+	}
+	for version := lastVersion + 1; version < len(migrations); version += 1 {
+		tx, err := db.Begin()
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		if err := migrations[version](tx); err != nil {
+			tx.Rollback()
+			return merry.Wrap(err)
+		}
+		if _, err := tx.Exec(`INSERT INTO migrations (version) VALUES (?)`, version); err != nil {
+			tx.Rollback()
+			return merry.Wrap(err)
+		}
+		if err := tx.Commit(); err != nil {
+			tx.Rollback()
+			return merry.Wrap(err)
+		}
+		log.Info().Int("version", version).Msg("migrated DB")
+	}
+	return nil
 }
 
 func setupDB(configDir string) (*sql.DB, error) {
