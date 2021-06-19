@@ -43,14 +43,15 @@ ReceiptsLoader.prototype.canPreload = function () {
 }
 /**
  * @param {SortMode} sortMode
+ * @param {string} searchQuery
  */
-ReceiptsLoader.prototype.reopen = function (sortMode) {
+ReceiptsLoader.prototype.reopen = function (sortMode, searchQuery) {
 	this.isWaitingInitialReceipts = true
 	this.hasFullyLoaded = false
 
 	if (this.receiptSource !== null) this.receiptSource.close()
 
-	let path = `./api/receipts_list?sse=1&sort_mode=${sortMode}`
+	let path = `./api/receipts_list?sse=1&sort_mode=${sortMode}&search=${encodeURIComponent(searchQuery)}`
 
 	this.receiptSource = new EventSource(path)
 	this.receiptSource.addEventListener('initial_receipts', event => {
@@ -61,19 +62,20 @@ ReceiptsLoader.prototype.reopen = function (sortMode) {
 		this.onChunk([JSON.parse(/**@type {*}*/ (event).data)])
 	})
 	this.receiptSource.addEventListener('error', () => {
-		setTimeout(() => this.reopen(sortMode), 2000)
+		setTimeout(() => this.reopen(sortMode, searchQuery), 2000)
 	})
 }
 /**
  * @param {SortMode} sortMode
+ * @param {string} searchQuery
  * @param {Receipt|null} lastReceipt
  */
-ReceiptsLoader.prototype.loadChunk = function (sortMode, lastReceipt) {
+ReceiptsLoader.prototype.loadChunk = function (sortMode, searchQuery, lastReceipt) {
 	this.isLoadingChunk = true
 	this.abortController.abort()
 	this.abortController = new AbortController()
 
-	let path = `./api/receipts_list?sse=0&sort_mode=${sortMode}`
+	let path = `./api/receipts_list?sse=0&sort_mode=${sortMode}&search=${encodeURIComponent(searchQuery)}`
 	if (lastReceipt !== null) {
 		if (sortMode === 'created_at') {
 			path += '&before_time=' + encodeURIComponent(new Date(lastReceipt.ref.createdAt).toISOString())
@@ -98,7 +100,10 @@ ReceiptsLoader.prototype.loadChunk = function (sortMode, lastReceipt) {
 export function setupReceiptListComponent() {
 	const receipts = /** @type {Receipt[]} */ ([])
 	const receiptElemById = new Map()
+
 	let sortMode = /**@type {SortMode}*/ ('id')
+	let searchQuery = ''
+
 	let clearOnNextUpdate = false
 	const loader = new ReceiptsLoader(receipts => {
 		if (clearOnNextUpdate) clearReceipts()
@@ -171,6 +176,7 @@ export function setupReceiptListComponent() {
 
 	function getDataFromFilterForm() {
 		sortMode = $('.receipt-filter-form', HTMLFormElement).sort_mode.value
+		searchQuery = $('.receipt-filter-form', HTMLFormElement).search.value.toLowerCase()
 	}
 
 	const panel = $('.receipt-side-panel', HTMLDivElement)
@@ -185,12 +191,14 @@ export function setupReceiptListComponent() {
 		}
 	}
 
-	$('.receipt-filter-form', HTMLFormElement).onchange = () => {
+	const filterForm = $('.receipt-filter-form', HTMLFormElement)
+	filterForm.onchange = () => {
 		getDataFromFilterForm()
 		$('.receipt-list-wrap', HTMLDivElement).classList.add('stale')
 		clearOnNextUpdate = true
-		loader.reopen(sortMode)
+		loader.reopen(sortMode, searchQuery)
 	}
+	filterForm.onsubmit = e => e.preventDefault()
 
 	const listWrap = $('.receipt-list-wrap', HTMLDivElement)
 	listWrap.addEventListener(
@@ -200,12 +208,12 @@ export function setupReceiptListComponent() {
 				const isNearBottom =
 					listWrap.scrollTop + listWrap.getBoundingClientRect().height > listWrap.scrollHeight - 512
 				if (isNearBottom)
-					loader.loadChunk(sortMode, receipts.length === 0 ? null : receipts[receipts.length - 1])
+					loader.loadChunk(sortMode, searchQuery, receipts[receipts.length - 1] || null)
 			}
 		},
 		{ passive: true },
 	)
 
 	getDataFromFilterForm()
-	loader.reopen(sortMode)
+	loader.reopen(sortMode, searchQuery)
 }

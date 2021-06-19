@@ -2,6 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -47,6 +50,43 @@ var migrations = []func(*sql.Tx) error{
 		)`)
 		return merry.Wrap(err)
 	},
+	func(tx *sql.Tx) error {
+		_, err := tx.Exec(`ALTER TABLE receipts ADD COLUMN search_key TEXT`)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+
+		rows, err := tx.Query(`
+			SELECT id,
+				fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at,
+				CAST(COALESCE(data, '') AS text)
+			FROM receipts`)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		for rows.Next() {
+			rec := &Receipt{}
+			err := rows.Scan(&rec.ID,
+				&rec.Ref.FiscalNum, &rec.Ref.FiscalDoc, &rec.Ref.FiscalSign,
+				&rec.Ref.Kind, &rec.Ref.Summ, &rec.Ref.CreatedAt,
+				&rec.Data)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			rec.SearchKey, err = makeReceiptSearchKey(rec)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			_, err = tx.Exec(`UPDATE receipts SET search_key = ? WHERE id = ?`, rec.SearchKey, rec.ID)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			return merry.Wrap(err)
+		}
+		return nil
+	},
 }
 
 func createTables(db *sql.DB) error {
@@ -88,6 +128,60 @@ func setupDB(configDir string) (*sql.DB, error) {
 		return nil, merry.Wrap(err)
 	}
 	return db, nil
+}
+
+func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]string) {
+	switch obj := obj.(type) {
+	case map[string]interface{}:
+		for k, v := range obj {
+			if k != "rawData" && //бесполезный для поиска base64
+				k != "qr" && //данные из QR-кода (иногда бывает)
+				k != "logo" { //путь к картинке (/static/logo/<...>.png, иногда бывает)
+				makeReceiptSearchKeyInner(k+":", v, items)
+			}
+		}
+	case []interface{}:
+		for _, v := range obj {
+			makeReceiptSearchKeyInner("", v, items)
+		}
+	case string:
+		*items = append(*items, valPrefix+strings.TrimSpace(obj))
+	case float64:
+		*items = append(*items, valPrefix+strconv.FormatFloat(obj, 'f', -1, 64))
+	case bool:
+		v := "false"
+		if obj == true {
+			v = "true"
+		}
+		*items = append(*items, valPrefix+v)
+	default:
+		log.Fatal().Interface("item", obj).Msg("unexpected JSON item")
+	}
+}
+func makeReceiptSearchKey(rec *Receipt) (string, error) {
+	items := []string{
+		"_created_at:" + rec.Ref.CreatedAt.Format("2006-01-02 15:04"),
+		"_sum:" + strconv.FormatFloat(rec.Ref.Summ, 'f', 2, 64),
+		"_num:" + strconv.FormatInt(rec.Ref.FiscalNum, 10),
+		"_doc:" + strconv.FormatInt(rec.Ref.FiscalDoc, 10),
+		"_sign:" + strconv.FormatInt(rec.Ref.FiscalSign, 10),
+		"_type:" + strconv.FormatInt(rec.Ref.Kind, 10),
+	}
+	if rec.Data != "" {
+		var data interface{}
+		if err := json.Unmarshal([]byte(rec.Data), &data); err != nil {
+			return "", merry.Wrap(err)
+		}
+		makeReceiptSearchKeyInner("", data, &items)
+	}
+	return strings.ToLower(strings.Join(items, " ")), nil
+}
+
+func escapeLike(str, escChar string) string {
+	str = strings.Replace(str, escChar, escChar+escChar, -1)
+	str = strings.Replace(str, "%", escChar+"%", -1)
+	str = strings.Replace(str, "_", escChar+"_", -1)
+	return str
 }
 
 func saveRecieptRef(db *sql.DB, ref *ReceiptRef, refText string) (int64, error) {
@@ -190,7 +284,7 @@ type SQLMultiScanner interface {
 
 const receiptSQLFields = `id, saved_at, updated_at,
 fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at,
-COALESCE(is_correct, FALSE), ref_text, CAST(COALESCE(data, '') AS text),
+COALESCE(is_correct, FALSE), ref_text, CAST(COALESCE(data, '') AS text), search_key,
 retries_left, next_retry_at`
 
 func scanReceipt(row SQLMultiScanner, rec *Receipt) error {
@@ -198,7 +292,7 @@ func scanReceipt(row SQLMultiScanner, rec *Receipt) error {
 		&rec.ID, &rec.SavedAt, &rec.UpdatedAt,
 		&rec.Ref.FiscalNum, &rec.Ref.FiscalDoc, &rec.Ref.FiscalSign,
 		&rec.Ref.Kind, &rec.Ref.Summ, &rec.Ref.CreatedAt,
-		&rec.IsCorrect, &rec.RefText, &rec.Data,
+		&rec.IsCorrect, &rec.RefText, &rec.Data, &rec.SearchKey,
 		&rec.RetriesLeft, &rec.NextRetryAt)
 	return merry.Wrap(err)
 }
@@ -228,34 +322,39 @@ func readReceiptsFromRows(rows *sql.Rows) ([]*Receipt, error) {
 	return recs, nil
 }
 
-func loadReceiptsSortedByID(db *sql.DB, beforeID int64) ([]*Receipt, error) {
-	if beforeID == 0 {
-		beforeID = 1 << 30
+func searchAndReadReceipts(db *sql.DB, filter []string, args []interface{}, searchQuery, sortColumn string) ([]*Receipt, error) {
+	sql := `SELECT ` + receiptSQLFields + ` FROM receipts`
+	if searchQuery != "" {
+		filter = append(filter, `search_key LIKE ? ESCAPE '\'`)
+		args = append(args, "%"+escapeLike(searchQuery, `\`)+"%")
 	}
-	rows, err := db.Query(`
-		SELECT `+receiptSQLFields+`
-		FROM receipts
-		WHERE id < ?
-		ORDER BY id DESC
-		LIMIT 25`, beforeID)
+	if len(searchQuery) > 0 {
+		sql += " WHERE " + strings.Join(filter, " AND ")
+	}
+	sql += " ORDER BY " + sortColumn + " DESC LIMIT 25"
+	rows, err := db.Query(sql, args...)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
 	return readReceiptsFromRows(rows)
 }
 
-func loadReceiptsSortedByCreatedAt(db *sql.DB, beforeTime time.Time) ([]*Receipt, error) {
-	if beforeTime.IsZero() {
-		beforeTime = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+func loadReceiptsSortedByID(db *sql.DB, beforeID int64, searchQuery string) ([]*Receipt, error) {
+	args := []interface{}{}
+	filter := []string{}
+	if beforeID > 0 {
+		filter = append(filter, "id < ?")
+		args = append(args, beforeID)
 	}
-	rows, err := db.Query(`
-		SELECT `+receiptSQLFields+`
-		FROM receipts
-		WHERE created_at < ?
-		ORDER BY created_at DESC
-		LIMIT 25`, beforeTime)
-	if err != nil {
-		return nil, merry.Wrap(err)
+	return searchAndReadReceipts(db, filter, args, searchQuery, "id")
+}
+
+func loadReceiptsSortedByCreatedAt(db *sql.DB, beforeTime time.Time, searchQuery string) ([]*Receipt, error) {
+	args := []interface{}{}
+	filter := []string{}
+	if !beforeTime.IsZero() {
+		filter = append(filter, "created_at < ?")
+		args = append(args, beforeTime)
 	}
-	return readReceiptsFromRows(rows)
+	return searchAndReadReceipts(db, filter, args, searchQuery, "created_at")
 }

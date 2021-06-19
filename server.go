@@ -212,6 +212,8 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 		return httputils.JsonError{Code: 400, Error: "WRONG_SORT_MODE"}, nil
 	}
 
+	searchQuery := query.Get("search")
+
 	var err error
 	var receipts []*Receipt
 	if sortMode == "id" {
@@ -223,7 +225,7 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 				return httputils.JsonError{Code: 400, Error: "WRONG_NUMBER_FORMAT"}, nil
 			}
 		}
-		receipts, err = loadReceiptsSortedByID(db, beforeID)
+		receipts, err = loadReceiptsSortedByID(db, beforeID, searchQuery)
 	} else if sortMode == "created_at" {
 		beforeTimeStr := query.Get("before_time")
 		beforeTime := time.Time{}
@@ -233,7 +235,7 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 				return httputils.JsonError{Code: 400, Error: "WRONG_TIME_FORMAT"}, nil
 			}
 		}
-		receipts, err = loadReceiptsSortedByCreatedAt(db, beforeTime)
+		receipts, err = loadReceiptsSortedByCreatedAt(db, beforeTime, searchQuery)
 	}
 	if err != nil {
 		return nil, merry.Wrap(err)
