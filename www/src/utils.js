@@ -28,13 +28,37 @@ export function mustBeInstanceOf(obj, ...classes) {
 
 /**
  * @template {{new (...args: any): any}} T
+ * @param {ParentNode} parent
+ * @param {string} selector
+ * @param {T} class_
+ * @returns {InstanceType<T>|null}
+ */
+export function $inOpt(parent, selector, class_) {
+	const elem = parent.querySelector(selector)
+	return mustBeInstanceOf(elem, class_)
+}
+
+/**
+ * @template {{new (...args: any): any}} T
+ * @param {ParentNode} parent
+ * @param {string} selector
+ * @param {T} class_
+ * @returns {InstanceType<T>}
+ */
+export function $in(parent, selector, class_) {
+	const elem = $inOpt(parent, selector, class_)
+	if (elem === null) throw new Error(`elem not found in ${parent} by '${selector}'`)
+	return elem
+}
+
+/**
+ * @template {{new (...args: any): any}} T
  * @param {string} selector
  * @param {T} class_
  * @returns {InstanceType<T>|null}
  */
 export function $opt(selector, class_) {
-	const elem = document.querySelector(selector)
-	return mustBeInstanceOf(elem, class_)
+	return $inOpt(document, selector, class_)
 }
 
 /**

@@ -1,4 +1,4 @@
-import { $, cloneNodeDeep, onError, searchBinary } from './utils'
+import { $, $in, cloneNodeDeep, onError, searchBinary } from './utils'
 
 /**
  * @typedef {{
@@ -97,6 +97,35 @@ ReceiptsLoader.prototype.loadChunk = function (sortMode, searchQuery, lastReceip
 		})
 }
 
+/**
+ * @param {string} text
+ * @param {string} substr
+ */
+function highlighted(text, substr) {
+	const textLC = text.toLowerCase()
+	substr = substr.toLowerCase()
+	const res = document.createDocumentFragment()
+	if (substr.length == 0) {
+		res.appendChild(document.createTextNode(text))
+		return res
+	}
+	let prevEnd = 0
+	while (true) {
+		const index = textLC.indexOf(substr, prevEnd) //не совсем правильно, но для русских и английских символов должно работать
+		if (index === -1) {
+			res.appendChild(document.createTextNode(text.slice(prevEnd)))
+			break
+		}
+		res.appendChild(document.createTextNode(text.slice(prevEnd, index)))
+		const hl = document.createElement('span')
+		hl.className = 'highlight'
+		hl.textContent = text.slice(index, index + substr.length)
+		res.appendChild(hl)
+		prevEnd = index + substr.length
+	}
+	return res
+}
+
 export function setupReceiptListComponent() {
 	const receipts = /** @type {Receipt[]} */ ([])
 	const receiptElemById = new Map()
@@ -112,6 +141,12 @@ export function setupReceiptListComponent() {
 		const addAnimated = receipts.length === 1
 		receipts.forEach(rec => addOrUpdateRceipt(rec, addAnimated))
 	})
+
+	/** @param {string|null|undefined} text @param {string} [suffix] */
+	function highlightedSearch(text, suffix) {
+		if (!text) return document.createTextNode('—')
+		return highlighted(text + (suffix || ''), searchQuery)
+	}
 
 	/** @returns {(a:Receipt, b:Receipt) => number} */
 	function getSortFunc() {
@@ -156,14 +191,17 @@ export function setupReceiptListComponent() {
 		elem.classList.toggle('correct', rec.isCorrect)
 		elem.classList.toggle('filled', !!data)
 		elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)
-		elem.querySelector('.id').textContent = '#' + rec.id
-		elem.querySelector('.created_at').textContent = new Date(rec.ref.createdAt).toLocaleString()
-		elem.querySelector('.total_sum').textContent = data && (data.totalSum / 100).toFixed(2) + ' ₽'
-		elem.querySelector('.user').textContent = (data && data.user) || '—'
-		elem.querySelector('.items_count').textContent = ((data && data.items.length) || '??') + ' шт'
-		elem.querySelector('.items_count').textContent = ((data && data.items.length) || '??') + ' шт'
-		elem.querySelector('.retries_left').textContent = 'x' + rec.retriesLeft
-		elem.querySelector('.retail_place_address').textContent = (data && data.retailPlaceAddress) || '—'
+		$in(elem, '.id', Element).textContent = '#' + rec.id
+		$in(elem, '.created_at', Element).textContent = new Date(rec.ref.createdAt).toLocaleString()
+		$in(elem, '.total_sum', Element).appendChild(
+			highlightedSearch(data && (data.totalSum / 100).toFixed(2), ' ₽'),
+		)
+		$in(elem, '.user', Element).appendChild(highlightedSearch(data && data.user))
+		$in(elem, '.items_count', Element).textContent = ((data && data.items.length) || '??') + ' шт'
+		$in(elem, '.retries_left', Element).textContent = 'x' + rec.retriesLeft
+		$in(elem, '.retail_place_address', Element).appendChild(
+			highlightedSearch(data && data.retailPlaceAddress),
+		)
 	}
 
 	function clearReceipts() {

@@ -167,6 +167,11 @@ body {
 	background-color: yellow;
 }
 
+.receipt-list-item .highlight {
+	background: gold;
+	border-radius: 1px;
+}
+
 .receipt-list-item .title > * {
 	overflow: hidden;
 	text-overflow: ellipsis;
