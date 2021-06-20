@@ -1,5 +1,5 @@
-import nodeResolve from 'rollup-plugin-node-resolve'
-import commonjs from 'rollup-plugin-commonjs'
+import nodeResolve from '@rollup/plugin-node-resolve'
+import commonjs from '@rollup/plugin-commonjs'
 import typescript from '@rollup/plugin-typescript'
 import replace from '@rollup/plugin-replace'
 import copy from 'rollup-plugin-copy'
@@ -18,7 +18,10 @@ export default async function (commandOptions) {
 			},
 			plugins: [
 				css({ name: 'bundle.css' }),
-				replace({ 'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development') }),
+				replace({
+					'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
+					preventAssignment: true,
+				}),
 				!isProd &&
 					(await import('rollup-plugin-serve').then(({ default: serve }) =>
 						serve({
