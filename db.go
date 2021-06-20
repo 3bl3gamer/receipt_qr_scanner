@@ -91,7 +91,7 @@ var migrations = []func(*sql.Tx) error{
 
 func createTables(db *sql.DB) error {
 	lastVersion := -1
-	err := db.QueryRow(`SELECT version FROM migrations ORDER BY migrated_at, id DESC LIMIT 1`).Scan(&lastVersion)
+	err := db.QueryRow(`SELECT version FROM migrations ORDER BY migrated_at DESC, id DESC LIMIT 1`).Scan(&lastVersion)
 	if err != nil && err != sql.ErrNoRows && err.Error() != "no such table: migrations" {
 		merry.Wrap(err)
 	}
