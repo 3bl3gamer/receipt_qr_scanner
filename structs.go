@@ -27,7 +27,7 @@ type Receipt struct {
 	IsCorrect   bool       `json:"isCorrect"`
 	RefText     string     `json:"refText"`
 	Data        string     `json:"data"`
-	SearchKey   string     `json:"search_key"`
+	SearchKey   string     `json:"searchKey"`
 	RetriesLeft int64      `json:"retriesLeft"`
 	NextRetryAt time.Time  `json:"nextRetryAt"`
 }

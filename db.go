@@ -328,7 +328,7 @@ func searchAndReadReceipts(db *sql.DB, filter []string, args []interface{}, sear
 		filter = append(filter, `search_key LIKE ? ESCAPE '\'`)
 		args = append(args, "%"+escapeLike(searchQuery, `\`)+"%")
 	}
-	if len(searchQuery) > 0 {
+	if len(filter) > 0 {
 		sql += " WHERE " + strings.Join(filter, " AND ")
 	}
 	sql += " ORDER BY " + sortColumn + " DESC LIMIT 25"

@@ -1,4 +1,4 @@
-import { $, $in, cloneNodeDeep, onError, searchBinary } from './utils'
+import { $, $child, $in, cloneNodeDeep, createElem, dateStrAsYMDHM, onError, searchBinary } from './utils'
 
 /**
  * @typedef {{
@@ -20,6 +20,7 @@ import { $, $in, cloneNodeDeep, onError, searchBinary } from './utils'
  *   isCorrect: boolean,
  *   refText: string,
  *   data: string,
+ *   searchKey: string,
  *   retriesLeft: number,
  *   nextRetryAt: string,
  * }} Receipt
@@ -100,27 +101,38 @@ ReceiptsLoader.prototype.loadChunk = function (sortMode, searchQuery, lastReceip
 /**
  * @param {string} text
  * @param {string} substr
+ * @param {number} [maxFirstOffset]
+ * @param {number} [maxTotalLen]
+ * @returns {DocumentFragment|null}
  */
-function highlighted(text, substr) {
-	const textLC = text.toLowerCase()
+function highlightedIfFound(text, substr, maxFirstOffset, maxTotalLen) {
+	if (substr.length == 0) return null
+	let textLC = text.toLowerCase()
 	substr = substr.toLowerCase()
+
 	const res = document.createDocumentFragment()
-	if (substr.length == 0) {
-		res.appendChild(document.createTextNode(text))
-		return res
-	}
 	let prevEnd = 0
 	while (true) {
-		const index = textLC.indexOf(substr, prevEnd) //не совсем правильно, но для русских и английских символов должно работать
-		if (index === -1) {
-			res.appendChild(document.createTextNode(text.slice(prevEnd)))
+		const isFirstIter = prevEnd === 0
+		let index = textLC.indexOf(substr, prevEnd) //не совсем правильно, но для русских и английских символов должно работать
+		if (isFirstIter && index === -1) return null
+		if (index === -1) index = text.length
+
+		if (prevEnd === 0 && maxFirstOffset !== undefined && index > maxFirstOffset) {
+			const offset = index - Math.ceil(maxFirstOffset * 0.8)
+			text = '…' + text.slice(offset)
+			textLC = '…' + textLC.slice(offset)
+			index = index - offset + '…'.length
+		}
+
+		if (maxTotalLen !== undefined && index > maxTotalLen) {
+			res.appendChild(document.createTextNode(text.slice(prevEnd, maxTotalLen) + '…'))
 			break
 		}
 		res.appendChild(document.createTextNode(text.slice(prevEnd, index)))
-		const hl = document.createElement('span')
-		hl.className = 'highlight'
-		hl.textContent = text.slice(index, index + substr.length)
-		res.appendChild(hl)
+		if (index === text.length) break
+
+		res.appendChild(createElem('span', 'highlight', text.slice(index, index + substr.length)))
 		prevEnd = index + substr.length
 	}
 	return res
@@ -142,10 +154,14 @@ export function setupReceiptListComponent() {
 		receipts.forEach(rec => addOrUpdateRceipt(rec, addAnimated))
 	})
 
-	/** @param {string|null|undefined} text @param {string} [suffix] */
-	function highlightedSearch(text, suffix) {
-		if (!text) return document.createTextNode('—')
-		return highlighted(text + (suffix || ''), searchQuery)
+	/**
+	 * @param {string|null|undefined} text
+	 * @param {string} [suffix]
+	 */
+	function highlightedSearch(text, suffix = '') {
+		if (!text) return document.createTextNode('—' + suffix)
+		const frag = highlightedIfFound(text + suffix, searchQuery)
+		return frag || document.createTextNode(text)
 	}
 
 	/** @returns {(a:Receipt, b:Receipt) => number} */
@@ -185,6 +201,7 @@ export function setupReceiptListComponent() {
 		return data.document.receipt //FNS API version 1
 	}
 
+	/** @param {Receipt} rec */
 	function updateRceipt(rec) {
 		const elem = receiptElemById.get(rec.id)
 		const data = rec.data ? getReceiptDataFrom(JSON.parse(rec.data)) : null
@@ -192,16 +209,38 @@ export function setupReceiptListComponent() {
 		elem.classList.toggle('filled', !!data)
 		elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)
 		$in(elem, '.id', Element).textContent = '#' + rec.id
-		$in(elem, '.created_at', Element).textContent = new Date(rec.ref.createdAt).toLocaleString()
-		$in(elem, '.total_sum', Element).appendChild(
-			highlightedSearch(data && (data.totalSum / 100).toFixed(2), ' ₽'),
-		)
-		$in(elem, '.user', Element).appendChild(highlightedSearch(data && data.user))
+		$child(elem, '.created_at', highlightedSearch(dateStrAsYMDHM(rec.ref.createdAt)))
+		$child(elem, '.total_sum', highlightedSearch(data && (data.totalSum / 100).toFixed(2), ' ₽'))
+		$child(elem, '.user', highlightedSearch(data && data.user))
 		$in(elem, '.items_count', Element).textContent = ((data && data.items.length) || '??') + ' шт'
 		$in(elem, '.retries_left', Element).textContent = 'x' + rec.retriesLeft
-		$in(elem, '.retail_place_address', Element).appendChild(
-			highlightedSearch(data && data.retailPlaceAddress),
-		)
+		$child(elem, '.retail_place_address', highlightedSearch(data && data.retailPlaceAddress))
+
+		const searchedDetailsWrap = $in(elem, '.searched_details', HTMLDivElement)
+		searchedDetailsWrap.innerHTML = ''
+		if (searchQuery !== '') {
+			let found = false
+			if (data !== null) {
+				// ищем в списке товаров
+				for (const item of data.items) {
+					const frag = highlightedIfFound(item.name, searchQuery)
+					if (frag !== null) {
+						frag.prepend(document.createTextNode(' '))
+						if (item.quantity !== 1)
+							frag.prepend(createElem('span', 'quantity', ` x${item.quantity}`))
+						frag.prepend(createElem('span', 'price', (item.price / 100).toFixed(2) + ' ₽'))
+						searchedDetailsWrap.appendChild(frag)
+						found = true
+						break
+					}
+				}
+			}
+			// ищем в searchKey'е
+			if (!found) {
+				const frag = highlightedIfFound(rec.searchKey, searchQuery, 20, 60)
+				if (frag) searchedDetailsWrap.appendChild(frag)
+			}
+		}
 	}
 
 	function clearReceipts() {

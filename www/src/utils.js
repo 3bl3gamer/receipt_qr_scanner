@@ -52,6 +52,17 @@ export function $in(parent, selector, class_) {
 }
 
 /**
+ * @param {ParentNode} parent
+ * @param {string} selector
+ * @param {Node} child
+ */
+export function $child(parent, selector, child) {
+	const elem = $in(parent, selector, Element)
+	elem.innerHTML = ''
+	elem.appendChild(child)
+}
+
+/**
  * @template {{new (...args: any): any}} T
  * @param {string} selector
  * @param {T} class_
@@ -71,6 +82,24 @@ export function $(selector, class_) {
 	const elem = $opt(selector, class_)
 	if (elem === null) throw new Error(`elem not found by '${selector}'`)
 	return elem
+}
+
+/**
+ * @template {keyof HTMLElementTagNameMap} K
+ * @param {K} tagName
+ * @param {string|null|undefined} [className]
+ * @param {string|Node|null|undefined} [child]
+ * @returns {HTMLElementTagNameMap[K]}
+ */
+export function createElem(tagName, className, child) {
+	const el = document.createElement(tagName)
+	if (className) el.className = className
+	if (typeof child === 'string') {
+		el.appendChild(document.createTextNode(child))
+	} else if (child) {
+		el.appendChild(child)
+	}
+	return el
 }
 
 /**
@@ -120,4 +149,18 @@ export function searchBinary(arr, elem, sortFunc) {
 		}
 	}
 	return [startI, false]
+}
+
+function pad00(num) {
+	return num < 10 ? '0' + num : '' + num
+}
+
+export function dateStrAsYMDHM(str) {
+	const date = new Date(str)
+	const y = date.getFullYear()
+	const m = pad00(date.getMonth() + 1)
+	const d = pad00(date.getDate())
+	const hr = pad00(date.getHours())
+	const mn = pad00(date.getMinutes())
+	return `${y}-${m}-${d} ${hr}:${mn}`
 }

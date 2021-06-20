@@ -202,3 +202,17 @@ body {
 .receipt-list-item:not(:first-child) {
 	border-top: 1px solid lightgray;
 }
+
+.receipt-list-item .searched_details {
+	white-space: normal;
+	font-size: 80%;
+}
+.receipt-list-item .searched_details:not(:empty) {
+	margin-top: 5px;
+}
+.receipt-list-item .searched_details .price {
+	font-weight: bold;
+}
+.receipt-list-item .searched_details .quantity {
+	color: gray;
+}
