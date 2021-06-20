@@ -1,3 +1,4 @@
+import { setupReceiptViewComponent } from './comp_receipt_view'
 import { setupReceiptListComponent } from './comp_receipt_list'
 import { setupScannerComponent } from './comp_scanner'
 
@@ -13,3 +14,4 @@ if ('serviceWorker' in navigator) {
 
 setupScannerComponent()
 setupReceiptListComponent()
+setupReceiptViewComponent()

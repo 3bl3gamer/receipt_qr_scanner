@@ -9,6 +9,14 @@ body {
 	display: none;
 }
 
+div[title],
+span[title],
+td[title] {
+	text-decoration: underline;
+	text-decoration-style: dashed;
+	cursor: help;
+}
+
 .receipt-info-box-wrap {
 	position: fixed;
 	display: flex;
@@ -215,4 +223,125 @@ body {
 }
 .receipt-list-item .searched_details .quantity {
 	color: gray;
+}
+
+.receipt-view-wrap {
+	position: absolute;
+	display: flex;
+	top: 4px;
+	max-width: min(480px, 92vw);
+	max-height: calc(100vh - 8px);
+	z-index: 3;
+	border-radius: 6px;
+	overflow: hidden;
+	box-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+}
+.receipt-view-wrap.hidden {
+	display: none;
+}
+.receipt-view-wrap .close {
+	position: absolute;
+	right: 2px;
+	top: 2px;
+	border: none;
+	border-radius: 4px;
+	background: none;
+	z-index: 1;
+}
+.receipt-view-wrap .close:hover {
+	background: lightgray;
+}
+
+.receipt-view {
+	position: relative;
+	max-width: 100%;
+	max-height: 100%;
+	overflow: auto;
+	background-color: white;
+	padding: 8px;
+}
+.receipt-view table {
+	border-spacing: 0;
+}
+.receipt-view table tr:not(:first-child) td {
+	padding-top: 3px;
+}
+.receipt-view table tr:not(:last-child) td {
+	padding-bottom: 3px;
+}
+.receipt-view table td:first-child {
+	padding-right: 24px;
+}
+.receipt-view pre {
+	background-color: #eee;
+	padding: 4px;
+}
+.receipt-view .hidden {
+	display: none;
+}
+.receipt-view .kopeks {
+	color: gray;
+}
+.receipt-view .highlight {
+	background-color: yellow;
+	border-radius: 1px;
+}
+
+.receipt-view .title {
+	margin-top: 0;
+}
+
+.receipt-view .receipt-items {
+	display: flex;
+	flex-direction: column;
+}
+.receipt-view .receipt-item {
+	margin-bottom: 16px;
+	padding-right: 48px;
+}
+.receipt-view .receipt-item .name {
+	display: inline;
+}
+.receipt-view .receipt-item .price {
+	float: right;
+	display: inline;
+	margin-right: -48px;
+}
+.receipt-view .receipt-item .price .summ-details {
+	color: gray;
+	font-size: 90%;
+}
+.receipt-view .receipt-items-total {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 24px;
+	font-size: 120%;
+	font-weight: bold;
+}
+
+.receipt-view .receipt-dates {
+	margin-bottom: 24px;
+}
+
+.receipt-view .receipt-place-info {
+	margin-bottom: 24px;
+	word-break: break-word;
+}
+
+.receipt-view .receipt-contacts {
+	margin-bottom: 24px;
+}
+
+.receipt-view .receipt-info {
+	margin-bottom: 24px;
+}
+
+.receipt-view .receipt-seach-key {
+	white-space: normal;
+	word-break: break-word;
+}
+
+.receipt-view .receipt-json-data {
+	max-width: 100%;
+	overflow-x: auto;
 }

@@ -11,6 +11,7 @@
 		<div class="video-wrap"></div>
 		<button class="debug-mode-image"><img src="developer_mode_icon.svg" /></button>
 		<button class="open-image"><img src="image_icon.svg" /></button>
+
 		<div class="receipt-side-panel">
 			<div class="receipt-filter-wrap">
 				<button class="receipt-side-panel-collapse-btn">&gt;&gt;</button>
@@ -28,11 +29,15 @@
 			<div class="receipt-list-wrap"></div>
 		</div>
 
+		<div class="receipt-view-wrap">
+			<button class="close">✕</button>
+		</div>
+
 		<script src="{{.BundleFPath}}"></script>
 
 		<div class="template receipt-list-item">
 			<div class="title">
-				<div class="user"></div>
+				<div class="value"></div>
 			</div>
 			<div class="main-info">
 				<time class="created_at"></time>
@@ -47,6 +52,107 @@
 				<div class="retries_left"></div>
 			</div>
 			<div class="searched_details"></div>
+		</div>
+
+		<div class="template receipt-view">
+			<h1 class="title"></h1>
+			<div class="receipt-items"></div>
+			<div class="receipt-items-total">
+				<div>ИТОГ</div>
+				<div class="summ"></div>
+			</div>
+			<div class="receipt-dates">
+				<table>
+					<tr>
+						<td>Создан</td>
+						<td class="created-at"></td>
+					</tr>
+					<tr>
+						<td>Считан</td>
+						<td class="saved-at"></td>
+					</tr>
+					<tr>
+						<td>Обновлён</td>
+						<td class="updated-at"></td>
+					</tr>
+				</table>
+			</div>
+			<div class="receipt-place-info">
+				<table>
+					<tr>
+						<td>Кассир</td>
+						<td class="operator"></td>
+					</tr>
+					<tr>
+						<td>Смена</td>
+						<td class="shift-number"></td>
+					</tr>
+					<tr>
+						<td>Пользователь</td>
+						<td class="user"></td>
+					</tr>
+					<tr>
+						<td>Его ИНН</td>
+						<td class="user-inn"></td>
+					</tr>
+					<tr>
+						<td>Место расчёта</td>
+						<td class="retail-place"></td>
+					</tr>
+					<tr>
+						<td>Адрес расчёта</td>
+						<td class="retail-place-address"></td>
+					</tr>
+				</table>
+			</div>
+			<div class="receipt-contacts">
+				<table>
+					<tr>
+						<td class="buyer-email-label">Адрес покупателя</td>
+						<td class="buyer-phone-label">Телефон покупателя</td>
+						<td class="buyer-phone-or-address"></td>
+					</tr>
+					<tr>
+						<td>Адрес продавца</td>
+						<td class="seller-address"></td>
+					</tr>
+					<tr>
+						<td>Сайт для проверки ФПД</td>
+						<td class="fns-url"></td>
+					</tr>
+				</table>
+			</div>
+			<div class="receipt-info">
+				<table>
+					<tr>
+						<td title="Регистрационный номер ККТ">РН ККТ</td>
+						<td class="kkt-reg-id"></td>
+					</tr>
+					<tr>
+						<td title="Заводской номер фискального накопителя">ФН №</td>
+						<td class="fiscal-drive-number"></td>
+					</tr>
+					<tr>
+						<td title="Порядковй номер фискального документа">ФД №</td>
+						<td class="fiscal-document-number"></td>
+					</tr>
+					<tr>
+						<td title="Фискальный признак документа">ФП</td>
+						<td class="fiscal-sign"></td>
+					</tr>
+				</table>
+			</div>
+			<h3>Ответ ФНС</h3>
+			<pre class="receipt-json-data"></pre>
+			<h3>Значение для поиска</h3>
+			<pre class="receipt-seach-key"></pre>
+		</div>
+		<div class="template receipt-item">
+			<div class="name"></div>
+			<div class="price">
+				<span class="summ-details"></span>
+				<span class="summ"></span>
+			</div>
 		</div>
 	</body>
 </html>

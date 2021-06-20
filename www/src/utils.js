@@ -1,3 +1,29 @@
+/**
+ * @typedef {{
+ *   fiscalNum: string,
+ *   fiscalDoc: string,
+ *   fiscalSign: string,
+ *   kind: string,
+ *   summ: string,
+ *   createdAt: string,
+ * }} ReceiptRef
+ */
+
+/**
+ * @typedef {{
+ *   id: number,
+ *   savedAt: string,
+ *   updatedAt: string,
+ *   ref: ReceiptRef,
+ *   isCorrect: boolean,
+ *   refText: string,
+ *   data: string,
+ *   searchKey: string,
+ *   retriesLeft: number,
+ *   nextRetryAt: string,
+ * }} Receipt
+ */
+
 export function onError(err) {
 	// eslint-disable-next-line no-console
 	console.error(err)
@@ -54,6 +80,27 @@ export function $in(parent, selector, class_) {
 /**
  * @param {ParentNode} parent
  * @param {string} selector
+ */
+export function $removeIn(parent, selector) {
+	const elems = parent.querySelectorAll(selector)
+	for (let i = 0; i < elems.length; i++) elems[i].remove()
+}
+
+/**
+ * @template {{new (...args: any): any}} T
+ * @param {string} selector
+ * @param {T} class_
+ * @returns {InstanceType<T>}
+ */
+export function $template(selector, class_) {
+	const elem = cloneNodeDeep($(selector, class_))
+	elem.classList.remove('template')
+	return elem
+}
+
+/**
+ * @param {ParentNode} parent
+ * @param {string} selector
  * @param {Node} child
  */
 export function $child(parent, selector, child) {
@@ -100,6 +147,20 @@ export function createElem(tagName, className, child) {
 		el.appendChild(child)
 	}
 	return el
+}
+
+/**
+ * @param {string|Node|null|undefined} [child]
+ * @returns {DocumentFragment}
+ */
+export function createFragment(child) {
+	const frag = document.createDocumentFragment()
+	if (typeof child === 'string') {
+		frag.appendChild(document.createTextNode(child))
+	} else if (child) {
+		frag.appendChild(child)
+	}
+	return frag
 }
 
 /**
@@ -163,4 +224,77 @@ export function dateStrAsYMDHM(str) {
 	const hr = pad00(date.getHours())
 	const mn = pad00(date.getMinutes())
 	return `${y}-${m}-${d} ${hr}:${mn}`
+}
+
+/**
+ * @param {Receipt} rec
+ * @returns {Record<string, any>|null}
+ */
+export function getReceiptDataFrom(rec) {
+	if (!rec.data) return null
+	const data = JSON.parse(rec.data)
+	if ('ticket' in data) return data.ticket.document.receipt //FNS API version 2
+	return data.document.receipt //FNS API version 1
+}
+
+/**
+ * @param {Record<string, any>|null} recData
+ * @param {string} blank
+ * @returns {string}
+ */
+export function makeReceiptTitle(recData, blank) {
+	if (recData !== null) {
+		if (recData.retailPlace) return recData.retailPlace.replace(/^магазин\s/i, '').trim()
+		if (recData.user) return recData.user.replace(/общество с ограниченной ответственностью/i, '').trim()
+	}
+	return blank
+}
+
+/**
+ * @param {string} text
+ * @param {string} substr
+ * @param {number} [maxFirstOffset]
+ * @param {number} [maxTotalLen]
+ * @returns {DocumentFragment|null}
+ */
+export function highlightedIfFound(text, substr, maxFirstOffset, maxTotalLen) {
+	if (substr.length == 0) return null
+	let textLC = text.toLowerCase()
+	substr = substr.toLowerCase()
+
+	const res = createFragment()
+	let prevEnd = 0
+	while (true) {
+		const isFirstIter = prevEnd === 0
+		let index = textLC.indexOf(substr, prevEnd) //не совсем правильно, но для русских и английских символов должно работать
+		if (isFirstIter && index === -1) return null
+		if (index === -1) index = text.length
+
+		if (prevEnd === 0 && maxFirstOffset !== undefined && index > maxFirstOffset) {
+			const offset = index - Math.ceil(maxFirstOffset * 0.8)
+			text = '…' + text.slice(offset)
+			textLC = '…' + textLC.slice(offset)
+			index = index - offset + '…'.length
+		}
+
+		if (maxTotalLen !== undefined && index > maxTotalLen) {
+			res.appendChild(document.createTextNode(text.slice(prevEnd, maxTotalLen) + '…'))
+			break
+		}
+		res.appendChild(document.createTextNode(text.slice(prevEnd, index)))
+		if (index === text.length) break
+
+		res.appendChild(createElem('span', 'highlight', text.slice(index, index + substr.length)))
+		prevEnd = index + substr.length
+	}
+	return res
+}
+
+/** @param {number} summ */
+export function dimKops(summ) {
+	const [int, fract] = summ.toFixed(2).split('.')
+	const frag = createFragment()
+	frag.appendChild(document.createTextNode(int))
+	frag.appendChild(createElem('span', 'kopeks', '.' + fract))
+	return frag
 }

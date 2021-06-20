@@ -1,35 +1,24 @@
-import { $, $child, $in, cloneNodeDeep, createElem, dateStrAsYMDHM, onError, searchBinary } from './utils'
+import { showReceiptView } from './comp_receipt_view'
+import {
+	$,
+	$child,
+	$in,
+	$template,
+	createElem,
+	dateStrAsYMDHM,
+	getReceiptDataFrom,
+	highlightedIfFound,
+	makeReceiptTitle,
+	onError,
+	searchBinary,
+} from './utils'
 
-/**
- * @typedef {{
- *   fiscalNum: string,
- *   fiscalDoc: string,
- *   fiscalSign: string,
- *   kind: string,
- *   summ: string,
- *   createdAt: string,
- * }} ReceiptRef
- */
-
-/**
- * @typedef {{
- *   id: number,
- *   savedAt: string,
- *   updatedAt: string,
- *   ref: ReceiptRef,
- *   isCorrect: boolean,
- *   refText: string,
- *   data: string,
- *   searchKey: string,
- *   retriesLeft: number,
- *   nextRetryAt: string,
- * }} Receipt
- */
+/** @typedef {import('./utils').Receipt} Receipt */
 
 /** @typedef {'id'|'created_at'} SortMode */
 
 /**
- * @param {(receipts:Receipt[]) => unknown} onChunk
+ * @param {(receipts:Receipt[], isUpdate:boolean) => unknown} onChunk
  */
 function ReceiptsLoader(onChunk) {
 	this.receiptSource = /** @type {EventSource|null} */ (null)
@@ -57,10 +46,10 @@ ReceiptsLoader.prototype.reopen = function (sortMode, searchQuery) {
 	this.receiptSource = new EventSource(path)
 	this.receiptSource.addEventListener('initial_receipts', event => {
 		this.isWaitingInitialReceipts = false
-		this.onChunk(JSON.parse(/**@type {*}*/ (event).data))
+		this.onChunk(JSON.parse(/**@type {*}*/ (event).data), false)
 	})
 	this.receiptSource.addEventListener('receipt', event => {
-		this.onChunk([JSON.parse(/**@type {*}*/ (event).data)])
+		this.onChunk([JSON.parse(/**@type {*}*/ (event).data)], true)
 	})
 	this.receiptSource.addEventListener('error', () => {
 		setTimeout(() => this.reopen(sortMode, searchQuery), 2000)
@@ -90,52 +79,12 @@ ReceiptsLoader.prototype.loadChunk = function (sortMode, searchQuery, lastReceip
 		.then(res => {
 			if (!res.ok) throw new Error(`${res.error}: ${res.description}`)
 			if (res.result.length === 0) this.hasFullyLoaded = true
-			this.onChunk(res.result)
+			this.onChunk(res.result, false)
 		})
 		.catch(onError)
 		.finally(() => {
 			this.isLoadingChunk = false
 		})
-}
-
-/**
- * @param {string} text
- * @param {string} substr
- * @param {number} [maxFirstOffset]
- * @param {number} [maxTotalLen]
- * @returns {DocumentFragment|null}
- */
-function highlightedIfFound(text, substr, maxFirstOffset, maxTotalLen) {
-	if (substr.length == 0) return null
-	let textLC = text.toLowerCase()
-	substr = substr.toLowerCase()
-
-	const res = document.createDocumentFragment()
-	let prevEnd = 0
-	while (true) {
-		const isFirstIter = prevEnd === 0
-		let index = textLC.indexOf(substr, prevEnd) //не совсем правильно, но для русских и английских символов должно работать
-		if (isFirstIter && index === -1) return null
-		if (index === -1) index = text.length
-
-		if (prevEnd === 0 && maxFirstOffset !== undefined && index > maxFirstOffset) {
-			const offset = index - Math.ceil(maxFirstOffset * 0.8)
-			text = '…' + text.slice(offset)
-			textLC = '…' + textLC.slice(offset)
-			index = index - offset + '…'.length
-		}
-
-		if (maxTotalLen !== undefined && index > maxTotalLen) {
-			res.appendChild(document.createTextNode(text.slice(prevEnd, maxTotalLen) + '…'))
-			break
-		}
-		res.appendChild(document.createTextNode(text.slice(prevEnd, index)))
-		if (index === text.length) break
-
-		res.appendChild(createElem('span', 'highlight', text.slice(index, index + substr.length)))
-		prevEnd = index + substr.length
-	}
-	return res
 }
 
 export function setupReceiptListComponent() {
@@ -146,12 +95,11 @@ export function setupReceiptListComponent() {
 	let searchQuery = ''
 
 	let clearOnNextUpdate = false
-	const loader = new ReceiptsLoader(receipts => {
+	const loader = new ReceiptsLoader((receipts, isUpdate) => {
 		if (clearOnNextUpdate) clearReceipts()
 		clearOnNextUpdate = false
 		listWrap.classList.remove('stale')
-		const addAnimated = receipts.length === 1
-		receipts.forEach(rec => addOrUpdateRceipt(rec, addAnimated))
+		receipts.forEach(rec => addOrUpdateRceipt(rec, isUpdate))
 	})
 
 	/**
@@ -180,8 +128,8 @@ export function setupReceiptListComponent() {
 		if (!exists) {
 			receipts.splice(index, 0, rec)
 
-			const elem = cloneNodeDeep($('.template.receipt-list-item', HTMLDivElement))
-			elem.classList.remove('template')
+			const elem = $template('.template.receipt-list-item', HTMLDivElement)
+			elem.dataset.id = rec.id + ''
 			receiptElemById.set(rec.id, elem)
 
 			const wrap = $('.receipt-list-wrap', HTMLDivElement)
@@ -196,22 +144,17 @@ export function setupReceiptListComponent() {
 		updateRceipt(rec)
 	}
 
-	function getReceiptDataFrom(data) {
-		if ('ticket' in data) return data.ticket.document.receipt //FNS API version 2
-		return data.document.receipt //FNS API version 1
-	}
-
 	/** @param {Receipt} rec */
 	function updateRceipt(rec) {
 		const elem = receiptElemById.get(rec.id)
-		const data = rec.data ? getReceiptDataFrom(JSON.parse(rec.data)) : null
+		const data = getReceiptDataFrom(rec)
 		elem.classList.toggle('correct', rec.isCorrect)
 		elem.classList.toggle('filled', !!data)
 		elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)
 		$in(elem, '.id', Element).textContent = '#' + rec.id
 		$child(elem, '.created_at', highlightedSearch(dateStrAsYMDHM(rec.ref.createdAt)))
 		$child(elem, '.total_sum', highlightedSearch(data && (data.totalSum / 100).toFixed(2), ' ₽'))
-		$child(elem, '.user', highlightedSearch(data && data.user))
+		$child(elem, '.title .value', highlightedSearch(makeReceiptTitle(data, '—')))
 		$in(elem, '.items_count', Element).textContent = ((data && data.items.length) || '??') + ' шт'
 		$in(elem, '.retries_left', Element).textContent = 'x' + rec.retriesLeft
 		$child(elem, '.retail_place_address', highlightedSearch(data && data.retailPlaceAddress))
@@ -261,10 +204,18 @@ export function setupReceiptListComponent() {
 		if (panel.classList.contains('hidden')) {
 			panel.classList.remove('hidden')
 			e.stopPropagation()
-		} else {
-			const isCollapseBtn =
-				e.target instanceof Element && e.target.classList.contains('receipt-side-panel-collapse-btn')
-			if (isCollapseBtn) panel.classList.add('hidden')
+			return
+		}
+		const isCollapseBtn =
+			e.target instanceof Element && e.target.classList.contains('receipt-side-panel-collapse-btn')
+		if (isCollapseBtn) {
+			panel.classList.add('hidden')
+			return
+		}
+		const recListItem = e.target instanceof Element && e.target.closest('.receipt-list-item')
+		if (recListItem instanceof HTMLElement) {
+			const rec = receipts.find(x => x.id === parseInt(recListItem.dataset.id + ''))
+			if (rec) showReceiptView(rec, searchQuery)
 		}
 	}
 
