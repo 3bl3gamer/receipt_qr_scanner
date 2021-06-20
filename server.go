@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -191,6 +192,53 @@ func writeSseJson(wr io.Writer, name string, obj interface{}) error {
 	return nil
 }
 
+var gzippers = sync.Pool{New: func() interface{} {
+	// receipts before_id=100: 1 - 37.9KB, 2 - 36.5KB, 3 - 35.5KB, 4 - 33.8KB, 5 - 32.9KB, 6 - 32.5KB, 7/8/9 - 32.4KB
+	// speed: https://tukaani.org/lzma/benchmarks.html
+	gz, err := gzip.NewWriterLevel(nil, 5)
+	if err != nil {
+		panic(err)
+	}
+	return gz
+}}
+
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	gz *gzip.Writer
+}
+
+func (w *gzipResponseWriter) Write(p []byte) (int, error) {
+	return w.gz.Write(p)
+}
+
+func (w *gzipResponseWriter) CloseNotify() <-chan bool {
+	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
+
+func (w *gzipResponseWriter) Flush() {
+	w.gz.Flush() //TODO: error is ignored here, since it (looks like) should also be returned from Write()
+	w.ResponseWriter.(http.Flusher).Flush()
+}
+
+func withGzip(handle httputils.HandlerExt) httputils.HandlerExt {
+	return func(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) error {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			return handle(wr, r, ps)
+		}
+		wr.Header().Set("Content-Encoding", "gzip")
+
+		gz := gzippers.Get().(*gzip.Writer)
+		defer gzippers.Put(gz)
+		gz.Reset(wr)
+
+		err := handle(&gzipResponseWriter{wr, gz}, r, ps)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		return merry.Wrap(gz.Close())
+	}
+}
+
 var emptyReceipts = []*Receipt{}
 
 func ensureRecsNotNil(receipts []*Receipt) []*Receipt {
@@ -268,6 +316,13 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 		return nil, merry.Wrap(err)
 	}
 	flusher.Flush()
+	// for _, rec := range receipts {
+	// 	if err := writeSseJson(wr, "receipt", rec); err != nil {
+	// 		return nil, merry.Wrap(err)
+	// 	}
+	// 	flusher.Flush()
+	// 	time.Sleep(time.Second)
+	// }
 
 sseLoop:
 	for {
@@ -343,7 +398,7 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 	// Routes
 	route("GET", "/", HandleIndex)
 	route("POST", "/api/receipt", HandleAPIReceipt)
-	route("GET", "/api/receipts_list", receiptsBroadcaster.HandleAPIReceiptsList)
+	route("GET", "/api/receipts_list", withGzip, receiptsBroadcaster.HandleAPIReceiptsList)
 
 	route("GET", "/api/explode", func(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
 		return nil, merry.New("test API error")
