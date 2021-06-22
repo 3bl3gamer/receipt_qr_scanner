@@ -51,7 +51,7 @@ var migrations = []func(*sql.Tx) error{
 		return merry.Wrap(err)
 	},
 	func(tx *sql.Tx) error {
-		_, err := tx.Exec(`ALTER TABLE receipts ADD COLUMN search_key TEXT`)
+		_, err := tx.Exec(`ALTER TABLE receipts ADD COLUMN search_key TEXT NOT NULL DEFAULT '<pending>'`)
 		if err != nil {
 			return merry.Wrap(err)
 		}
@@ -73,7 +73,7 @@ var migrations = []func(*sql.Tx) error{
 			if err != nil {
 				return merry.Wrap(err)
 			}
-			rec.SearchKey, err = makeReceiptSearchKey(rec)
+			rec.SearchKey, err = makeReceiptSearchKey(&rec.Ref, rec.Data)
 			if err != nil {
 				return merry.Wrap(err)
 			}
@@ -158,18 +158,18 @@ func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]strin
 		log.Fatal().Interface("item", obj).Msg("unexpected JSON item")
 	}
 }
-func makeReceiptSearchKey(rec *Receipt) (string, error) {
+func makeReceiptSearchKey(ref *ReceiptRef, dataStr string) (string, error) {
 	items := []string{
-		"_created_at:" + rec.Ref.CreatedAt.Format("2006-01-02 15:04"),
-		"_sum:" + strconv.FormatFloat(rec.Ref.Summ, 'f', 2, 64),
-		"_num:" + strconv.FormatInt(rec.Ref.FiscalNum, 10),
-		"_doc:" + strconv.FormatInt(rec.Ref.FiscalDoc, 10),
-		"_sign:" + strconv.FormatInt(rec.Ref.FiscalSign, 10),
-		"_type:" + strconv.FormatInt(rec.Ref.Kind, 10),
+		"_created_at:" + ref.CreatedAt.Format("2006-01-02 15:04"),
+		"_sum:" + strconv.FormatFloat(ref.Summ, 'f', 2, 64),
+		"_num:" + strconv.FormatInt(ref.FiscalNum, 10),
+		"_doc:" + strconv.FormatInt(ref.FiscalDoc, 10),
+		"_sign:" + strconv.FormatInt(ref.FiscalSign, 10),
+		"_type:" + strconv.FormatInt(ref.Kind, 10),
 	}
-	if rec.Data != "" {
+	if dataStr != "" {
 		var data interface{}
-		if err := json.Unmarshal([]byte(rec.Data), &data); err != nil {
+		if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
 			return "", merry.Wrap(err)
 		}
 		makeReceiptSearchKeyInner("", data, &items)
@@ -185,10 +185,14 @@ func escapeLike(str, escChar string) string {
 }
 
 func saveRecieptRef(db *sql.DB, ref *ReceiptRef, refText string) (int64, error) {
+	searchKey, err := makeReceiptSearchKey(ref, "")
+	if err != nil {
+		return 0, merry.Wrap(err)
+	}
 	res, err := db.Exec(`
-		INSERT INTO receipts (ref_text, fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at)
-		VALUES (?,?,?,?,?,?,?)`,
-		refText, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
+		INSERT INTO receipts (ref_text, fiscal_num, fiscal_doc, fiscal_sign, kind, summ, search_key, created_at)
+		VALUES (?,?,?,?,?,?,?,?)`,
+		refText, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, searchKey, ref.CreatedAt)
 	if sqlite3Error, ok := err.(sqlite3.Error); ok {
 		if sqlite3Error.ExtendedCode == sqlite3.ErrConstraintUnique {
 			return 0, ErrReceiptRefAlreadyExists.Here()
@@ -212,7 +216,8 @@ func saveReceiptFailure(db *sql.DB, ref *ReceiptRef, decreaseRetries bool) error
 		    retries_left = CASE ? WHEN true THEN MAX(0, retries_left-1) ELSE retries_left END,
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
-		decreaseRetries, decreaseRetries, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
+		decreaseRetries, decreaseRetries,
+		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
 }
 
@@ -225,10 +230,15 @@ func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
 }
 
 func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
-	_, err := db.Exec(`
-		UPDATE receipts SET is_correct = 1, data = ?, updated_at = CURRENT_TIMESTAMP
+	searchKey, err := makeReceiptSearchKey(ref, string(data))
+	if err != nil {
+		return merry.Wrap(err)
+	}
+	_, err = db.Exec(`
+		UPDATE receipts SET is_correct = 1, data = ?, search_key = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE (fiscal_num, fiscal_doc, fiscal_sign, kind, summ, created_at) = (?,?,?,?,?,?)`,
-		data, ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
+		data, searchKey,
+		ref.FiscalNum, ref.FiscalDoc, ref.FiscalSign, ref.Kind, ref.Summ, ref.CreatedAt)
 	return merry.Wrap(err)
 }
 

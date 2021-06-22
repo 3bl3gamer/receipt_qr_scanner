@@ -125,7 +125,9 @@ export function setupReceiptListComponent() {
 	 */
 	function addOrUpdateRceipt(rec, addAnimated) {
 		const [index, exists] = searchBinary(receipts, rec, getSortFunc())
-		if (!exists) {
+		if (exists) {
+			receipts[index] = rec
+		} else {
 			receipts.splice(index, 0, rec)
 
 			const elem = $template('.template.receipt-list-item', HTMLDivElement)
