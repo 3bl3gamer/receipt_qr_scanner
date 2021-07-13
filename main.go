@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog"
@@ -44,15 +45,28 @@ func main() {
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
-	if err := updateSessionIfOld(session); err != nil {
-		log.Fatal().Stack().Err(err).Msg("")
-	}
 	// Checking session
-	profile, err := fnsGetProfile(session.SessonID)
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("")
+	updateSessionAndPrintProfile := func() error {
+		if err := updateSessionIfOld(session); err != nil {
+			return err
+		}
+		profile, err := fnsGetProfile(session.SessonID)
+		if err == nil {
+			log.Info().Str("phone", profile.Phone).Msg("profile")
+		}
+		return err
 	}
-	log.Info().Str("phone", profile.Phone).Msg("profile")
+	for i := 4; i >= 0; i-- {
+		if err := updateSessionAndPrintProfile(); err != nil {
+			if i > 0 && !merry.Is(err, ErrUnexpectedHttpStatus) {
+				log.Warn().Err(err).Int("retries_left", i).Msg("can not get profile")
+				time.Sleep(3 * time.Second)
+				continue
+			}
+			log.Fatal().Stack().Err(err).Msg("")
+		}
+		break
+	}
 	if *mustInitSession {
 		os.Exit(0)
 	}
