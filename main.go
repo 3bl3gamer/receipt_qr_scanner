@@ -15,6 +15,7 @@ func main() {
 	flag.Var(&env, "env", "evironment, dev or prod")
 	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
 	mustInitSession := flag.Bool("init-session", false, "init FNS session")
+	noUpdater := flag.Bool("no-updater", false, "do not start FNS receipt updater")
 	flag.Parse()
 
 	// Logger
@@ -27,48 +28,50 @@ func main() {
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
 
-	// Session
-	var err error
 	var session *Session
-	if *mustInitSession {
-		args := flag.Args()
-		if len(args) != 2 {
-			log.Fatal().Msg("exactly two arguments (refreshToken and clientSecret) are required for session init")
-		}
-		session, err = initSession(args[0], args[1])
-	} else {
-		session, err = loadSession()
-		if merry.Is(err, ErrSessionNotFound) {
-			log.Fatal().Msg("session file not found, forgot to --init-session?")
-		}
-	}
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("")
-	}
-	// Checking session
-	updateSessionAndPrintProfile := func() error {
-		if err := updateSessionIfOld(session); err != nil {
-			return err
-		}
-		profile, err := fnsGetProfile(session.SessonID)
-		if err == nil {
-			log.Info().Str("phone", profile.Phone).Msg("profile")
-		}
-		return err
-	}
-	for i := 4; i >= 0; i-- {
-		if err := updateSessionAndPrintProfile(); err != nil {
-			if i > 0 && !merry.Is(err, ErrUnexpectedHttpStatus) {
-				log.Warn().Err(err).Int("retries_left", i).Msg("can not get profile")
-				time.Sleep(3 * time.Second)
-				continue
+	if !*noUpdater {
+		// Session
+		var err error
+		if *mustInitSession {
+			args := flag.Args()
+			if len(args) != 2 {
+				log.Fatal().Msg("exactly two arguments (refreshToken and clientSecret) are required for session init")
 			}
+			session, err = initSession(args[0], args[1])
+		} else {
+			session, err = loadSession()
+			if merry.Is(err, ErrSessionNotFound) {
+				log.Fatal().Msg("session file not found, forgot to --init-session?")
+			}
+		}
+		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
-		break
-	}
-	if *mustInitSession {
-		os.Exit(0)
+		// Checking session
+		updateSessionAndPrintProfile := func() error {
+			if err := updateSessionIfOld(session); err != nil {
+				return err
+			}
+			profile, err := fnsGetProfile(session.SessonID)
+			if err == nil {
+				log.Info().Str("phone", profile.Phone).Msg("profile")
+			}
+			return err
+		}
+		for i := 4; i >= 0; i-- {
+			if err := updateSessionAndPrintProfile(); err != nil {
+				if i > 0 && !merry.Is(err, ErrUnexpectedHttpStatus) {
+					log.Warn().Err(err).Int("retries_left", i).Msg("can not get profile")
+					time.Sleep(3 * time.Second)
+					continue
+				}
+				log.Fatal().Stack().Err(err).Msg("")
+			}
+			break
+		}
+		if *mustInitSession {
+			os.Exit(0)
+		}
 	}
 
 	// DB
@@ -86,11 +89,13 @@ func main() {
 	triggerChan := make(chan struct{}, 10)
 	updatedReceiptIDsChan := make(chan int64, 10)
 
-	go func() {
-		if err := StartUpdater(db, session, triggerChan, updatedReceiptIDsChan); err != nil {
-			log.Fatal().Stack().Err(err).Msg("")
-		}
-	}()
+	if !*noUpdater {
+		go func() {
+			if err := StartUpdater(db, session, triggerChan, updatedReceiptIDsChan); err != nil {
+				log.Fatal().Stack().Err(err).Msg("")
+			}
+		}()
+	}
 
 	if err := StartHTTPServer(db, env, *serverAddr, triggerChan, updatedReceiptIDsChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
