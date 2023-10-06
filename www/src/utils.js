@@ -1,22 +1,11 @@
 /**
  * @typedef {{
- *   fiscalNum: string,
- *   fiscalDoc: string,
- *   fiscalSign: string,
- *   kind: string,
- *   summ: string,
- *   createdAt: string,
- * }} ReceiptRef
- */
-
-/**
- * @typedef {{
  *   id: number,
  *   savedAt: string,
  *   updatedAt: string,
- *   ref: ReceiptRef,
- *   isCorrect: boolean,
+ *   createdAt: string,
  *   refText: string,
+ *   isCorrect: boolean,
  *   data: string,
  *   searchKey: string,
  *   retriesLeft: number,
@@ -307,4 +296,18 @@ export function dimKops(summ) {
 	frag.appendChild(document.createTextNode(int))
 	frag.appendChild(createElem('span', 'kopeks', '.' + fract))
 	return frag
+}
+
+/** @param {string} refText */
+export function parseRefText(refText) {
+	const params = new URLSearchParams(refText)
+	const res = {
+		fiscalNum: params.get('fn'),
+		fiscalDoc: params.get('i'),
+		fiscalSign: params.get('fp'),
+		kind: params.get('n'),
+		summ: params.get('s'),
+		createdAt: params.get('t'),
+	}
+	return res
 }

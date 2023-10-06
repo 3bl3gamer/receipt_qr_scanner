@@ -11,6 +11,7 @@ import {
 	getReceiptDataFrom,
 	highlightedIfFound,
 	makeReceiptTitle,
+	parseRefText,
 } from './utils'
 
 /** @typedef {import('./utils').Receipt} Receipt */
@@ -56,8 +57,10 @@ export function showReceiptView(rec, searchQuery) {
 		return res
 	}
 
+	const refData = parseRefText(rec.refText)
 	const realRecData = getReceiptDataFrom(rec)
 	const data = realRecData || { items: [], totalSum: 0 }
+
 	for (let i = 0; i < data.items.length; i++) {
 		const item = data.items[i]
 		const elem = $template('.template.receipt-item', HTMLDivElement)
@@ -76,9 +79,9 @@ export function showReceiptView(rec, searchQuery) {
 	$child(wrap, '.receipt-items-total .summ', kopeks(data.totalSum))
 
 	$child(wrap, '.kkt-reg-id', highlightedSearch(data.kktRegId))
-	$child(wrap, '.fiscal-drive-number', highlightedSearch(data.fiscalDriveNumber || rec.ref.fiscalNum))
-	$child(wrap, '.fiscal-document-number', highlightedSearch(data.fiscalDocumentNumber || rec.ref.fiscalDoc))
-	$child(wrap, '.fiscal-sign', highlightedSearch(data.fiscalSign || rec.ref.fiscalSign))
+	$child(wrap, '.fiscal-drive-number', highlightedSearch(data.fiscalDriveNumber || refData.fiscalNum))
+	$child(wrap, '.fiscal-document-number', highlightedSearch(data.fiscalDocumentNumber || refData.fiscalDoc))
+	$child(wrap, '.fiscal-sign', highlightedSearch(data.fiscalSign || refData.fiscalSign))
 
 	const isEmail = !!data.buyerPhoneOrAddress && data.buyerPhoneOrAddress.includes('@')
 	$in(wrap, '.buyer-email-label', Element).classList.toggle('hidden', !isEmail)
@@ -96,7 +99,7 @@ export function showReceiptView(rec, searchQuery) {
 
 	$in(wrap, '.title', Element).textContent = makeReceiptTitle(realRecData, 'Чек')
 
-	$child(wrap, '.created-at', highlightedSearch(dateStrAsYMDHM(rec.ref.createdAt)))
+	$child(wrap, '.created-at', highlightedSearch(dateStrAsYMDHM(rec.createdAt)))
 	$child(wrap, '.saved-at', highlightedSearch(dateStrAsYMDHM(rec.savedAt)))
 	$child(wrap, '.updated-at', highlightedSearch(dateStrAsYMDHM(rec.updatedAt)))
 

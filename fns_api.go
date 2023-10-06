@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/ansel1/merry"
@@ -84,7 +84,7 @@ func sendRequestAndRead(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}

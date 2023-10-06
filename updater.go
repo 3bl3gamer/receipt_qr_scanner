@@ -19,9 +19,9 @@ func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) 
 	}
 
 	for _, rec := range receipts {
-		log.Info().Str("ref_text", rec.RefText).Msg("fetching receipt")
+		log.Info().Str("ref_text", rec.Ref.Text).Msg("fetching receipt")
 
-		data, err := fnsFetchReceipt(rec.RefText, session.SessonID)
+		data, err := fnsFetchReceipt(rec.Ref.Text, session.SessonID)
 
 		if !rec.IsCorrect && merry.Is(err, ErrReceiptMaybeNotReadyYet) {
 			if err := saveReceiptCorrectness(db, &rec.Ref); err != nil {
@@ -34,14 +34,14 @@ func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) 
 			if merry.Is(err, ErrWaitingForConnection) || merry.Is(err, ErrCashboxOffline) || merry.Is(err, ErrReceiptMaybeNotReadyYet) {
 				log.Info().Int("iter", i+i).Msg("receipt seems not checked to FNS, waiting a bit more")
 				time.Sleep(2 * time.Second)
-				data, err = fnsFetchReceipt(rec.RefText, session.SessonID)
+				data, err = fnsFetchReceipt(rec.Ref.Text, session.SessonID)
 			} else {
 				break
 			}
 		}
 
 		if err != nil {
-			log.Warn().Err(err).Str("ref_text", rec.RefText).Msg("receipt error")
+			log.Warn().Err(err).Str("ref_text", rec.Ref.Text).Msg("receipt error")
 			decreaseRetries := !merry.Is(err, ErrToManyRequests)
 			if err := saveReceiptFailure(db, &rec.Ref, decreaseRetries); err != nil {
 				return merry.Wrap(err)
@@ -50,7 +50,7 @@ func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) 
 			continue
 		}
 
-		log.Info().Str("ref_text", rec.RefText).Msg("got receipt data")
+		log.Info().Str("ref_text", rec.Ref.Text).Msg("got receipt data")
 
 		if err := saveRecieptData(db, &rec.Ref, data); err != nil {
 			return merry.Wrap(err)

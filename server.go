@@ -8,9 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"path/filepath"
+	"receipt_qr_scanner/utils"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,53 +29,6 @@ const CtxKeyDB = ctxKey("db")
 const CtxKeyTrigger = ctxKey("trigger")
 const CtxKeyUpdateRec = ctxKey("updateRec")
 
-func receiptString(values url.Values, name string) (string, *httputils.JsonError) {
-	if _, ok := values[name]; !ok {
-		return "", &httputils.JsonError{Code: 400, Error: "MISSING_VALUE_" + strings.ToUpper(name)}
-	}
-	return values.Get(name), nil
-}
-
-func receiptInt64(values url.Values, name string) (int64, *httputils.JsonError) {
-	valueStr, jsonErr := receiptString(values, name)
-	if jsonErr != nil {
-		return 0, jsonErr
-	}
-	value, err := strconv.ParseInt(valueStr, 10, 64)
-	if err != nil {
-		return 0, &httputils.JsonError{Code: 400, Error: "WRONG_VALUE_" + strings.ToUpper(name), Description: valueStr}
-	}
-	return value, nil
-}
-
-func receiptFloat64(values url.Values, name string) (float64, *httputils.JsonError) {
-	valueStr, jsonErr := receiptString(values, name)
-	if jsonErr != nil {
-		return 0, jsonErr
-	}
-	value, err := strconv.ParseFloat(valueStr, 64)
-	if err != nil {
-		return 0, &httputils.JsonError{Code: 400, Error: "WRONG_VALUE_" + strings.ToUpper(name), Description: valueStr}
-	}
-	return value, nil
-}
-
-func receiptTime(values url.Values, name string) (time.Time, *httputils.JsonError) {
-	valueStr, jsonErr := receiptString(values, name)
-	if jsonErr != nil {
-		return time.Time{}, jsonErr
-	}
-	value, err := time.Parse("20060102T150405", valueStr)
-	if err != nil {
-		value, err = time.Parse("20060102T1504", valueStr)
-	}
-	if err != nil {
-		log.Debug().Str("name", name).Str("value", valueStr).Err(err).Msg("wrong value")
-		return time.Time{}, &httputils.JsonError{Code: 400, Error: "WRONG_VALUE_" + strings.ToUpper(name), Description: valueStr}
-	}
-	return value, nil
-}
-
 func HandleIndex(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (httputils.TemplateCtx, error) {
 	return map[string]interface{}{"FPath": "index.html", "Block": "index.html"}, nil
 }
@@ -88,39 +41,28 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	text := string(buf)
 	log.Debug().Str("text", text).Msg("receipt ref text")
 
-	values, err := url.ParseQuery(text)
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
-	var jsonErr *httputils.JsonError
-	var ref ReceiptRef
-	ref.FiscalNum, jsonErr = receiptInt64(values, "fn")
-	if jsonErr != nil {
-		return jsonErr, nil
-	}
-	ref.FiscalDoc, jsonErr = receiptInt64(values, "i")
-	if jsonErr != nil {
-		return jsonErr, nil
-	}
-	ref.FiscalSign, jsonErr = receiptInt64(values, "fp")
-	if jsonErr != nil {
-		return jsonErr, nil
-	}
-	ref.Kind, jsonErr = receiptInt64(values, "n")
-	if jsonErr != nil {
-		return jsonErr, nil
-	}
-	ref.Summ, jsonErr = receiptFloat64(values, "s")
-	if jsonErr != nil {
-		return jsonErr, nil
-	}
-	ref.CreatedAt, jsonErr = receiptTime(values, "t")
-	if jsonErr != nil {
-		return jsonErr, nil
+	ref := ReceiptRef{Text: text}
+	err = ref.ValidateFormat()
+	if fEff, ok := err.(utils.ReceiptRefFieldErr); ok {
+		prefix := "WRONG_VALUE_"
+		if fEff.IsMissing {
+			prefix = "WRONG_VALUE_"
+		}
+		return &httputils.JsonError{
+			Code:        400,
+			Error:       prefix + strings.ToUpper(fEff.Name),
+			Description: fEff.ValueStr,
+		}, nil
+	} else if err != nil {
+		return &httputils.JsonError{
+			Code:        400,
+			Error:       "WRONG_REF",
+			Description: text,
+		}, nil
 	}
 
 	db := r.Context().Value(CtxKeyDB).(*sql.DB)
-	recID, err := saveRecieptRef(db, &ref, text)
+	recID, err := saveRecieptRef(db, &ref)
 	if merry.Is(err, ErrReceiptRefAlreadyExists) {
 		return httputils.JsonError{Code: 400, Error: "ALREADY_EXISTS"}, nil
 	} else if err != nil {

@@ -68,7 +68,7 @@ ReceiptsLoader.prototype.loadChunk = function (sortMode, searchQuery, lastReceip
 	let path = `./api/receipts_list?sse=0&sort_mode=${sortMode}&search=${encodeURIComponent(searchQuery)}`
 	if (lastReceipt !== null) {
 		if (sortMode === 'created_at') {
-			path += '&before_time=' + encodeURIComponent(new Date(lastReceipt.ref.createdAt).toISOString())
+			path += '&before_time=' + encodeURIComponent(new Date(lastReceipt.createdAt).toISOString())
 		} else {
 			path += '&before_id=' + lastReceipt.id
 		}
@@ -114,8 +114,7 @@ export function setupReceiptListComponent() {
 
 	/** @returns {(a:Receipt, b:Receipt) => number} */
 	function getSortFunc() {
-		if (sortMode === 'created_at')
-			return (a, b) => b.ref.createdAt.localeCompare(a.ref.createdAt) || b.id - a.id
+		if (sortMode === 'created_at') return (a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id
 		return (a, b) => b.id - a.id
 	}
 
@@ -154,7 +153,7 @@ export function setupReceiptListComponent() {
 		elem.classList.toggle('filled', !!data)
 		elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)
 		$in(elem, '.id', Element).textContent = '#' + rec.id
-		$child(elem, '.created_at', highlightedSearch(dateStrAsYMDHM(rec.ref.createdAt)))
+		$child(elem, '.created_at', highlightedSearch(dateStrAsYMDHM(rec.createdAt)))
 		$child(elem, '.total_sum', highlightedSearch(data && (data.totalSum / 100).toFixed(2), ' ₽'))
 		$child(elem, '.title .value', highlightedSearch(makeReceiptTitle(data, '—')))
 		$in(elem, '.items_count', Element).textContent = ((data && data.items.length) || '??') + ' шт'
