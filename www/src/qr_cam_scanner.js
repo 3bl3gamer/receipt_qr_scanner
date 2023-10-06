@@ -3,7 +3,12 @@ import { binarize } from './vendor/jsQR/src/binarizer'
 import { extract } from './vendor/jsQR/src/extractor'
 import { decode } from './vendor/jsQR/src/decoder/decoder'
 import { BitMatrix } from './vendor/jsQR/src/BitMatrix'
+import { mustBeNotNull } from './utils'
 
+/**
+ * @param {HTMLElement} wrap
+ * @param {(text:string) => unknown} handleDecodedQR
+ */
 export function QRCamScanner(wrap, handleDecodedQR) {
 	const scanSize = 512
 	let debug = false
@@ -14,14 +19,16 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 
 	for (const elem of [video, uiCanvas]) {
 		elem.style.position = 'absolute'
-		elem.style.left = elem.style.top = 0
+		elem.style.left = elem.style.top = '0'
 		elem.style.width = elem.style.height = '100%'
 	}
 	video.style.objectFit = 'cover'
+	video.playsInline = true
+	video.addEventListener('loadeddata', setVideoSettingsByElem)
 
 	scanCanvas.width = scanCanvas.height = scanSize
 
-	let videoSettings = null
+	let videoSettings = /**@type {{width:number, height:number} | null}>*/ (null)
 	let videoUIXOffset = 0
 	let videoUIYOffset = 0
 	let videoUIScale = 1
@@ -32,6 +39,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 
 	function resize() {
 		resizeUICanvas()
+		setVideoSettingsByElem()
 		resizeVideo()
 	}
 	function resizeUICanvas() {
@@ -47,10 +55,9 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		uiScale = Math.min(canvas.width, canvas.height) / 512
 	}
 	function resizeVideo() {
-		if (video.srcObject === null) return
+		if (!videoSettings) return
 
 		const canvas = uiCanvas
-		videoSettings = video.srcObject.getVideoTracks()[0].getSettings()
 
 		videoUIXOffset = 0
 		videoUIYOffset = 0
@@ -62,8 +69,15 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 			videoUIXOffset = -(videoSettings.width - canvas.width / videoUIScale) / 2
 		}
 	}
+	function setVideoSettingsByElem() {
+		// кривая Сафари (как минимум 16.1.2) иногда путает высоту и ширну стрима в `stream.getVideoTracks()[0].getSettings()`
+		if (video.videoWidth !== 0 && video.videoHeight !== 0)
+			videoSettings = { width: video.videoWidth, height: video.videoHeight }
+	}
 
 	function startScan() {
+		if (!('mediaDevices' in navigator)) return alert('can not access camera')
+
 		navigator.mediaDevices
 			.getUserMedia({
 				video: {
@@ -74,22 +88,26 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 				audio: false,
 			})
 			.then(stream => {
+				// const { width, height } = stream.getVideoTracks()[0].getSettings()
+				// videoSettings = { width: mustBeDefined(width), height: mustBeDefined(height) }
 				video.srcObject = stream
 				video.play()
 				scanLoopFrame()
 			})
-			.catch(err => alert(err))
+			.catch(err => {
+				alert(err?.stack || err)
+			})
 	}
 
 	function scanLoopFrame() {
-		requestAnimationFrame(scanLoopFrame)
+		setTimeout(scanLoopFrame, 200)
 		resizeVideo()
 		drawCanvasUI()
 		scanCurVideoFrame()
 	}
 
 	function drawCanvasUI() {
-		const rc = uiCanvas.getContext('2d')
+		const rc = mustBeNotNull(uiCanvas.getContext('2d'))
 		rc.globalCompositeOperation = 'destination-out'
 		rc.fillStyle = 'rgba(0,0,0,0.3)'
 		rc.fillRect(0, 0, uiCanvas.width, uiCanvas.height)
@@ -109,7 +127,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		const { data, width, height } = imageData
 
 		const shouldInvert = false
-		const { binarized, inverted } = binarize(data, width, height, shouldInvert)
+		const { binarized /*,inverted*/ } = binarize(data, width, height, shouldInvert)
 
 		const binImage = binarized
 		if (debug) showBinImage(binImage)
@@ -135,9 +153,10 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 	}
 
 	function scanCurVideoFrame() {
+		if (!videoSettings) return
 		const vidMinSize = Math.min(videoSettings.width, videoSettings.height)
 
-		const rc = scanCanvas.getContext('2d')
+		const rc = mustBeNotNull(scanCanvas.getContext('2d'))
 		rc.drawImage(
 			video,
 			(videoSettings.width - vidMinSize) / 2,
@@ -153,7 +172,13 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		scanFrameCanvasData(rc.getImageData(0, 0, scanSize, scanSize))
 	}
 
+	/**
+	 * @param {number} x
+	 * @param {number} y
+	 * @returns {[number, number]}
+	 */
 	function xyFromScanToUI(x, y) {
+		if (!videoSettings) return [0, 0]
 		const vidMinSize = Math.min(videoSettings.width, videoSettings.height)
 		x =
 			videoUIXOffset * videoUIScale +
@@ -165,6 +190,10 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 			y * (vidMinSize / scanSize) * videoUIScale
 		return [x, y]
 	}
+	/**
+	 * @param {{x:number, y:number}} obj
+	 * @returns {[number, number]}
+	 */
 	function xyFromScanObjToUI(obj) {
 		return xyFromScanToUI(obj.x, obj.y)
 	}
@@ -173,11 +202,12 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 	 * @param {import('./vendor/jsQR/src/BitMatrix').BitMatrix} image
 	 */
 	function showBinImage(image) {
-		const rc = uiCanvas.getContext('2d')
+		const rc = mustBeNotNull(uiCanvas.getContext('2d'))
+		const imageData = bitMatrixData(image)
 		rc.fillStyle = 'black'
 		for (let i = 0; i < image.width; i++)
 			for (let j = 0; j < image.height; j++) {
-				const v = image.data[i + j * image.width]
+				const v = imageData[i + j * image.width]
 				if (v) rc.fillRect(i, j, 1, 1)
 			}
 	}
@@ -186,7 +216,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 	 * @param {import('./vendor/jsQR/src/locator').QRLocation} location
 	 */
 	function showLocation(location) {
-		const rc = uiCanvas.getContext('2d')
+		const rc = mustBeNotNull(uiCanvas.getContext('2d'))
 		dot(rc, ...xyFromScanObjToUI(location.bottomLeft), 'orange')
 		dot(rc, ...xyFromScanObjToUI(location.topLeft), 'orange')
 		dot(rc, ...xyFromScanObjToUI(location.topRight), 'orange')
@@ -198,7 +228,8 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 	 * @param {(x: number, y: number) => {x: number, y: number}} mappingFunction
 	 */
 	function showMatrix(matrix, mappingFunction) {
-		const rc = uiCanvas.getContext('2d')
+		const rc = mustBeNotNull(uiCanvas.getContext('2d'))
+		const matrixData = bitMatrixData(matrix)
 		for (let i = 0; i < matrix.width; i++) {
 			for (let j = 0; j < matrix.height; j++) {
 				const pos = mappingFunction(i + 0.5, j + 0.5)
@@ -206,14 +237,14 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 				const [x, y] = xyFromScanObjToUI(pos)
 				rc.beginPath()
 				rc.arc(x, y, uiScale * 1, 0, 2 * Math.PI, false)
-				rc.fillStyle = matrix.data[i + j * matrix.width] ? 'black' : 'white'
+				rc.fillStyle = matrixData[i + j * matrix.width] ? 'black' : 'white'
 				rc.fill()
 			}
 		}
 	}
 
 	function highlightQR(mappingFunction, dimension) {
-		const rc = uiCanvas.getContext('2d')
+		const rc = mustBeNotNull(uiCanvas.getContext('2d'))
 		rc.beginPath()
 		rc.moveTo(...xyFromScanObjToUI(mappingFunction(0, 0)))
 		rc.lineTo(...xyFromScanObjToUI(mappingFunction(0, dimension)))
@@ -227,11 +258,23 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		rc.stroke()
 	}
 
+	/**
+	 * @param {CanvasRenderingContext2D} rc
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {string} color
+	 */
 	function dot(rc, x, y, color) {
 		rc.beginPath()
 		rc.arc(x, y, uiScale * 4, 0, 2 * Math.PI, false)
 		rc.fillStyle = color
 		rc.fill()
+	}
+
+	/** @param {import('./vendor/jsQR/src/BitMatrix').BitMatrix} bitMatrix */
+	function bitMatrixData(bitMatrix) {
+		// @ts-ignore
+		return bitMatrix.data
 	}
 
 	// ---
@@ -253,6 +296,8 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 //  =========================
 // === modified jsQR funcs ===
 //  =========================
+
+/** @typedef {Record<'a11' | 'a21' | 'a31' | 'a12' | 'a22' | 'a32' | 'a13' | 'a23' | 'a33', number>} PerspectiveTransform */
 
 /**
  * Works like jsQR/extractor/extract() but sets each point on QR matrix
@@ -313,11 +358,11 @@ export function extractWithArea(image, location) {
 //  ========================
 
 /**
- * @param {import('./vendor/jsQR/src/extractor').Point} p1
- * @param {import('./vendor/jsQR/src/extractor').Point} p2
- * @param {import('./vendor/jsQR/src/extractor').Point} p3
- * @param {import('./vendor/jsQR/src/extractor').Point} p4
- * @returns {import('./vendor/jsQR/src/extractor').PerspectiveTransform}
+ * @param {import('./vendor/jsQR/src/locator').Point} p1
+ * @param {import('./vendor/jsQR/src/locator').Point} p2
+ * @param {import('./vendor/jsQR/src/locator').Point} p3
+ * @param {import('./vendor/jsQR/src/locator').Point} p4
+ * @returns {PerspectiveTransform}
  */
 function squareToQuadrilateral(p1, p2, p3, p4) {
 	const dx3 = p1.x - p2.x + p3.x - p4.x
@@ -358,11 +403,11 @@ function squareToQuadrilateral(p1, p2, p3, p4) {
 }
 
 /**
- * @param {import('./vendor/jsQR/src/extractor').Point} p1
- * @param {import('./vendor/jsQR/src/extractor').Point} p2
- * @param {import('./vendor/jsQR/src/extractor').Point} p3
- * @param {import('./vendor/jsQR/src/extractor').Point} p4
- * @returns {import('./vendor/jsQR/src/extractor').PerspectiveTransform}
+ * @param {import('./vendor/jsQR/src/locator').Point} p1
+ * @param {import('./vendor/jsQR/src/locator').Point} p2
+ * @param {import('./vendor/jsQR/src/locator').Point} p3
+ * @param {import('./vendor/jsQR/src/locator').Point} p4
+ * @returns {PerspectiveTransform}
  */
 function quadrilateralToSquare(p1, p2, p3, p4) {
 	// Here, the adjoint serves as the inverse:
@@ -381,9 +426,9 @@ function quadrilateralToSquare(p1, p2, p3, p4) {
 }
 
 /**
- * @param {import('./vendor/jsQR/src/extractor').PerspectiveTransform} a
- * @param {import('./vendor/jsQR/src/extractor').PerspectiveTransform} b
- * @returns {import('./vendor/jsQR/src/extractor').PerspectiveTransform}
+ * @param {PerspectiveTransform} a
+ * @param {PerspectiveTransform} b
+ * @returns {PerspectiveTransform}
  */
 function times(a, b) {
 	return {

@@ -3,10 +3,14 @@ import { $, mustBeInstanceOf, mustBeNotNull, onError } from './utils'
 
 /** @typedef {'saving'|'saved'|'exists'|'error'} ScannedQRStatus */
 
+/**
+ * @param {string} text
+ * @param {(qr:ScannedQR) => unknown} onStatusChange
+ */
 function ScannedQR(text, onStatusChange) {
 	this.text = text
 	this.status = /**@type {ScannedQRStatus}*/ ('saving')
-	this.errorMessage = null
+	this.errorMessage = /**@type {string|null}*/ (null)
 	this.time = '----.--.-- --:--'
 	this.summ = '?.??'
 	this.onStatusChange = onStatusChange
@@ -55,9 +59,10 @@ ScannedQR.prototype.label = function () {
 }
 
 export function setupScannerComponent() {
-	const scannedQRs = new Map()
-	let shownScannedQRs = []
+	const scannedQRs = /**@type {Map<string, ScannedQR>}*/ (new Map())
+	let shownScannedQRs = /**@type {ScannedQR[]}*/ ([])
 
+	/** @param {ScannedQR} scannedQR */
 	function addQRInfo(scannedQR) {
 		shownScannedQRs.unshift(scannedQR)
 		const infoBox = document.createElement('div')
@@ -71,6 +76,7 @@ export function setupScannerComponent() {
 			removeQRInfo(shownScannedQRs[shownScannedQRs.length - 1])
 		}
 	}
+	/** @param {ScannedQR} scannedQR */
 	function updateQRInfo(scannedQR) {
 		const index = shownScannedQRs.indexOf(scannedQR)
 		if (index == -1) throw new Error('wrong scannedQR')
@@ -80,6 +86,7 @@ export function setupScannerComponent() {
 		infoBox.textContent = scannedQR.label()
 		return infoBox
 	}
+	/** @param {ScannedQR} scannedQR */
 	function removeQRInfo(scannedQR) {
 		const index = shownScannedQRs.indexOf(scannedQR)
 		if (index == -1) throw new Error('wrong scannedQR')
@@ -88,16 +95,18 @@ export function setupScannerComponent() {
 		wrap.removeChild(wrap.children[index])
 	}
 
+	/** @param {ScannedQR} scannedQR */
 	function onScannedQRStatusChange(scannedQR) {
 		if (shownScannedQRs.includes(scannedQR)) updateQRInfo(scannedQR)
 	}
 
 	const qrCamScanner = new QRCamScanner($('.video-wrap', HTMLDivElement), text => {
 		if (text == '') return
-		if (!scannedQRs.has(text)) scannedQRs.set(text, new ScannedQR(text, onScannedQRStatusChange))
 		const scannedQR = scannedQRs.get(text)
-		if (shownScannedQRs[0] != scannedQR) {
-			addQRInfo(scannedQR)
+		if (scannedQR === undefined) {
+			scannedQRs.set(text, new ScannedQR(text, onScannedQRStatusChange))
+		} else {
+			if (shownScannedQRs[0] != scannedQR) addQRInfo(scannedQR)
 		}
 	})
 

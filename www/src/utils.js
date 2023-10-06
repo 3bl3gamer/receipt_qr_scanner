@@ -40,6 +40,16 @@ export function mustBeNotNull(val) {
 }
 
 /**
+ * @template T
+ * @param {T|undefined} val
+ * @returns {T}
+ */
+export function mustBeDefined(val) {
+	if (val === undefined) throw new Error('must not be undefined')
+	return val
+}
+
+/**
  * @template {{new (...args: any): any}[]} T
  * @param {any} obj
  * @param {T} classes
