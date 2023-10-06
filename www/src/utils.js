@@ -179,22 +179,6 @@ export function cloneNodeDeep(node) {
  * @returns {[number,boolean]}
  */
 export function searchBinary(arr, elem, sortFunc) {
-	/*
-	f = (a,b) => a-b
-	;[
-		[[],    0, 0, false],
-		[[1],   0, 0, false],
-		[[1],   1, 0, true],
-		[[1],   2, 1, false],
-		[[1,2], 0, 0, false],
-		[[1,2], 1, 0, true],
-		[[1,2], 2, 1, true],
-		[[1,2], 3, 2, false],
-	].forEach(([arr, elem, index, exists]) => {
-		console.assert(searchBinary(arr, elem, f)[0] === index, `index: ${arr} ${elem}`)
-		console.assert(searchBinary(arr, elem, f)[1] === exists, `exists: ${arr} ${elem}`)
-	})
-	*/
 	let startI = 0
 	let endI = arr.length
 	while (startI < endI) {
@@ -243,10 +227,64 @@ export function getReceiptDataFrom(rec) {
  */
 export function makeReceiptTitle(recData, blank) {
 	if (recData !== null) {
-		if (recData.retailPlace) return recData.retailPlace.replace(/^магазин\s/i, '').trim()
-		if (recData.user) return recData.user.replace(/общество с ограниченной ответственностью/i, '').trim()
+		let t
+		let placeName = ''
+		let placeFullName = ''
+		if (recData.retailPlace) {
+			placeFullName = recData.retailPlace.trim()
+			placeName = recData.retailPlace
+			if ((t = RECEIPT_NAME_EXCEPTIONS[placeName])) return t
+			placeName = chooseLongestURL(placeName)
+				.replace(/^магазин(\s+самообслуживания)?\s/i, '')
+				.replace(/^https?:\/\/(www\.)?/, '')
+				.replace(/\/$/, '')
+				.replace(/;$/, '')
+				.trim()
+			if ((t = RECEIPT_NAME_EXCEPTIONS[placeName])) return t
+		}
+
+		let userName = ''
+		let userNameIsActualName = false
+		if (recData.user) {
+			userName = recData.user.trim()
+			if (isLikePersonName(userName)) userNameIsActualName = true
+			if ((t = RECEIPT_NAME_EXCEPTIONS[userName])) return t
+			userName = userName
+				.trim()
+				.replace(/общество с ограниченной ответственностью\s+/i, '')
+				.replace(/(публичное |открытое )?акционерное общество\s+/i, '')
+				.replace(/^авиакомпания\s+/i, '')
+				.replace(/^(ооо|ао|зао)(?=\W)/i, '')
+				.trim()
+			if ((t = RECEIPT_NAME_EXCEPTIONS[userName])) return t
+		}
+
+		return (
+			(placeName.length > userName.length || userNameIsActualName ? placeName : userName) ||
+			placeFullName ||
+			userName
+		)
 	}
 	return blank
+
+	/** @param {string} name */
+	function isLikePersonName(name) {
+		name = name.trim().replace(/^(ип|индивидуальный предприниматель)\s+/i, '')
+		return /^[а-яёА-ЯЁ\s]*$/.test(name) && name.split(/\s+/).length === 3
+	}
+
+	/** @param {string} name */
+	function chooseLongestURL(name) {
+		const items = name.split(';')
+		if (items.length === 1 || !items.every(x => /^\s*https?:\/\//.test(x))) return name
+		return items.sort((a, b) => b.length - a.length)[0]
+	}
+}
+const RECEIPT_NAME_EXCEPTIONS = {
+	'Магазин "Читай-Город"': '"Читай-Город"',
+	'Магазин упаковки': 'Магазин упаковки',
+	'"МОБИЛЬНЫЕ ТЕЛЕСИСТЕМЫ"': 'МТС',
+	'dom.ru': 'dom.ru',
 }
 
 /**
