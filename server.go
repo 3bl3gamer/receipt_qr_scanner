@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -82,7 +81,7 @@ func HandleIndex(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 }
 
 func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
-	buf, err := ioutil.ReadAll(r.Body)
+	buf, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
@@ -342,7 +341,7 @@ sseLoop:
 	return nil, nil
 }
 
-func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
+func StartHTTPServer(db *sql.DB, env Env, address string, debugTLS bool, updaterTriggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	ex, err := os.Executable()
 	if err != nil {
 		return merry.Wrap(err)
@@ -437,5 +436,9 @@ func StartHTTPServer(db *sql.DB, env Env, address string, updaterTriggerChan cha
 
 	// Server
 	log.Info().Str("address", address).Msg("starting server")
-	return merry.Wrap(http.ListenAndServe(address, router))
+	if debugTLS {
+		return merry.Wrap(http.ListenAndServeTLS(address, "debug.pem", "debug.key", router))
+	} else {
+		return merry.Wrap(http.ListenAndServe(address, router))
+	}
 }

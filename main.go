@@ -16,6 +16,7 @@ func main() {
 	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
 	mustInitSession := flag.Bool("init-session", false, "init FNS session")
 	noUpdater := flag.Bool("no-updater", false, "do not start FNS receipt updater")
+	debugTSL := flag.Bool("debug-tls", false, "start HTTP server in TLS mode for debugging")
 	flag.Parse()
 
 	// Logger
@@ -97,7 +98,7 @@ func main() {
 		}()
 	}
 
-	if err := StartHTTPServer(db, env, *serverAddr, triggerChan, updatedReceiptIDsChan); err != nil {
+	if err := StartHTTPServer(db, env, *serverAddr, *debugTSL, triggerChan, updatedReceiptIDsChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
 }
