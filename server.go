@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -42,15 +43,16 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	log.Debug().Str("text", text).Msg("receipt ref text")
 
 	ref, err := receiptRefFromText(text)
-	if fEff, ok := err.(utils.ReceiptRefFieldErr); ok {
+	var fErr utils.ReceiptRefFieldErr
+	if errors.As(err, &fErr) {
 		prefix := "WRONG_VALUE_"
-		if fEff.IsMissing {
-			prefix = "WRONG_VALUE_"
+		if fErr.IsMissing {
+			prefix = "MISSING_VALUE_"
 		}
 		return &httputils.JsonError{
 			Code:        400,
-			Error:       prefix + strings.ToUpper(fEff.Name),
-			Description: fEff.ValueStr,
+			Error:       prefix + strings.ToUpper(fErr.Name),
+			Description: fErr.ValueStr,
 		}, nil
 	} else if err != nil {
 		log.Warn().Err(err).Msg("ref text parse")
