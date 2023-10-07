@@ -95,7 +95,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 				scanLoopFrame()
 			})
 			.catch(err => {
-				alert(err?.stack || err)
+				alert('media access failed: ' + (err?.stack || err))
 			})
 	}
 

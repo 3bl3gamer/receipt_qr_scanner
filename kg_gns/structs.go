@@ -130,7 +130,7 @@ func (r ReceiptRef) parseRefText() (*ReceiptRefData, error) {
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.Sum, err = utils.ReceiptFloat64(query, "s")
+	data.Sum, err = utils.ReceiptFloat64(query, "sum")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}

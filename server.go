@@ -53,6 +53,7 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 			Description: fEff.ValueStr,
 		}, nil
 	} else if err != nil {
+		log.Warn().Err(err).Msg("ref text parse")
 		return &httputils.JsonError{
 			Code:        400,
 			Error:       "WRONG_REF",
