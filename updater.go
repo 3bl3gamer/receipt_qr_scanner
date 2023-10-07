@@ -31,17 +31,17 @@ func updateIter(db *sql.DB, domain2client map[string]utils.Client, updatedReceip
 			}
 			return merry.Wrap(err)
 		})
-		if err != nil {
+
+		if err == nil {
+			log.Info().Str("ref", rec.Ref.String()).Msg("got receipt data")
+			if err := saveRecieptData(db, rec.Ref, res.Data); err != nil {
+				return merry.Wrap(err)
+			}
+		} else {
 			log.Warn().Err(err).Str("ref", rec.Ref.String()).Msg("receipt error")
 			if err := saveReceiptFailure(db, rec.Ref, res.ShouldDecreaseRetries); err != nil {
 				return merry.Wrap(err)
 			}
-			updatedReceiptIDsChan <- rec.ID
-		}
-
-		log.Info().Str("ref", rec.Ref.String()).Msg("got receipt data")
-		if err := saveRecieptData(db, rec.Ref, res.Data); err != nil {
-			return merry.Wrap(err)
 		}
 		updatedReceiptIDsChan <- rec.ID
 	}

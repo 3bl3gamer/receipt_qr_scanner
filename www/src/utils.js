@@ -1,6 +1,7 @@
 /**
  * @typedef {{
  *   id: number,
+ *   domain: string,
  *   savedAt: string,
  *   updatedAt: string,
  *   createdAt: string,
@@ -13,6 +14,7 @@
  * }} Receipt
  */
 
+/** @param {unknown} err */
 export function onError(err) {
 	// eslint-disable-next-line no-console
 	console.error(err)
@@ -173,7 +175,7 @@ export function cloneNodeDeep(node) {
 
 /**
  * @template T
- * @param {T[]} arr
+ * @param {readonly T[]} arr
  * @param {T} elem
  * @param {(a: T, b: T) => number} sortFunc
  * @returns {[number,boolean]}
@@ -195,10 +197,12 @@ export function searchBinary(arr, elem, sortFunc) {
 	return [startI, false]
 }
 
+/** @param {number} num */
 function pad00(num) {
 	return num < 10 ? '0' + num : '' + num
 }
 
+/** @param {string} str */
 export function dateStrAsYMDHM(str) {
 	const date = new Date(str)
 	const y = date.getFullYear()
@@ -210,22 +214,175 @@ export function dateStrAsYMDHM(str) {
 }
 
 /**
- * @param {Receipt} rec
- * @returns {Record<string, any>|null}
+ * @param {string|null} domain
+ * @param {string} refText
  */
+export function parseRefText(domain, refText) {
+	if (!domain) domain = guessDomain(refText)
+	if (domain === 'ru-fns') return parseRuFnsRefText(refText)
+	if (domain === 'kg-gns') return parseKgGnsRefText(refText)
+	return null
+}
+/** @param {string} refText */
+function guessDomain(refText) {
+	if (refText.match(/^https?:\/\/[^/]+\.kg\//)) {
+		return 'kg-gns'
+	}
+	return 'ru-fns'
+}
+
+/** @param {string} refText */
+export function parseRuFnsRefText(refText) {
+	const params = new URLSearchParams(refText)
+	return {
+		fiscalNum: params.get('fn'),
+		fiscalDocumentNumber: params.get('i'),
+		fiscalDocumentSign: params.get('fp'),
+		kind: params.get('n'),
+		sum: params.get('s'),
+		createdAt: params.get('t'),
+	}
+}
+
+/** @param {string} refText */
+export function parseKgGnsRefText(refText) {
+	let url
+	try {
+		url = new URL(refText)
+	} catch (ex) {
+		onError(ex)
+		return null
+	}
+	const params = url.searchParams
+	return {
+		createdAt: params.get('date'),
+		type: params.get('type'),
+		operationType: params.get('operation_type'),
+		fiscalModuleSerialNumber: params.get('fn_number'),
+		fiscalDocumentNumber: params.get('fd_number'),
+		fiscalDocumentSign: params.get('fm'),
+		taxpayerIdNumber: params.get('tin'),
+		kktRegNumber: params.get('regNumber'),
+		sum: params.get('sum'),
+	}
+}
+
+/**
+ * @typedef {{
+ *   title: string,
+ *   flag: string,
+ *   currencySymbol: string,
+ *   totalSum: number | undefined,
+ *   itemsCount: number | undefined,
+ *   placeName: string | undefined,
+ *   orgInn: string | undefined,
+ *   address: string | undefined,
+ *   cashierName: string | undefined,
+ *   shiftNumber: number | undefined,
+ *   taxOrgUrl: string | undefined,
+ *   items: {
+ *     name: string | undefined,
+ *     quantity: number | undefined,
+ *     price: number | undefined,
+ *     sum: number | undefined,
+ *   }[]
+ * }} CommonReceiptData
+ */
+
+/** @param {Receipt} rec */
 export function getReceiptDataFrom(rec) {
 	if (!rec.data) return null
+	if (rec.domain === 'ru-fns') return getRuFnsReceiptDataFrom(rec)
+	if (rec.domain === 'kg-gns') return getKgGnsReceiptDataFrom(rec)
+	return null
+}
+/** @param {Receipt} rec */
+function getRuFnsReceiptDataFrom(rec) {
 	const data = JSON.parse(rec.data)
-	if ('ticket' in data) return data.ticket.document.receipt //FNS API version 2
-	return data.document.receipt //FNS API version 1
+	const receipt =
+		'ticket' in data
+			? data.ticket.document.receipt //FNS API version 2
+			: data.document.receipt //FNS API version 1
+	const refData = parseRuFnsRefText(rec.refText)
+	return {
+		/** @type {CommonReceiptData} */
+		common: {
+			title: makeRuFnsReceiptTitle(receipt) ?? '—',
+			flag: '🇷🇺',
+			currencySymbol: '₽',
+			totalSum: receipt.totalSum / 100,
+			itemsCount: receipt.items.length,
+			placeName: receipt.retailPlace,
+			orgInn: receipt.userInn,
+			address: receipt.retailPlaceAddress,
+			cashierName: receipt.operator,
+			shiftNumber: receipt.shiftNumber,
+			taxOrgUrl: receipt.fnsUrl,
+			items: /**@type {any[]}*/ (receipt.items).map(x => ({
+				name: x.name,
+				quantity: x.quantity,
+				price: x.price / 100,
+				sum: x.sum / 100,
+			})),
+		},
+		ruFns: {
+			kktRegId: receipt.kktRegId,
+			fiscalDriveNumber: receipt.fiscalDriveNumber ?? refData.fiscalNum,
+			fiscalDocumentNumber: receipt.fiscalDoc ?? refData.fiscalDocumentNumber,
+			fiscalDocumentSign: receipt.fiscalSign ?? refData.fiscalDocumentSign,
+			orgName: receipt.user,
+			buyerPhoneOrAddress: receipt.buyerPhoneOrAddress,
+			sellerAddress: receipt.sellerAddress,
+		},
+		raw: data,
+	}
+}
+/** @param {Receipt} rec */
+function getKgGnsReceiptDataFrom(rec) {
+	const data = JSON.parse(rec.data)
+	const refData = parseKgGnsRefText(rec.refText)
+	return {
+		/** @type {CommonReceiptData} */
+		common: {
+			title: data.crData.locationName,
+			flag: '🇰🇬',
+			currencySymbol: 'с',
+			totalSum: data.ticketTotalSum / 100,
+			itemsCount: data.items.length,
+			placeName: data.crData.locationName,
+			orgInn: data.tin,
+			address: data.crData.locationAddress,
+			cashierName: data.crData.cashierName,
+			shiftNumber: data.crData.shiftNumber,
+			taxOrgUrl: kgGnsUrl(rec.refText),
+			items: /**@type {any[]}*/ (data.items).map(x => ({
+				name: x.goodName,
+				quantity: x.goodQuantity,
+				price: x.goodPrice / 100,
+				sum: x.goodCost / 100,
+			})),
+		},
+		kgGns: {
+			// https://www.sti.gov.kg/docs/default-source/kkm/form_fd.pdf
+			kktRegNumber: data.crRegisterNumber ?? refData?.kktRegNumber, //РН ККМ, регистрационный номер ККМ
+			fiscalModuleSerialNumber: data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber, //ФМ, серийный номер фискального модуля
+			fiscalDocumentNumber: data.fdNumber ?? refData?.fiscalDocumentNumber, //ФД, номер фискального документа
+			fiscalDocumentSign: data.documentFiscalMark ?? refData?.fiscalDocumentSign, //ФПД, фискальный признак документа
+		},
+		raw: data,
+	}
+}
+/** @param {string} refText */
+function kgGnsUrl(refText) {
+	const m = refText.match(/^https?:\/\/([^/]+)/)
+	return m ? m[1] : undefined
 }
 
 /**
  * @param {Record<string, any>|null} recData
- * @param {string} blank
- * @returns {string}
+ * @returns {string|null}
  */
-export function makeReceiptTitle(recData, blank) {
+export function makeRuFnsReceiptTitle(recData) {
 	if (recData !== null) {
 		let t
 		let placeName = ''
@@ -265,7 +422,7 @@ export function makeReceiptTitle(recData, blank) {
 			userName
 		)
 	}
-	return blank
+	return null
 
 	/** @param {string} name */
 	function isLikePersonName(name) {
@@ -280,6 +437,7 @@ export function makeReceiptTitle(recData, blank) {
 		return items.sort((a, b) => b.length - a.length)[0]
 	}
 }
+/** @type {Record<string, string|undefined>} */
 const RECEIPT_NAME_EXCEPTIONS = {
 	'Магазин "Читай-Город"': '"Читай-Город"',
 	'Магазин упаковки': 'Магазин упаковки',
@@ -288,14 +446,14 @@ const RECEIPT_NAME_EXCEPTIONS = {
 }
 
 /**
- * @param {string} text
+ * @param {string|undefined} text
  * @param {string} substr
  * @param {number} [maxFirstOffset]
  * @param {number} [maxTotalLen]
  * @returns {DocumentFragment|null}
  */
 export function highlightedIfFound(text, substr, maxFirstOffset, maxTotalLen) {
-	if (substr.length == 0) return null
+	if (!text || substr.length == 0) return null
 	let textLC = text.toLowerCase()
 	substr = substr.toLowerCase()
 
@@ -334,18 +492,4 @@ export function dimKops(summ) {
 	frag.appendChild(document.createTextNode(int))
 	frag.appendChild(createElem('span', 'kopeks', '.' + fract))
 	return frag
-}
-
-/** @param {string} refText */
-export function parseRefText(refText) {
-	const params = new URLSearchParams(refText)
-	const res = {
-		fiscalNum: params.get('fn'),
-		fiscalDoc: params.get('i'),
-		fiscalSign: params.get('fp'),
-		kind: params.get('n'),
-		summ: params.get('s'),
-		createdAt: params.get('t'),
-	}
-	return res
 }

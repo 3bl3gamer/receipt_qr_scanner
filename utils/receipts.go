@@ -7,6 +7,7 @@ import (
 )
 
 var ErrSessionNotFound = merry.New("session not found")
+var ErrUnexpectedHttpStatus = merry.New("unexpected HTTP status")
 
 type ReceiptRef interface {
 	String() string
@@ -20,6 +21,7 @@ type ReceiptRef interface {
 
 type Receipt struct {
 	ID          int64     `json:"id"`
+	Domain      string    `json:"domain"`
 	SavedAt     time.Time `json:"savedAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	CreatedAt   time.Time `json:"createdAt"`

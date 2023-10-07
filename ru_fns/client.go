@@ -40,7 +40,7 @@ func (c *Client) LoadSession() error {
 	}
 	for i := 2; i >= 0; i-- {
 		if err := updateSessionAndPrintProfile(); err != nil {
-			if i > 0 && !merry.Is(err, ErrUnexpectedHttpStatus) {
+			if i > 0 && !merry.Is(err, utils.ErrUnexpectedHttpStatus) {
 				log.Warn().Err(err).Int("retries_left", i).Msg("ru-fns: can not get profile")
 				time.Sleep(3 * time.Second)
 				continue

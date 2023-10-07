@@ -38,6 +38,7 @@
 		<div class="template receipt-list-item">
 			<div class="title">
 				<div class="value"></div>
+				<div class="flag"></div>
 			</div>
 			<div class="main-info">
 				<time class="created_at"></time>
@@ -79,67 +80,39 @@
 			</div>
 			<div class="receipt-place-info">
 				<table>
-					<tr>
-						<td>Кассир</td>
-						<td class="operator"></td>
-					</tr>
-					<tr>
-						<td>Смена</td>
-						<td class="shift-number"></td>
-					</tr>
-					<tr>
-						<td>Пользователь</td>
-						<td class="user"></td>
-					</tr>
-					<tr>
-						<td>Его ИНН</td>
-						<td class="user-inn"></td>
-					</tr>
-					<tr>
-						<td>Место расчёта</td>
-						<td class="retail-place"></td>
-					</tr>
-					<tr>
-						<td>Адрес расчёта</td>
-						<td class="retail-place-address"></td>
-					</tr>
+					<tbody>
+						<tr>
+							<td>Кассир</td>
+							<td class="operator"></td>
+						</tr>
+						<tr>
+							<td>Смена</td>
+							<td class="shift-number"></td>
+						</tr>
+					</tbody>
+					<tbody class="user-section">
+						<tbody></tbody>
+					</tbody>
+					<tbody>
+						<tr>
+							<td>Место расчёта</td>
+							<td class="retail-place"></td>
+						</tr>
+						<tr>
+							<td>Адрес расчёта</td>
+							<td class="retail-place-address"></td>
+						</tr>
+					</tbody>
 				</table>
 			</div>
 			<div class="receipt-contacts">
 				<table>
-					<tr>
-						<td class="buyer-email-label">Адрес покупателя</td>
-						<td class="buyer-phone-label">Телефон покупателя</td>
-						<td class="buyer-phone-or-address"></td>
-					</tr>
-					<tr>
-						<td>Адрес продавца</td>
-						<td class="seller-address"></td>
-					</tr>
-					<tr>
-						<td>Сайт для проверки ФПД</td>
-						<td class="fns-url"></td>
-					</tr>
+					<tbody></tbody>
 				</table>
 			</div>
 			<div class="receipt-info">
 				<table>
-					<tr>
-						<td title="Регистрационный номер ККТ">РН ККТ</td>
-						<td class="kkt-reg-id"></td>
-					</tr>
-					<tr>
-						<td title="Заводской номер фискального накопителя">ФН №</td>
-						<td class="fiscal-drive-number"></td>
-					</tr>
-					<tr>
-						<td title="Порядковй номер фискального документа">ФД №</td>
-						<td class="fiscal-document-number"></td>
-					</tr>
-					<tr>
-						<td title="Фискальный признак документа">ФП</td>
-						<td class="fiscal-sign"></td>
-					</tr>
+					<tbody></tbody>
 				</table>
 			</div>
 			<h3>Ответ ФНС</h3>

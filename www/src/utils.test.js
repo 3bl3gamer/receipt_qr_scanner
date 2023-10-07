@@ -1,32 +1,34 @@
 import { describe, it } from 'mocha'
 import { assert as test } from 'chai'
-import { makeReceiptTitle, searchBinary } from './utils.js'
+import { makeRuFnsReceiptTitle, searchBinary } from './utils.js'
 
 describe('searchBinary', () => {
 	it('should return element index and status', () => {
-		function check(arr, elem, index, exists) {
-			const cmp = (a, b) => a - b
-			test.strictEqual(searchBinary(arr, elem, cmp)[0], index, `index: ${arr} ${elem}`)
-			test.strictEqual(searchBinary(arr, elem, cmp)[1], exists, `exists: ${arr} ${elem}`)
+		const t = /**@type {const}*/ ([
+			[[], 0, 0, false],
+			[[1], 0, 0, false],
+			[[1], 1, 0, true],
+			[[1], 2, 1, false],
+			[[1, 2], 0, 0, false],
+			[[1, 2], 1, 0, true],
+			[[1, 2], 2, 1, true],
+			[[1, 2], 3, 2, false],
+		])
+		for (const [arr, elem, index, exists] of t) {
+			test.strictEqual(searchBinary(arr, elem, (a, b) => a - b)[0], index, `index: ${arr} ${elem}`)
+			test.strictEqual(searchBinary(arr, elem, (a, b) => a - b)[1], exists, `exists: ${arr} ${elem}`)
 		}
-		check([], 0, 0, false)
-		check([1], 0, 0, false)
-		check([1], 1, 0, true)
-		check([1], 2, 1, false)
-		check([1, 2], 0, 0, false)
-		check([1, 2], 1, 0, true)
-		check([1, 2], 2, 1, true)
-		check([1, 2], 3, 2, false)
 	})
 })
 
 describe('makeReceiptTitle', () => {
+	/** @param {*} dest @param {*} data */
 	function check(dest, data) {
-		test.strictEqual(makeReceiptTitle(data, '<blank>'), dest)
+		test.strictEqual(makeRuFnsReceiptTitle(data), dest)
 	}
 
-	it('should return blank text for empty data', () => {
-		check('<blank>', null)
+	it('should return null for empty data', () => {
+		check(null, null)
 	})
 	it('should use cleaned place name', () => {
 		check('test', { retailPlace: 'test' })

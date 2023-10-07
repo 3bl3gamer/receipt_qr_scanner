@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"receipt_qr_scanner/kg_gns"
 	"receipt_qr_scanner/ru_fns"
 	"receipt_qr_scanner/utils"
 	"strings"
@@ -33,6 +34,7 @@ func main() {
 
 	domain2client := map[string]utils.Client{
 		"ru-fns": &ru_fns.Client{},
+		"kg-gns": &kg_gns.Client{},
 	}
 
 	if *mustInitSession {

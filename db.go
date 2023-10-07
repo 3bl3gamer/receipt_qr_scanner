@@ -95,7 +95,7 @@ var migrations = []func(*sql.Tx) error{
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			created_at DATETIME NOT NULL,
 
-			unique_key TEXT NOT NULL,
+			unique_key TEXT NOT NULL UNIQUE,
 			search_key TEXT NOT NULL DEFAULT '<pending>',
 
 			is_correct INTEGER,
@@ -131,14 +131,15 @@ var migrations = []func(*sql.Tx) error{
 			return merry.Wrap(err)
 		}
 
-		rows, err := tx.Query(`SELECT id, domain, ref_text FROM receipts`)
+		rows, err := tx.Query(`SELECT id, ref_text, COALESCE(data, '') FROM receipts`)
 		if err != nil {
 			return merry.Wrap(err)
 		}
 		for rows.Next() {
 			var id int64
 			var refText string
-			err := rows.Scan(&id, &refText)
+			var data string
+			err := rows.Scan(&id, &refText, &data)
 			if err != nil {
 				return merry.Wrap(err)
 			}
@@ -146,7 +147,12 @@ var migrations = []func(*sql.Tx) error{
 			if err != nil {
 				return merry.Wrap(err)
 			}
-			_, err = tx.Exec(`UPDATE receipts SET unique_key = ? WHERE id = ?`, ref.UniqueKey(), id)
+			searchKey, err := makeReceiptSearchKey(ref, data)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			_, err = tx.Exec(`UPDATE receipts SET unique_key = ?, search_key = ? WHERE id = ?`,
+				ref.UniqueKey(), searchKey, id)
 			if err != nil {
 				return merry.Wrap(err)
 			}
@@ -223,6 +229,8 @@ func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]strin
 			v = "true"
 		}
 		*items = append(*items, valPrefix+v)
+	case nil:
+		*items = append(*items, valPrefix+"null")
 	default:
 		log.Fatal().Interface("item", obj).Msg("unexpected JSON item")
 	}
@@ -364,13 +372,15 @@ type SQLMultiScanner interface {
 	Scan(...interface{}) error
 }
 
-const receiptSQLFields = `id, saved_at, updated_at, created_at, search_key,
+const receiptSQLFields = `id, domain,
+saved_at, updated_at, created_at, search_key,
 COALESCE(is_correct, FALSE), ref_text, CAST(COALESCE(data, '') AS text),
 retries_left, next_retry_at`
 
 func scanReceipt(row SQLMultiScanner, rec *utils.Receipt) error {
 	err := row.Scan(
-		&rec.ID, &rec.SavedAt, &rec.UpdatedAt, &rec.CreatedAt, &rec.SearchKey,
+		&rec.ID, &rec.Domain,
+		&rec.SavedAt, &rec.UpdatedAt, &rec.CreatedAt, &rec.SearchKey,
 		&rec.IsCorrect, &rec.RefText, &rec.Data,
 		&rec.RetriesLeft, &rec.NextRetryAt)
 	return merry.Wrap(err)

@@ -112,7 +112,8 @@ td[title] {
 	flex-direction: column;
 	right: 0;
 	width: 320px;
-	height: 100%;
+	height: 100vh;
+	height: 100dvh;
 	z-index: 2;
 	background-color: white;
 	border-left: 2px solid lightgray;
@@ -187,7 +188,11 @@ td[title] {
 	border-radius: 1px;
 }
 
-.receipt-list-item .title > * {
+.receipt-list-item .title {
+	display: flex;
+	justify-content: space-between;
+}
+.receipt-list-item .title .value {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-weight: bold;
@@ -238,6 +243,7 @@ td[title] {
 	top: 4px;
 	max-width: min(480px, 92vw);
 	max-height: calc(100vh - 8px);
+	max-height: calc(100dvh - 8px);
 	z-index: 3;
 	border-radius: 6px;
 	overflow: hidden;

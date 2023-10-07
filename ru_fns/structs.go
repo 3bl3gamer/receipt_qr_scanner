@@ -23,12 +23,12 @@ type ReceiptRef struct {
 }
 
 type ReceiptRefData struct {
-	FiscalNum  int64     `json:"fiscalNum"`
-	FiscalDoc  int64     `json:"fiscalDoc"`
-	FiscalSign int64     `json:"fiscalSign"`
-	Kind       int64     `json:"kind"`
-	Summ       float64   `json:"summ"`
-	CreatedAt  time.Time `json:"createdAt"`
+	FiscalDriveNumber    int64
+	FiscalDocumentNumber int64
+	FiscalDocumentSign   int64
+	Kind                 int64
+	Sum                  float64
+	CreatedAt            time.Time
 }
 
 func (r ReceiptRef) String() string {
@@ -51,7 +51,7 @@ func (r ReceiptRef) ValidateFormat() error {
 func (r ReceiptRef) UniqueKey() string {
 	items := strings.Split(r.text, "&")
 	sort.Strings(items)
-	return strings.Join(items, "&")
+	return r.Domain() + ":" + strings.Join(items, "&")
 }
 
 func (r ReceiptRef) CreatedAt() (time.Time, error) {
@@ -69,10 +69,10 @@ func (r ReceiptRef) SearchKeyItems() ([]string, error) {
 	}
 	return []string{
 		"_created_at:" + data.CreatedAt.Format("2006-01-02 15:04"),
-		"_sum:" + strconv.FormatFloat(data.Summ, 'f', 2, 64),
-		"_num:" + strconv.FormatInt(data.FiscalNum, 10),
-		"_doc:" + strconv.FormatInt(data.FiscalDoc, 10),
-		"_sign:" + strconv.FormatInt(data.FiscalSign, 10),
+		"_sum:" + strconv.FormatFloat(data.Sum, 'f', 2, 64),
+		"_fiscal_drive_number:" + strconv.FormatInt(data.FiscalDriveNumber, 10),
+		"_fiscal_document_number:" + strconv.FormatInt(data.FiscalDocumentNumber, 10),
+		"_fiscal_document_sign:" + strconv.FormatInt(data.FiscalDocumentSign, 10),
 		"_type:" + strconv.FormatInt(data.Kind, 10),
 	}, nil
 }
@@ -84,15 +84,15 @@ func (r ReceiptRef) parseRefText() (*ReceiptRefData, error) {
 	}
 
 	var data ReceiptRefData
-	data.FiscalNum, err = utils.ReceiptInt64(values, "fn")
+	data.FiscalDriveNumber, err = utils.ReceiptInt64(values, "fn")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.FiscalDoc, err = utils.ReceiptInt64(values, "i")
+	data.FiscalDocumentNumber, err = utils.ReceiptInt64(values, "i")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.FiscalSign, err = utils.ReceiptInt64(values, "fp")
+	data.FiscalDocumentSign, err = utils.ReceiptInt64(values, "fp")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
@@ -100,7 +100,7 @@ func (r ReceiptRef) parseRefText() (*ReceiptRefData, error) {
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.Summ, err = utils.ReceiptFloat64(values, "s")
+	data.Sum, err = utils.ReceiptFloat64(values, "s")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}

@@ -10,8 +10,6 @@ import {
 	dimKops,
 	getReceiptDataFrom,
 	highlightedIfFound,
-	makeReceiptTitle,
-	parseRefText,
 } from './utils'
 
 /** @typedef {import('./utils').Receipt} Receipt */
@@ -39,6 +37,7 @@ export function showReceiptView(rec, searchQuery) {
 		const frag = highlightedIfFound(text + suffix, searchQuery)
 		return frag || createFragment(text + '')
 	}
+	/** @param {string|undefined} text */
 	function url(text, urlPrefix = '') {
 		const frag = highlightedSearch(text)
 		if (!text) return frag
@@ -46,65 +45,109 @@ export function showReceiptView(rec, searchQuery) {
 		a.href = urlPrefix + text
 		return a
 	}
+	/** @param {number|undefined} value */
 	function kopeks(value) {
-		const text = (value / 100).toFixed(2)
+		if (value === undefined) return document.createTextNode('—')
+		const text = value.toFixed(2)
 		const frag = highlightedIfFound(text, searchQuery)
-		return frag || dimKops(value / 100)
+		return frag ?? dimKops(value)
 	}
+	/**
+	 * @param {number} i
+	 * @param {string|undefined} text
+	 */
 	function withIndex(i, text) {
 		const res = highlightedSearch(text)
 		res.prepend(createElem('b', null, i + '. '))
 		return res
 	}
 
-	const refData = parseRefText(rec.refText)
-	const realRecData = getReceiptDataFrom(rec)
-	const data = realRecData || { items: [], totalSum: 0 }
+	// const refData = parseRefText(rec.domain, rec.refText)
+	const data = getReceiptDataFrom(rec)
 
-	for (let i = 0; i < data.items.length; i++) {
-		const item = data.items[i]
-		const elem = $template('.template.receipt-item', HTMLDivElement)
-		$child(elem, '.name', withIndex(i + 1, item.name))
-		if (item.quantity !== 1) {
-			const frag = createFragment()
-			frag.appendChild(highlightedSearch(item.quantity))
-			frag.appendChild(document.createTextNode(' x '))
-			frag.appendChild(kopeks(item.price))
-			frag.appendChild(document.createTextNode(' = '))
-			$child(elem, '.price .summ-details', frag)
+	if (data) {
+		for (let i = 0; i < data.common.items.length; i++) {
+			const item = data.common.items[i]
+			const elem = $template('.template.receipt-item', HTMLDivElement)
+			$child(elem, '.name', withIndex(i + 1, item.name))
+			if (item.quantity !== 1) {
+				const frag = createFragment()
+				frag.appendChild(highlightedSearch(item.quantity))
+				frag.appendChild(document.createTextNode(' x '))
+				frag.appendChild(kopeks(item.price))
+				frag.appendChild(document.createTextNode(' = '))
+				$child(elem, '.price .summ-details', frag)
+			}
+			$child(elem, '.price .summ', kopeks(item.sum))
+			receiptItemsElem.appendChild(elem)
 		}
-		$child(elem, '.price .summ', kopeks(item.sum))
-		receiptItemsElem.appendChild(elem)
 	}
-	$child(wrap, '.receipt-items-total .summ', kopeks(data.totalSum))
+	$child(wrap, '.receipt-items-total .summ', kopeks(data?.common.totalSum))
 
-	$child(wrap, '.kkt-reg-id', highlightedSearch(data.kktRegId))
-	$child(wrap, '.fiscal-drive-number', highlightedSearch(data.fiscalDriveNumber || refData.fiscalNum))
-	$child(wrap, '.fiscal-document-number', highlightedSearch(data.fiscalDocumentNumber || refData.fiscalDoc))
-	$child(wrap, '.fiscal-sign', highlightedSearch(data.fiscalSign || refData.fiscalSign))
+	if (data && 'ruFns' in data) {
+		const x = data.ruFns
+		const b = $in(wrap, '.receipt-info tbody', HTMLTableSectionElement)
+		row(b, 'РН ККТ', 'Регистрационный номер ККТ', highlightedSearch(x.kktRegId))
+		row(b, 'ФН №', 'Заводской номер фискального накопителя', highlightedSearch(x.fiscalDriveNumber))
+		row(b, 'ФД №', 'Порядковй номер фискального документа', highlightedSearch(x.fiscalDocumentNumber))
+		row(b, 'ФП', 'Фискальный признак документа', highlightedSearch(x.fiscalDocumentSign))
+	}
+	if (data && 'kgGns' in data) {
+		const x = data.kgGns
+		const b = $in(wrap, '.receipt-info tbody', HTMLTableSectionElement)
+		row(b, 'РН ККМ', 'регистрационный номер ККМ', highlightedSearch(x.kktRegNumber))
+		row(b, 'ФМ №', 'Серийный номер фискального модуля', highlightedSearch(x.fiscalModuleSerialNumber))
+		row(b, 'ФД №', 'Номер фискального документа', highlightedSearch(x.fiscalDocumentNumber))
+		row(b, 'ФПД', 'Фискальный признак документа', highlightedSearch(x.fiscalDocumentSign))
+	}
 
-	const isEmail = !!data.buyerPhoneOrAddress && data.buyerPhoneOrAddress.includes('@')
-	$in(wrap, '.buyer-email-label', Element).classList.toggle('hidden', !isEmail)
-	$in(wrap, '.buyer-phone-label', Element).classList.toggle('hidden', isEmail)
-	$child(wrap, '.buyer-phone-or-address', url(data.buyerPhoneOrAddress, 'mailto:'))
-	$child(wrap, '.seller-address', url(data.sellerAddress, 'mailto:'))
-	$child(wrap, '.fns-url', url(data.fnsUrl))
+	{
+		const b = $in(wrap, '.receipt-contacts tbody', HTMLTableSectionElement)
+		if (data && 'ruFns' in data) {
+			const isEmail = !!data.ruFns.buyerPhoneOrAddress && data.ruFns.buyerPhoneOrAddress.includes('@')
+			const label = isEmail ? 'Е-мейл покупателя' : 'Телефон покупателя'
+			row(b, label, '', url(data.ruFns.buyerPhoneOrAddress, 'mailto:'))
+			row(b, 'Е-мейл продавца', '', url(data.ruFns.sellerAddress, 'mailto:'))
+		}
+		row(b, 'Сайт для проверки ФПД', '', url(data?.common.taxOrgUrl))
+	}
 
-	$child(wrap, '.operator', highlightedSearch(data.operator)) // TODO: "operationType": 1
-	$child(wrap, '.shift-number', highlightedSearch(data.shiftNumber))
-	$child(wrap, '.user', highlightedSearch(data.user))
-	$child(wrap, '.user-inn', highlightedSearch(data.userInn))
-	$child(wrap, '.retail-place', highlightedSearch(data.retailPlace))
-	$child(wrap, '.retail-place-address', highlightedSearch(data.retailPlaceAddress))
+	$child(wrap, '.operator', highlightedSearch(data?.common.cashierName)) // TODO: "operationType": 1
+	$child(wrap, '.shift-number', highlightedSearch(data?.common.shiftNumber))
+	$child(wrap, '.retail-place', highlightedSearch(data?.common.placeName))
+	$child(wrap, '.retail-place-address', highlightedSearch(data?.common.address))
+	{
+		const b = $in(wrap, '.receipt-place-info tbody.user-section', HTMLTableSectionElement)
+		if (data && 'ruFns' in data) {
+			row(b, 'Пользователь', '', highlightedSearch(data.ruFns.orgName))
+			row(b, 'Его ИНН', '', highlightedSearch(data?.common.orgInn))
+		} else {
+			row(b, 'ИНН', '', highlightedSearch(data?.common.orgInn))
+		}
+	}
 
-	$in(wrap, '.title', Element).textContent = makeReceiptTitle(realRecData, 'Чек')
+	$in(wrap, '.title', Element).textContent = data?.common.title ?? 'Чек'
 
 	$child(wrap, '.created-at', highlightedSearch(dateStrAsYMDHM(rec.createdAt)))
 	$child(wrap, '.saved-at', highlightedSearch(dateStrAsYMDHM(rec.savedAt)))
 	$child(wrap, '.updated-at', highlightedSearch(dateStrAsYMDHM(rec.updatedAt)))
 
 	$child(wrap, '.receipt-seach-key', highlightedSearch(rec.searchKey))
-	$child(wrap, '.receipt-json-data', highlightedSearch(JSON.stringify(realRecData, null, '  ')))
+	$child(wrap, '.receipt-json-data', highlightedSearch(JSON.stringify(data?.raw, null, '  ')))
+
+	/**
+	 * @param {HTMLTableSectionElement} tbody
+	 * @param {string} name
+	 * @param {string} title
+	 * @param {string|Node} value
+	 */
+	function row(tbody, name, title, value) {
+		const row = tbody.insertRow(-1)
+		const nameCell = row.insertCell(-1)
+		nameCell.textContent = name
+		if (title) nameCell.title = title
+		row.insertCell(-1).append(value)
+	}
 }
 
 function hideReceiptView() {

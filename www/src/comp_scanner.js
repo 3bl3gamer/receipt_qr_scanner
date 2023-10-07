@@ -1,5 +1,5 @@
 import { QRCamScanner } from './qr_cam_scanner'
-import { $, mustBeInstanceOf, mustBeNotNull, onError } from './utils'
+import { $, mustBeInstanceOf, mustBeNotNull, onError, parseRefText } from './utils'
 
 /** @typedef {'saving'|'saved'|'exists'|'error'} ScannedQRStatus */
 
@@ -36,14 +36,17 @@ ScannedQR.prototype._save = function () {
 }
 
 ScannedQR.prototype._extractInfoFields = function () {
-	for (const item of this.text.split('&')) {
-		let match
-		if ((match = item.match(/^t=(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)/))) {
+	const refData = parseRefText(null, this.text)
+	if (refData) {
+		const match = refData.createdAt?.match(/^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)/)
+		if (match) {
 			const [, y, m, d, H, M] = match
 			this.time = `${y}.${m}.${d} ${H}:${M}`
-		} else if ((match = item.match(/^s=(\d+(:?\.\d+)?)/))) {
-			this.summ = match[1]
+		} else {
+			this.time = refData.createdAt?.replace('T', ' ') ?? this.time
 		}
+
+		this.summ = refData.sum ?? this.summ
 	}
 }
 

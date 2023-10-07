@@ -8,7 +8,6 @@ import {
 	dateStrAsYMDHM,
 	getReceiptDataFrom,
 	highlightedIfFound,
-	makeReceiptTitle,
 	onError,
 	searchBinary,
 } from './utils'
@@ -109,7 +108,7 @@ export function setupReceiptListComponent() {
 	function highlightedSearch(text, suffix = '') {
 		if (!text) return document.createTextNode('—' + suffix)
 		const frag = highlightedIfFound(text + suffix, searchQuery)
-		return frag || document.createTextNode(text)
+		return frag || document.createTextNode(text + suffix)
 	}
 
 	/** @returns {(a:Receipt, b:Receipt) => number} */
@@ -149,16 +148,19 @@ export function setupReceiptListComponent() {
 	function updateRceipt(rec) {
 		const elem = receiptElemById.get(rec.id)
 		const data = getReceiptDataFrom(rec)
+		const currencySuffix = data ? ' ' + data.common.currencySymbol : ''
+
 		elem.classList.toggle('correct', rec.isCorrect)
 		elem.classList.toggle('filled', !!data)
 		elem.classList.toggle('failed', !rec.isCorrect && rec.retriesLeft == 0)
 		$in(elem, '.id', Element).textContent = '#' + rec.id
 		$child(elem, '.created_at', highlightedSearch(dateStrAsYMDHM(rec.createdAt)))
-		$child(elem, '.total_sum', highlightedSearch(data && (data.totalSum / 100).toFixed(2), ' ₽'))
-		$child(elem, '.title .value', highlightedSearch(makeReceiptTitle(data, '—')))
-		$in(elem, '.items_count', Element).textContent = ((data && data.items.length) || '??') + ' шт'
+		$child(elem, '.total_sum', highlightedSearch(data?.common.totalSum?.toFixed(2), currencySuffix))
+		$child(elem, '.title .value', highlightedSearch(data?.common.title))
+		$child(elem, '.title .flag', highlightedSearch(data?.common.flag))
+		$in(elem, '.items_count', Element).textContent = (data?.common.itemsCount || '??') + ' шт'
 		$in(elem, '.retries_left', Element).textContent = 'x' + rec.retriesLeft
-		$child(elem, '.retail_place_address', highlightedSearch(data && data.retailPlaceAddress))
+		$child(elem, '.retail_place_address', highlightedSearch(data && data.common.address))
 
 		const searchedDetailsWrap = $in(elem, '.searched_details', HTMLDivElement)
 		searchedDetailsWrap.innerHTML = ''
@@ -166,13 +168,13 @@ export function setupReceiptListComponent() {
 			let found = false
 			if (data !== null) {
 				// ищем в списке товаров
-				for (const item of data.items) {
+				for (const item of data.common.items) {
 					const frag = highlightedIfFound(item.name, searchQuery)
 					if (frag !== null) {
 						frag.prepend(document.createTextNode(' '))
 						if (item.quantity !== 1)
 							frag.prepend(createElem('span', 'quantity', ` x${item.quantity}`))
-						frag.prepend(createElem('span', 'price', (item.price / 100).toFixed(2) + ' ₽'))
+						frag.prepend(createElem('span', 'price', item.price?.toFixed(2) + currencySuffix))
 						searchedDetailsWrap.appendChild(frag)
 						found = true
 						break

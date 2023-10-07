@@ -6,6 +6,7 @@
 		"strictBindCallApply": true,
 		"strictPropertyInitialization": true,
 		"noImplicitThis": true,
+		"noImplicitAny": true,
 		"baseUrl": "src",
 	},
 	"exclude": ["node_modules", "dist", "src/vendor"]
