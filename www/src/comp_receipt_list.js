@@ -4,6 +4,7 @@ import {
 	$child,
 	$in,
 	$template,
+	DOMAIN_CURRENCY_SYMBOLS,
 	createElem,
 	dateStrAsYMDHM,
 	getReceiptDataFrom,
@@ -148,7 +149,7 @@ export function setupReceiptListComponent() {
 	function updateRceipt(rec) {
 		const elem = receiptElemById.get(rec.id)
 		const data = getReceiptDataFrom(rec)
-		const currencySuffix = data ? ' ' + data.common.currencySymbol : ''
+		const currencySuffix = data ? ' ' + (DOMAIN_CURRENCY_SYMBOLS.get(rec.domain) ?? '?') : ''
 
 		elem.classList.toggle('correct', rec.isCorrect)
 		elem.classList.toggle('filled', !!data)

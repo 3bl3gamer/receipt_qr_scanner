@@ -1,5 +1,13 @@
 import { QRCamScanner } from './qr_cam_scanner'
-import { $, mustBeInstanceOf, mustBeNotNull, onError, parseRefText } from './utils'
+import {
+	$,
+	DOMAIN_CURRENCY_SYMBOLS,
+	guessDomain,
+	mustBeInstanceOf,
+	mustBeNotNull,
+	onError,
+	parseRefText,
+} from './utils'
 
 /** @typedef {'saving'|'saved'|'exists'|'error'} ScannedQRStatus */
 
@@ -52,12 +60,10 @@ ScannedQR.prototype._extractInfoFields = function () {
 }
 
 ScannedQR.prototype.label = function () {
+	const domain = guessDomain(this.text)
+	const curSym = DOMAIN_CURRENCY_SYMBOLS.get(domain) ?? '?'
 	return (
-		this.time +
-		', ' +
-		this.summ +
-		'\u00A0₽, ' +
-		this.status +
+		`${this.time}, ${this.summ}\u00A0${curSym}, ${this.status}` +
 		(this.errorMessage ? ': ' + this.errorMessage : '')
 	)
 }

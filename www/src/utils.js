@@ -213,6 +213,18 @@ export function dateStrAsYMDHM(str) {
 	return `${y}-${m}-${d} ${hr}:${mn}`
 }
 
+export const DOMAIN_CURRENCY_SYMBOLS = new Map([
+	['ru-fns', '₽'],
+	['kg-gns', 'с'],
+])
+
+/** @param {string} refText */
+export function guessDomain(refText) {
+	if (refText.match(/^https?:\/\/[^/]+\.kg\//)) {
+		return 'kg-gns'
+	}
+	return 'ru-fns'
+}
 /**
  * @param {string|null} domain
  * @param {string} refText
@@ -222,13 +234,6 @@ export function parseRefText(domain, refText) {
 	if (domain === 'ru-fns') return parseRuFnsRefText(refText)
 	if (domain === 'kg-gns') return parseKgGnsRefText(refText)
 	return null
-}
-/** @param {string} refText */
-function guessDomain(refText) {
-	if (refText.match(/^https?:\/\/[^/]+\.kg\//)) {
-		return 'kg-gns'
-	}
-	return 'ru-fns'
 }
 
 /** @param {string} refText */
@@ -271,7 +276,6 @@ export function parseKgGnsRefText(refText) {
  * @typedef {{
  *   title: string,
  *   flag: string,
- *   currencySymbol: string,
  *   totalSum: number | undefined,
  *   itemsCount: number | undefined,
  *   placeName: string | undefined,
@@ -309,7 +313,6 @@ function getRuFnsReceiptDataFrom(rec) {
 		common: {
 			title: makeRuFnsReceiptTitle(receipt) ?? '—',
 			flag: '🇷🇺',
-			currencySymbol: '₽',
 			totalSum: receipt.totalSum / 100,
 			itemsCount: receipt.items.length,
 			placeName: receipt.retailPlace,
@@ -346,7 +349,6 @@ function getKgGnsReceiptDataFrom(rec) {
 		common: {
 			title: data.crData.locationName,
 			flag: '🇰🇬',
-			currencySymbol: 'с',
 			totalSum: data.ticketTotalSum / 100,
 			itemsCount: data.items.length,
 			placeName: data.crData.locationName,
