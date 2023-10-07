@@ -243,6 +243,10 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 		}
 	}
 
+	/**
+	 * @param {(x:number, y:number) => {x:number, y:number}} mappingFunction
+	 * @param {number} dimension
+	 */
 	function highlightQR(mappingFunction, dimension) {
 		const rc = mustBeNotNull(uiCanvas.getContext('2d'))
 		rc.beginPath()
@@ -280,7 +284,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 	// ---
 
 	this.scanFrameCanvasData = scanFrameCanvasData
-	this.toggleDebug = debug_ => {
+	this.toggleDebug = (/**@type {boolean}*/ debug_) => {
 		debug = debug_ === undefined ? !debug : debug_
 	}
 
@@ -322,7 +326,7 @@ export function extractWithArea(image, location) {
 	const transform = times(sToQ, qToS)
 
 	const matrix = BitMatrix.createEmpty(location.dimension, location.dimension)
-	const mappingFunction = (x, y) => {
+	const mappingFunction = (/**@type {number}*/ x, /**@type {number}*/ y) => {
 		const denominator = transform.a13 * x + transform.a23 * y + transform.a33
 		return {
 			x: (transform.a11 * x + transform.a21 * y + transform.a31) / denominator,

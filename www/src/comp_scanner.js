@@ -46,7 +46,8 @@ ScannedQR.prototype._extractInfoFields = function () {
 			this.time = refData.createdAt?.replace('T', ' ') ?? this.time
 		}
 
-		this.summ = refData.sum ?? this.summ
+		const summ = refData.sum === null ? NaN : parseFloat(refData.sum) / 100
+		this.summ = isNaN(summ) ? this.summ : summ.toFixed(2)
 	}
 }
 
@@ -105,12 +106,14 @@ export function setupScannerComponent() {
 
 	const qrCamScanner = new QRCamScanner($('.video-wrap', HTMLDivElement), text => {
 		if (text == '') return
-		const scannedQR = scannedQRs.get(text)
+
+		let scannedQR = scannedQRs.get(text)
 		if (scannedQR === undefined) {
-			scannedQRs.set(text, new ScannedQR(text, onScannedQRStatusChange))
-		} else {
-			if (shownScannedQRs[0] != scannedQR) addQRInfo(scannedQR)
+			scannedQR = new ScannedQR(text, onScannedQRStatusChange)
+			scannedQRs.set(text, scannedQR)
 		}
+
+		if (shownScannedQRs[0] != scannedQR) addQRInfo(scannedQR)
 	})
 
 	$('.debug-mode-image', HTMLButtonElement).onclick = () => {
