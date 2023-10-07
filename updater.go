@@ -2,57 +2,45 @@ package main
 
 import (
 	"database/sql"
+	"receipt_qr_scanner/utils"
 	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog/log"
 )
 
-func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) error {
-	if err := updateSessionIfOld(session); err != nil {
-		return merry.Wrap(err)
-	}
-
+func updateIter(db *sql.DB, domain2client map[string]utils.Client, updatedReceiptIDsChan chan int64) error {
 	receipts, err := loadPendingReceipts(db, 5)
 	if err != nil {
 		return merry.Wrap(err)
 	}
 
 	for _, rec := range receipts {
-		log.Info().Str("ref_text", rec.Ref.Text).Msg("fetching receipt")
+		log.Info().Str("ref", rec.Ref.String()).Msg("fetching receipt")
 
-		data, err := fnsFetchReceipt(rec.Ref.Text, session.SessonID)
-
-		if !rec.IsCorrect && merry.Is(err, ErrReceiptMaybeNotReadyYet) {
-			if err := saveReceiptCorrectness(db, &rec.Ref); err != nil {
-				return merry.Wrap(err)
-			}
-			updatedReceiptIDsChan <- rec.ID
+		client, ok := domain2client[rec.Ref.Domain()]
+		if !ok {
+			return merry.Errorf("no client for domain '%s'", rec.Ref.Domain())
 		}
 
-		for i := 0; i < 3; i++ {
-			if merry.Is(err, ErrWaitingForConnection) || merry.Is(err, ErrCashboxOffline) || merry.Is(err, ErrReceiptMaybeNotReadyYet) {
-				log.Info().Int("iter", i+i).Msg("receipt seems not checked to FNS, waiting a bit more")
-				time.Sleep(2 * time.Second)
-				data, err = fnsFetchReceipt(rec.Ref.Text, session.SessonID)
-			} else {
-				break
+		res, err := client.FetchReceipt(rec.Ref, func() error {
+			var err error
+			if !rec.IsCorrect {
+				err = saveReceiptCorrectness(db, rec.Ref)
+				updatedReceiptIDsChan <- rec.ID
 			}
-		}
-
+			return merry.Wrap(err)
+		})
 		if err != nil {
-			log.Warn().Err(err).Str("ref_text", rec.Ref.Text).Msg("receipt error")
-			decreaseRetries := !merry.Is(err, ErrToManyRequests)
-			if err := saveReceiptFailure(db, &rec.Ref, decreaseRetries); err != nil {
+			log.Warn().Err(err).Str("ref", rec.Ref.String()).Msg("receipt error")
+			if err := saveReceiptFailure(db, rec.Ref, res.ShouldDecreaseRetries); err != nil {
 				return merry.Wrap(err)
 			}
 			updatedReceiptIDsChan <- rec.ID
-			continue
 		}
 
-		log.Info().Str("ref_text", rec.Ref.Text).Msg("got receipt data")
-
-		if err := saveRecieptData(db, &rec.Ref, data); err != nil {
+		log.Info().Str("ref", rec.Ref.String()).Msg("got receipt data")
+		if err := saveRecieptData(db, rec.Ref, res.Data); err != nil {
 			return merry.Wrap(err)
 		}
 		updatedReceiptIDsChan <- rec.ID
@@ -60,10 +48,10 @@ func updateIter(db *sql.DB, session *Session, updatedReceiptIDsChan chan int64) 
 	return nil
 }
 
-func StartUpdater(db *sql.DB, session *Session, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
+func StartUpdater(db *sql.DB, domain2client map[string]utils.Client, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	timer := time.NewTimer(200 * 365 * 24 * time.Hour) //timedelta can store ~292 years
 	for {
-		if err := updateIter(db, session, updatedReceiptIDsChan); err != nil {
+		if err := updateIter(db, domain2client, updatedReceiptIDsChan); err != nil {
 			return merry.Wrap(err)
 		}
 		nextRetryAt, err := loadNextRetryTime(db)

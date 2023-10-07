@@ -1,4 +1,4 @@
-package main
+package ru_fns
 
 import (
 	"bytes"

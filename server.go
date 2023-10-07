@@ -41,8 +41,7 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	text := string(buf)
 	log.Debug().Str("text", text).Msg("receipt ref text")
 
-	ref := ReceiptRef{Text: text}
-	err = ref.ValidateFormat()
+	ref, err := receiptRefFromText(text)
 	if fEff, ok := err.(utils.ReceiptRefFieldErr); ok {
 		prefix := "WRONG_VALUE_"
 		if fEff.IsMissing {
@@ -62,7 +61,7 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 
 	db := r.Context().Value(CtxKeyDB).(*sql.DB)
-	recID, err := saveRecieptRef(db, &ref)
+	recID, err := saveRecieptRef(db, ref)
 	if merry.Is(err, ErrReceiptRefAlreadyExists) {
 		return httputils.JsonError{Code: 400, Error: "ALREADY_EXISTS"}, nil
 	} else if err != nil {
@@ -77,15 +76,15 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 }
 
 type ReceiptsBroadcaster struct {
-	InReceiptsChan chan *Receipt
-	clients        map[chan *Receipt]struct{}
+	InReceiptsChan chan *utils.Receipt
+	clients        map[chan *utils.Receipt]struct{}
 	mutex          sync.RWMutex
 }
 
 func NewReceiptsBroadcaster() *ReceiptsBroadcaster {
 	b := &ReceiptsBroadcaster{
-		InReceiptsChan: make(chan *Receipt, 10),
-		clients:        make(map[chan *Receipt]struct{}),
+		InReceiptsChan: make(chan *utils.Receipt, 10),
+		clients:        make(map[chan *utils.Receipt]struct{}),
 	}
 	go func() {
 		for rec := range b.InReceiptsChan {
@@ -95,15 +94,15 @@ func NewReceiptsBroadcaster() *ReceiptsBroadcaster {
 	return b
 }
 
-func (b *ReceiptsBroadcaster) AddClient() chan *Receipt {
+func (b *ReceiptsBroadcaster) AddClient() chan *utils.Receipt {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
-	client := make(chan *Receipt, 10)
+	client := make(chan *utils.Receipt, 10)
 	b.clients[client] = struct{}{}
 	return client
 }
 
-func (b *ReceiptsBroadcaster) RemoveClient(client chan *Receipt) {
+func (b *ReceiptsBroadcaster) RemoveClient(client chan *utils.Receipt) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 	if _, ok := b.clients[client]; ok {
@@ -112,7 +111,7 @@ func (b *ReceiptsBroadcaster) RemoveClient(client chan *Receipt) {
 	}
 }
 
-func (b *ReceiptsBroadcaster) broadcast(rec *Receipt) {
+func (b *ReceiptsBroadcaster) broadcast(rec *utils.Receipt) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	for client := range b.clients {
@@ -180,9 +179,9 @@ func withGzip(handle httputils.HandlerExt) httputils.HandlerExt {
 	}
 }
 
-var emptyReceipts = []*Receipt{}
+var emptyReceipts = []*utils.Receipt{}
 
-func ensureRecsNotNil(receipts []*Receipt) []*Receipt {
+func ensureRecsNotNil(receipts []*utils.Receipt) []*utils.Receipt {
 	if receipts == nil {
 		return emptyReceipts
 	}
@@ -204,7 +203,7 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 	searchQuery := query.Get("search")
 
 	var err error
-	var receipts []*Receipt
+	var receipts []*utils.Receipt
 	if sortMode == "id" {
 		beforeIDStr := query.Get("before_id")
 		beforeID := int64(0)
@@ -251,7 +250,7 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 	wr.Header().Set("X-Accel-Buffering", "no") //disabling Nginx buffering
 
 	if receipts == nil {
-		receipts = []*Receipt{}
+		receipts = []*utils.Receipt{}
 	}
 	if err := writeSseJson(wr, "initial_receipts", receipts); err != nil {
 		return nil, merry.Wrap(err)
@@ -283,7 +282,7 @@ sseLoop:
 	return nil, nil
 }
 
-func StartHTTPServer(db *sql.DB, env Env, address string, debugTLS bool, updaterTriggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
+func StartHTTPServer(db *sql.DB, env utils.Env, address string, debugTLS bool, updaterTriggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	ex, err := os.Executable()
 	if err != nil {
 		return merry.Wrap(err)

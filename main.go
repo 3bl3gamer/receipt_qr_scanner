@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"os"
-	"time"
+	"receipt_qr_scanner/ru_fns"
+	"receipt_qr_scanner/utils"
+	"strings"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog"
@@ -11,11 +13,11 @@ import (
 )
 
 func main() {
-	env := Env{"dev"}
+	env := utils.Env{Val: "dev"}
 	flag.Var(&env, "env", "evironment, dev or prod")
 	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
-	mustInitSession := flag.Bool("init-session", false, "init FNS session")
-	noUpdater := flag.Bool("no-updater", false, "do not start FNS receipt updater")
+	mustInitSession := flag.Bool("init-session", false, "init RU FNS session")
+	skipClients := flag.String("skip-clients", "", "do not init cliets (example: 'ru-fns kg-gns')")
 	debugTSL := flag.Bool("debug-tls", false, "start HTTP server in TLS mode for debugging")
 	flag.Parse()
 
@@ -29,54 +31,40 @@ func main() {
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
 
-	var session *Session
-	if !*noUpdater {
-		// Session
-		var err error
-		if *mustInitSession {
-			args := flag.Args()
-			if len(args) != 2 {
-				log.Fatal().Msg("exactly two arguments (refreshToken and clientSecret) are required for session init")
-			}
-			session, err = initSession(args[0], args[1])
-		} else {
-			session, err = loadSession()
-			if merry.Is(err, ErrSessionNotFound) {
-				log.Fatal().Msg("session file not found, forgot to --init-session?")
-			}
+	domain2client := map[string]utils.Client{
+		"ru-fns": &ru_fns.Client{},
+	}
+
+	if *mustInitSession {
+		args := flag.Args()
+		if len(args) != 2 {
+			log.Fatal().Msg("exactly two arguments (refreshToken and clientSecret) are required for session init")
 		}
-		if err != nil {
+		client := domain2client["ru-fns"].(*ru_fns.Client)
+		if err := client.InitSession(args[0], args[1]); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
-		// Checking session
-		updateSessionAndPrintProfile := func() error {
-			if err := updateSessionIfOld(session); err != nil {
-				return err
-			}
-			profile, err := fnsGetProfile(session.SessonID)
-			if err == nil {
-				log.Info().Str("phone", profile.Phone).Msg("profile")
-			}
-			return err
+		if err := client.LoadSession(); err != nil {
+			log.Fatal().Stack().Err(err).Msg("")
 		}
-		for i := 4; i >= 0; i-- {
-			if err := updateSessionAndPrintProfile(); err != nil {
-				if i > 0 && !merry.Is(err, ErrUnexpectedHttpStatus) {
-					log.Warn().Err(err).Int("retries_left", i).Msg("can not get profile")
-					time.Sleep(3 * time.Second)
-					continue
-				}
-				log.Fatal().Stack().Err(err).Msg("")
-			}
-			break
+		os.Exit(0)
+	}
+
+	for domain, client := range domain2client {
+		if strings.Contains(*skipClients, domain) {
+			continue
 		}
-		if *mustInitSession {
-			os.Exit(0)
+
+		err := client.LoadSession()
+		if merry.Is(err, utils.ErrSessionNotFound) {
+			log.Fatal().Msg("session file not found, forgot to --init-session?")
+		} else if err != nil {
+			log.Fatal().Stack().Err(err).Msg("")
 		}
 	}
 
 	// DB
-	cfgDir, err := MakeConfigDir()
+	cfgDir, err := utils.MakeConfigDir()
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
@@ -90,13 +78,11 @@ func main() {
 	triggerChan := make(chan struct{}, 10)
 	updatedReceiptIDsChan := make(chan int64, 10)
 
-	if !*noUpdater {
-		go func() {
-			if err := StartUpdater(db, session, triggerChan, updatedReceiptIDsChan); err != nil {
-				log.Fatal().Stack().Err(err).Msg("")
-			}
-		}()
-	}
+	go func() {
+		if err := StartUpdater(db, domain2client, triggerChan, updatedReceiptIDsChan); err != nil {
+			log.Fatal().Stack().Err(err).Msg("")
+		}
+	}()
 
 	if err := StartHTTPServer(db, env, *serverAddr, *debugTSL, triggerChan, updatedReceiptIDsChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")

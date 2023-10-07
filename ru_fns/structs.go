@@ -1,4 +1,4 @@
-package main
+package ru_fns
 
 import (
 	"fmt"
@@ -12,8 +12,14 @@ import (
 	"github.com/ansel1/merry"
 )
 
+func NewReceiptRef(refText string) (ReceiptRef, error) {
+	ref := ReceiptRef{text: refText}
+	err := ref.ValidateFormat()
+	return ref, merry.Wrap(err)
+}
+
 type ReceiptRef struct {
-	Text string `json:"text"`
+	text string
 }
 
 type ReceiptRefData struct {
@@ -26,7 +32,15 @@ type ReceiptRefData struct {
 }
 
 func (r ReceiptRef) String() string {
-	return fmt.Sprintf("Ref{%s}", r.Text)
+	return fmt.Sprintf("Ref{%s:%s}", r.Domain(), r.text)
+}
+
+func (r ReceiptRef) Domain() string {
+	return "ru-fns"
+}
+
+func (r ReceiptRef) RefText() string {
+	return r.text
 }
 
 func (r ReceiptRef) ValidateFormat() error {
@@ -35,7 +49,7 @@ func (r ReceiptRef) ValidateFormat() error {
 }
 
 func (r ReceiptRef) UniqueKey() string {
-	items := strings.Split(r.Text, "&")
+	items := strings.Split(r.text, "&")
 	sort.Strings(items)
 	return strings.Join(items, "&")
 }
@@ -64,7 +78,7 @@ func (r ReceiptRef) SearchKeyItems() ([]string, error) {
 }
 
 func (r ReceiptRef) parseRefText() (*ReceiptRefData, error) {
-	values, err := url.ParseQuery(r.Text)
+	values, err := url.ParseQuery(r.text)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
@@ -95,24 +109,4 @@ func (r ReceiptRef) parseRefText() (*ReceiptRefData, error) {
 		return nil, merry.Wrap(err)
 	}
 	return &data, err
-}
-
-type Receipt struct {
-	ID          int64          `json:"id"`
-	SavedAt     time.Time      `json:"savedAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	RefText     string         `json:"refText"`
-	RefData     ReceiptRefData `json:"refData"`
-	IsCorrect   bool           `json:"isCorrect"`
-	Data        string         `json:"data"`
-	SearchKey   string         `json:"searchKey"`
-	RetriesLeft int64          `json:"retriesLeft"`
-	NextRetryAt time.Time      `json:"nextRetryAt"`
-}
-
-type ReceiptPending struct {
-	ID        int64
-	Ref       ReceiptRef
-	IsCorrect bool
 }

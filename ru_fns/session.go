@@ -1,16 +1,15 @@
-package main
+package ru_fns
 
 import (
 	"encoding/json"
 	"io"
 	"os"
+	"receipt_qr_scanner/utils"
 	"strings"
 	"time"
 
 	"github.com/ansel1/merry"
 )
-
-var ErrSessionNotFound = merry.New("session not found")
 
 type Session struct {
 	RefreshToken string    `json:"refresh_token"`
@@ -20,11 +19,11 @@ type Session struct {
 }
 
 func writeSession(session *Session) error {
-	configDir, err := MakeConfigDir()
+	configDir, err := utils.MakeConfigDir()
 	if err != nil {
 		return merry.Wrap(err)
 	}
-	file, err := os.OpenFile(configDir+"/session.json", os.O_WRONLY|os.O_CREATE, 0600)
+	file, err := os.OpenFile(configDir+"/ru_fns_session.json", os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return merry.Wrap(err)
 	}
@@ -43,7 +42,7 @@ func writeSession(session *Session) error {
 		return merry.Wrap(err)
 	}
 
-	paddingLen := int(256 - offset)
+	paddingLen := int(512 - offset)
 	if paddingLen > 0 {
 		if _, err := file.WriteString(strings.Repeat(" ", paddingLen)); err != nil {
 			return merry.Wrap(err)
@@ -53,13 +52,13 @@ func writeSession(session *Session) error {
 }
 
 func readSession(session *Session) error {
-	configDir, err := MakeConfigDir()
+	configDir, err := utils.MakeConfigDir()
 	if err != nil {
 		return merry.Wrap(err)
 	}
-	file, err := os.Open(configDir + "/session.json")
+	file, err := os.Open(configDir + "/ru_fns_session.json")
 	if os.IsNotExist(err) {
-		return ErrSessionNotFound.Here()
+		return utils.ErrSessionNotFound.Here()
 	}
 	if err != nil {
 		return merry.Wrap(err)
@@ -80,7 +79,7 @@ func updateSession(session *Session) error {
 }
 
 func updateSessionIfOld(session *Session) error {
-	if time.Now().Sub(session.UpdatedAt) > 12*time.Hour {
+	if time.Now().Sub(session.UpdatedAt) > 10*time.Minute {
 		return merry.Wrap(updateSession(session))
 	}
 	return nil

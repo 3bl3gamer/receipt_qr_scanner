@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"receipt_qr_scanner/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,12 @@ import (
 )
 
 var ErrReceiptRefAlreadyExists = merry.New("receipt ref already exists")
+
+type ReceiptPending struct {
+	ID        int64
+	Ref       utils.ReceiptRef
+	IsCorrect bool
+}
 
 var migrations = []func(*sql.Tx) error{
 	func(tx *sql.Tx) error {
@@ -82,6 +89,8 @@ var migrations = []func(*sql.Tx) error{
 		_, err = tx.Exec(`
 		CREATE TABLE receipts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			domain TEXT NOT NULL,
+
 			saved_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			created_at DATETIME NOT NULL,
@@ -103,12 +112,12 @@ var migrations = []func(*sql.Tx) error{
 
 		_, err = tx.Exec(`
 		INSERT INTO receipts (
-			id, saved_at, updated_at, created_at,
+			id, domain, saved_at, updated_at, created_at,
 			unique_key, search_key, is_correct,
 			ref_text, data,
 			retries_left, next_retry_at
 		)
-		SELECT id, saved_at, updated_at, created_at,
+		SELECT id, 'ru-fns', saved_at, updated_at, created_at,
 			'TODO:'||id, search_key, is_correct,
 			ref_text, data,
 			retries_left, next_retry_at
@@ -122,14 +131,18 @@ var migrations = []func(*sql.Tx) error{
 			return merry.Wrap(err)
 		}
 
-		rows, err := tx.Query(`SELECT id, ref_text FROM receipts`)
+		rows, err := tx.Query(`SELECT id, domain, ref_text FROM receipts`)
 		if err != nil {
 			return merry.Wrap(err)
 		}
 		for rows.Next() {
 			var id int64
-			ref := ReceiptRef{}
-			err := rows.Scan(&id, &ref.Text)
+			var refText string
+			err := rows.Scan(&id, &refText)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			ref, err := receiptRefFromText(refText)
 			if err != nil {
 				return merry.Wrap(err)
 			}
@@ -214,7 +227,7 @@ func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]strin
 		log.Fatal().Interface("item", obj).Msg("unexpected JSON item")
 	}
 }
-func makeReceiptSearchKey(ref *ReceiptRef, dataStr string) (string, error) {
+func makeReceiptSearchKey(ref utils.ReceiptRef, dataStr string) (string, error) {
 	items, err := ref.SearchKeyItems()
 	if err != nil {
 		return "", merry.Wrap(err)
@@ -236,7 +249,7 @@ func escapeLike(str, escChar string) string {
 	return str
 }
 
-func saveRecieptRef(db *sql.DB, ref *ReceiptRef) (int64, error) {
+func saveRecieptRef(db *sql.DB, ref utils.ReceiptRef) (int64, error) {
 	searchKey, err := makeReceiptSearchKey(ref, "")
 	if err != nil {
 		return 0, merry.Wrap(err)
@@ -246,9 +259,9 @@ func saveRecieptRef(db *sql.DB, ref *ReceiptRef) (int64, error) {
 		return 0, merry.Wrap(err)
 	}
 	res, err := db.Exec(`
-		INSERT INTO receipts (unique_key, ref_text, created_at, search_key)
-		VALUES (?,?,?,?)`,
-		ref.UniqueKey(), ref.Text, createdAt, searchKey)
+		INSERT INTO receipts (domain, unique_key, ref_text, created_at, search_key)
+		VALUES (?,?,?,?,?)`,
+		ref.Domain(), ref.UniqueKey(), ref.RefText(), createdAt, searchKey)
 	if sqlite3Error, ok := err.(sqlite3.Error); ok {
 		if sqlite3Error.ExtendedCode == sqlite3.ErrConstraintUnique {
 			return 0, ErrReceiptRefAlreadyExists.Here()
@@ -264,7 +277,7 @@ func saveRecieptRef(db *sql.DB, ref *ReceiptRef) (int64, error) {
 	return rowID, nil
 }
 
-func saveReceiptFailure(db *sql.DB, ref *ReceiptRef, decreaseRetries bool) error {
+func saveReceiptFailure(db *sql.DB, ref utils.ReceiptRef, decreaseRetries bool) error {
 	_, err := db.Exec(`
 		UPDATE receipts
 		SET next_retry_at = datetime(CURRENT_TIMESTAMP,
@@ -277,7 +290,7 @@ func saveReceiptFailure(db *sql.DB, ref *ReceiptRef, decreaseRetries bool) error
 	return merry.Wrap(err)
 }
 
-func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
+func saveReceiptCorrectness(db *sql.DB, ref utils.ReceiptRef) error {
 	_, err := db.Exec(`
 		UPDATE receipts SET is_correct = 1, updated_at = CURRENT_TIMESTAMP
 		WHERE unique_key = ?`,
@@ -285,7 +298,7 @@ func saveReceiptCorrectness(db *sql.DB, ref *ReceiptRef) error {
 	return merry.Wrap(err)
 }
 
-func saveRecieptData(db *sql.DB, ref *ReceiptRef, data []byte) error {
+func saveRecieptData(db *sql.DB, ref utils.ReceiptRef, data []byte) error {
 	searchKey, err := makeReceiptSearchKey(ref, string(data))
 	if err != nil {
 		return merry.Wrap(err)
@@ -314,7 +327,12 @@ func loadPendingReceipts(db *sql.DB, limit int64) ([]*ReceiptPending, error) {
 	var recs []*ReceiptPending
 	for rows.Next() {
 		rec := &ReceiptPending{}
-		err = rows.Scan(&rec.ID, &rec.Ref.Text, &rec.IsCorrect)
+		var refText string
+		err = rows.Scan(&rec.ID, &refText, &rec.IsCorrect)
+		if err != nil {
+			return nil, merry.Wrap(err)
+		}
+		rec.Ref, err = receiptRefFromText(refText)
 		if err != nil {
 			return nil, merry.Wrap(err)
 		}
@@ -350,7 +368,7 @@ const receiptSQLFields = `id, saved_at, updated_at, created_at, search_key,
 COALESCE(is_correct, FALSE), ref_text, CAST(COALESCE(data, '') AS text),
 retries_left, next_retry_at`
 
-func scanReceipt(row SQLMultiScanner, rec *Receipt) error {
+func scanReceipt(row SQLMultiScanner, rec *utils.Receipt) error {
 	err := row.Scan(
 		&rec.ID, &rec.SavedAt, &rec.UpdatedAt, &rec.CreatedAt, &rec.SearchKey,
 		&rec.IsCorrect, &rec.RefText, &rec.Data,
@@ -358,9 +376,9 @@ func scanReceipt(row SQLMultiScanner, rec *Receipt) error {
 	return merry.Wrap(err)
 }
 
-func loadReceipt(db *sql.DB, id int64) (*Receipt, error) {
+func loadReceipt(db *sql.DB, id int64) (*utils.Receipt, error) {
 	row := db.QueryRow(`SELECT `+receiptSQLFields+` FROM receipts WHERE id = ?`, id)
-	rec := &Receipt{}
+	rec := &utils.Receipt{}
 	err := scanReceipt(row, rec)
 	if err != nil {
 		return nil, merry.Wrap(err)
@@ -368,10 +386,10 @@ func loadReceipt(db *sql.DB, id int64) (*Receipt, error) {
 	return rec, nil
 }
 
-func readReceiptsFromRows(rows *sql.Rows) ([]*Receipt, error) {
-	var recs []*Receipt
+func readReceiptsFromRows(rows *sql.Rows) ([]*utils.Receipt, error) {
+	var recs []*utils.Receipt
 	for rows.Next() {
-		rec := &Receipt{}
+		rec := &utils.Receipt{}
 		if err := scanReceipt(rows, rec); err != nil {
 			return nil, merry.Wrap(err)
 		}
@@ -383,7 +401,7 @@ func readReceiptsFromRows(rows *sql.Rows) ([]*Receipt, error) {
 	return recs, nil
 }
 
-func searchAndReadReceipts(db *sql.DB, filter []string, args []interface{}, searchQuery, sortColumn string) ([]*Receipt, error) {
+func searchAndReadReceipts(db *sql.DB, filter []string, args []interface{}, searchQuery, sortColumn string) ([]*utils.Receipt, error) {
 	sql := `SELECT ` + receiptSQLFields + ` FROM receipts`
 	if searchQuery != "" {
 		filter = append(filter, `search_key LIKE ? ESCAPE '\'`)
@@ -400,7 +418,7 @@ func searchAndReadReceipts(db *sql.DB, filter []string, args []interface{}, sear
 	return readReceiptsFromRows(rows)
 }
 
-func loadReceiptsSortedByID(db *sql.DB, beforeID int64, searchQuery string) ([]*Receipt, error) {
+func loadReceiptsSortedByID(db *sql.DB, beforeID int64, searchQuery string) ([]*utils.Receipt, error) {
 	args := []interface{}{}
 	filter := []string{}
 	if beforeID > 0 {
@@ -410,7 +428,7 @@ func loadReceiptsSortedByID(db *sql.DB, beforeID int64, searchQuery string) ([]*
 	return searchAndReadReceipts(db, filter, args, searchQuery, "id")
 }
 
-func loadReceiptsSortedByCreatedAt(db *sql.DB, beforeTime time.Time, searchQuery string) ([]*Receipt, error) {
+func loadReceiptsSortedByCreatedAt(db *sql.DB, beforeTime time.Time, searchQuery string) ([]*utils.Receipt, error) {
 	args := []interface{}{}
 	filter := []string{}
 	if !beforeTime.IsZero() {
