@@ -162,6 +162,34 @@ var migrations = []func(*sql.Tx) error{
 		}
 		return nil
 	},
+	func(tx *sql.Tx) error {
+		rows, err := tx.Query(`SELECT id, ref_text, COALESCE(data, '') FROM receipts`)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		for rows.Next() {
+			var id int64
+			var refText string
+			var data string
+			err := rows.Scan(&id, &refText, &data)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			ref, err := receiptRefFromText(refText)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			searchKey, err := makeReceiptSearchKey(ref, data)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+			_, err = tx.Exec(`UPDATE receipts SET search_key = ? WHERE id = ?`, searchKey, id)
+			if err != nil {
+				return merry.Wrap(err)
+			}
+		}
+		return merry.Wrap(rows.Err())
+	},
 }
 
 func createTables(db *sql.DB) error {
@@ -247,7 +275,10 @@ func makeReceiptSearchKey(ref utils.ReceiptRef, dataStr string) (string, error) 
 		}
 		makeReceiptSearchKeyInner("", data, &items)
 	}
-	return strings.ToLower(strings.Join(items, " ")), nil
+	searchKey := strings.Join(items, " ")
+	searchKey = strings.ReplaceAll(searchKey, "\x00", `\0`) //https://www.sqlite.org/nulinstr.html
+	searchKey = strings.ToLower(searchKey)
+	return searchKey, nil
 }
 
 func escapeLike(str, escChar string) string {
