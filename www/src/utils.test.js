@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha'
 import { assert as test } from 'chai'
-import { makeRuFnsReceiptTitle, searchBinary } from './utils.js'
+import { makeKgGnsReceiptTitle, makeRuFnsReceiptTitle, searchBinary } from './utils.js'
 
 describe('searchBinary', () => {
 	it('should return element index and status', () => {
@@ -33,8 +33,8 @@ describe('makeReceiptTitle', () => {
 	it('should use cleaned place name', () => {
 		check('test', { retailPlace: 'test' })
 		check('test', { retailPlace: ' test ' })
-		check('"Скидкино"', { retailPlace: 'магазин "Скидкино"' })
-		check('"Караван 24"', { retailPlace: 'Магазин самообслуживания "Караван 24"' })
+		check('Скидкино', { retailPlace: 'магазин "Скидкино"' })
+		check('Караван 24', { retailPlace: 'Магазин самообслуживания "Караван 24"' })
 		check('aliexpress.ru', { retailPlace: 'https://aliexpress.ru/' })
 		check('rzd.ru', { retailPlace: 'http://www.rzd.ru' })
 		check('b.a.ru', { retailPlace: 'http://a.ru;http://b.a.ru' })
@@ -43,14 +43,14 @@ describe('makeReceiptTitle', () => {
 	it('should use cleaned user name', () => {
 		check('test', { user: 'test' })
 		check('test', { user: ' test ' })
-		check('"ИНТЕРНЕТ РЕШЕНИЯ"', { user: 'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ "ИНТЕРНЕТ РЕШЕНИЯ"' })
-		check('"ГОРОДСКИЕ АПТЕКИ"', { user: 'АКЦИОНЕРНОЕ ОБЩЕСТВО "ГОРОДСКИЕ АПТЕКИ"' })
-		check('"ФАРМАЦИЯ"', { user: 'ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО "ФАРМАЦИЯ"' })
-		check('"МЕГАФОН"', { user: 'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО "МЕГАФОН"' })
-		check('"УРАЛЬСКИЕ АВИАЛИНИИ"', { user: 'АКЦИОНЕРНОЕ ОБЩЕСТВО АВИАКОМПАНИЯ "УРАЛЬСКИЕ АВИАЛИНИИ"' })
-		check('"Агроторг"', { user: 'ООО "Агроторг"' })
-		check('"МЕТРОМАРКЕТ"', { user: 'ООО"МЕТРОМАРКЕТ"' })
-		check('"ПОЧТА РОССИИ"', { user: 'АО "ПОЧТА РОССИИ"' })
+		check('ИНТЕРНЕТ РЕШЕНИЯ', { user: 'ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ "ИНТЕРНЕТ РЕШЕНИЯ"' })
+		check('ГОРОДСКИЕ АПТЕКИ', { user: 'АКЦИОНЕРНОЕ ОБЩЕСТВО "ГОРОДСКИЕ АПТЕКИ"' })
+		check('ФАРМАЦИЯ', { user: 'ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО "ФАРМАЦИЯ"' })
+		check('МЕГАФОН', { user: 'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО "МЕГАФОН"' })
+		check('УРАЛЬСКИЕ АВИАЛИНИИ', { user: 'АКЦИОНЕРНОЕ ОБЩЕСТВО АВИАКОМПАНИЯ "УРАЛЬСКИЕ АВИАЛИНИИ"' })
+		check('Агроторг', { user: 'ООО "Агроторг"' })
+		check('МЕТРОМАРКЕТ', { user: 'ООО"МЕТРОМАРКЕТ"' })
+		check('ПОЧТА РОССИИ', { user: 'АО "ПОЧТА РОССИИ"' })
 	})
 
 	describe('combination', () => {
@@ -61,15 +61,29 @@ describe('makeReceiptTitle', () => {
 			check('магазин', { user: 'Иванов Иван Иванович', retailPlace: 'магазин' })
 		})
 		it('should chose the longest value (after cleanup)', () => {
-			check('"ПОЧТА РОССИИ"', { user: 'АО "ПОЧТА РОССИИ"', retailPlace: 'ОПС' })
+			check('ПОЧТА РОССИИ', { user: 'АО "ПОЧТА РОССИИ"', retailPlace: 'ОПС' })
 		})
 		it('should use name exceptions', () => {
-			check('"Читай-Город"', { user: 'ООО "Новый Книжный М"', retailPlace: 'Магазин "Читай-Город"' })
+			check('Читай-Город', { user: 'ООО "Новый Книжный М"', retailPlace: 'Магазин "Читай-Город"' })
 			check('Магазин упаковки', { user: 'ИВАНОВ ИВАН ИВАНОВИЧ', retailPlace: 'Магазин упаковки' })
 			check('МТС', {
 				user: 'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО "МОБИЛЬНЫЕ ТЕЛЕСИСТЕМЫ"',
 				retailPlace: 'http://www.mts.ru;https://payment.mts.ru',
 			})
 		})
+	})
+})
+
+describe('makeKgGnsReceiptTitle', () => {
+	/** @param {*} dest @param {*} data */
+	function check(dest, data) {
+		test.strictEqual(makeKgGnsReceiptTitle(data), dest)
+	}
+
+	it('should use cleaned location name', () => {
+		check('test', 'test')
+		check('Колобок', 'Магазин Колобок')
+		check('Бимед Фарм', 'ОсОО Бимед Фарм')
+		check('Mega City', 'Магазин "Mega City"')
 	})
 })

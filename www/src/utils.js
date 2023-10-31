@@ -347,7 +347,7 @@ function getKgGnsReceiptDataFrom(rec) {
 	return {
 		/** @type {CommonReceiptData} */
 		common: {
-			title: data.crData.locationName,
+			title: makeKgGnsReceiptTitle(data.crData.locationName),
 			flag: '🇰🇬',
 			totalSum: data.ticketTotalSum / 100,
 			itemsCount: data.items.length,
@@ -394,10 +394,11 @@ export function makeRuFnsReceiptTitle(recData) {
 			placeName = recData.retailPlace
 			if ((t = RECEIPT_NAME_EXCEPTIONS[placeName])) return t
 			placeName = chooseLongestURL(placeName)
-				.replace(/^магазин(\s+самообслуживания)?\s/i, '')
+				.replace(/^магазин(\s+самообслуживания)?\s+/i, '')
 				.replace(/^https?:\/\/(www\.)?/, '')
 				.replace(/\/$/, '')
 				.replace(/;$/, '')
+				.replace(/^"([^"]*)"$/, '$1')
 				.trim()
 			if ((t = RECEIPT_NAME_EXCEPTIONS[placeName])) return t
 		}
@@ -413,7 +414,8 @@ export function makeRuFnsReceiptTitle(recData) {
 				.replace(/общество с ограниченной ответственностью\s+/i, '')
 				.replace(/(публичное |открытое )?акционерное общество\s+/i, '')
 				.replace(/^авиакомпания\s+/i, '')
-				.replace(/^(ооо|ао|зао)(?=\W)/i, '')
+				.replace(/^(ооо|ао|зао)\s*(?=\W)/i, '')
+				.replace(/^"([^"]*)"$/, '$1')
 				.trim()
 			if ((t = RECEIPT_NAME_EXCEPTIONS[userName])) return t
 		}
@@ -441,10 +443,21 @@ export function makeRuFnsReceiptTitle(recData) {
 }
 /** @type {Record<string, string|undefined>} */
 const RECEIPT_NAME_EXCEPTIONS = {
-	'Магазин "Читай-Город"': '"Читай-Город"',
+	'Магазин "Читай-Город"': 'Читай-Город',
 	'Магазин упаковки': 'Магазин упаковки',
-	'"МОБИЛЬНЫЕ ТЕЛЕСИСТЕМЫ"': 'МТС',
+	'МОБИЛЬНЫЕ ТЕЛЕСИСТЕМЫ': 'МТС',
 	'dom.ru': 'dom.ru',
+}
+
+/**
+ * @param {string} locationName
+ */
+export function makeKgGnsReceiptTitle(locationName) {
+	return locationName
+		.replace(/^осоо(?=\W)/i, '')
+		.replace(/^магазин\s/i, '')
+		.replace(/^"([^"]*)"$/, '$1')
+		.trim()
 }
 
 /**
