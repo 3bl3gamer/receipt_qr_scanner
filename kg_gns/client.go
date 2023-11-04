@@ -46,6 +46,9 @@ func (c *Client) FetchReceipt(iRef utils.ReceiptRef, onIsCorrect func() error) (
 	log.Debug().Int("code", resp.StatusCode).Str("status", resp.Status).Str("path", req.URL.Path).Str("data", string(buf)).Msg("kg-gns: response")
 
 	if resp.Status != "200 OK" {
+		if resp.StatusCode == 404 {
+			res.ShouldDecreaseRetries = true //либо чек некорректен, либо касса была в оффлайне
+		}
 		return res, utils.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
 	}
 
