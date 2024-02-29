@@ -1,6 +1,7 @@
 package kg_gns
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"receipt_qr_scanner/utils"
@@ -8,6 +9,8 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog/log"
 )
+
+var ErrReceiptItemsNotReady = merry.New("receipt items not ready")
 
 type Client struct{}
 
@@ -50,6 +53,16 @@ func (c *Client) FetchReceipt(iRef utils.ReceiptRef, onIsCorrect func() error) (
 			res.ShouldDecreaseRetries = true //либо чек некорректен, либо касса была в оффлайне
 		}
 		return res, utils.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
+	}
+
+	var items struct{ Items []json.RawMessage }
+	if err := json.Unmarshal(buf, &items); err != nil {
+		res.ShouldDecreaseRetries = true
+		return res, utils.ErrResponseDataMalformed.Here().Append(string(buf))
+	}
+	if len(items.Items) == 0 {
+		res.ShouldDecreaseRetries = true //
+		return res, ErrReceiptItemsNotReady.Here().Append(string(buf))
 	}
 
 	res.Data = buf

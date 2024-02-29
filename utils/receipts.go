@@ -8,6 +8,7 @@ import (
 
 var ErrSessionNotFound = merry.New("session not found")
 var ErrUnexpectedHttpStatus = merry.New("unexpected HTTP status")
+var ErrResponseDataMalformed = merry.New("response data malformed")
 
 type ReceiptRef interface {
 	String() string
