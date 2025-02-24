@@ -17,7 +17,7 @@
 		"@rollup/plugin-replace": "^2.3.2",
 		"@rollup/plugin-typescript": "^8.2.1",
 		"@types/jest": "^26.0.23",
-		"rollup": "^2.6.1",
+		"rollup": "^2.79.2",
 		"rollup-plugin-copy": "^3.3.0",
 		"rollup-pluginutils": "^2.8.2",
 		"tslib": "^2.3.0",
