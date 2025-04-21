@@ -4,6 +4,8 @@ After=network.target
 
 [Service]
 User=<user>
+Environment="RU_FNS_FIREBASE_TOKEN=<optional token, seems not required now>"
+Environment="RU_FNS_DEVICE_ID=<optionan device id, seems not required now>"
 WorkingDirectory=/home/<user>/receipt_qr_scanner
 ExecStart=/home/<user>/receipt_qr_scanner/receipt_qr_scanner --env=prod
 Restart=on-failure

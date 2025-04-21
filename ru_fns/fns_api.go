@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"math/rand"
 	"net/http"
+	"os"
 	"receipt_qr_scanner/utils"
+	"strconv"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog/log"
@@ -70,13 +73,37 @@ func newPostRequest(url string, body interface{}) (*http.Request, error) {
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header["Content-Type"] = []string{"application/json; charset=utf-8"}
+	// req.Header["Content-Length"] будет добавлен автоматически
 	return req, nil
 }
 
-func addDeviceHeaders(req *http.Request) {
-	req.Header.Set("Device-Id", "iPhone 12 made in China")
-	req.Header.Set("Device-OS", "Android 4.4")
+func addCommonHeaders(req *http.Request, useFirebaseTokenForDeviceID bool) {
+	var deviceID string
+	if useFirebaseTokenForDeviceID {
+		deviceID = os.Getenv("RU_FNS_FIREBASE_TOKEN")
+		if deviceID == "" {
+			deviceID = "noFirebaseToken" //так было в приложении
+		}
+	} else {
+		deviceID = os.Getenv("RU_FNS_DEVICE_ID")
+		if deviceID == "" {
+			deviceID = strconv.FormatUint(rand.Uint64()|(1<<63), 16)
+		}
+	}
+
+	// req.Header.Set() сделает ключи каноничными (Device-OS -> Device-Os), это не нужно, прописываем напрямую
+	req.Header["Accept-Encoding"] = []string{"gzip"}
+	req.Header["ClientVersion"] = []string{"2.27.3"}
+	req.Header["Connection"] = []string{"Keep-Alive"}
+	req.Header["Device-Id"] = []string{deviceID}
+	req.Header["Device-OS"] = []string{"Android"}
+	req.Header["User-Agent"] = []string{"okhttp/5.0.0-alpha.2"}
+	// req.Header["Host"] = []string{"irkkt-mobile.nalog.ru:8888"} //добавляется автоматически
+}
+
+func addSessionIDHeader(req *http.Request, sessionID string) {
+	req.Header["sessionId"] = []string{sessionID}
 }
 
 func sendRequestAndRead(req *http.Request) ([]byte, error) {
@@ -114,12 +141,21 @@ func sendRequestAndReadTo(req *http.Request, dest interface{}) error {
 }
 
 func fnsRefreshSession(refreshToken, clientSecret string) (*RefreshSessionResponse, error) {
+	// Accept-Encoding: gzip
+	// ClientVersion: 2.27.3
+	// Connection: Keep-Alive
+	// Content-Length: 103
+	// Content-Type: application/json; charset=utf-8
+	// Device-Id: shared_prefs/ru.fns.billchecker_preferences.xml -> FIREBASE_TOKEN (142 chars)
+	// Device-OS: Android
+	// Host: irkkt-mobile.nalog.ru:8888
+	// User-Agent: okhttp/5.0.0-alpha.2
 	params := map[string]string{"client_secret": clientSecret, "refresh_token": refreshToken}
 	req, err := newPostRequest("/v2/mobile/users/refresh", params)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	addDeviceHeaders(req)
+	addCommonHeaders(req, true)
 
 	sessUpdate := &RefreshSessionResponse{}
 	if err := sendRequestAndReadTo(req, sessUpdate); err != nil {
@@ -129,11 +165,20 @@ func fnsRefreshSession(refreshToken, clientSecret string) (*RefreshSessionRespon
 }
 
 func fnsGetProfile(sessionID string) (*ProfileResponse, error) {
+	// Accept-Encoding: gzip
+	// ClientVersion: 2.27.3
+	// Connection: Keep-Alive
+	// Device-Id: 1122334455667788 (ANDROID_ID, 64-bit number (expressed as a hexadecimal string), unique to each combination of app-signing key, user, and device)
+	// Device-OS: Android
+	// Host: irkkt-mobile.nalog.ru:8888
+	// sessionId: 009988776655443322110099:11223344-1122-4xxx-axxx-112233445566
+	// User-Agent: okhttp/5.0.0-alpha.2
 	req, err := newGetRequest("/v2/mobile/user/profile")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	req.Header.Set("sessionId", sessionID)
+	addCommonHeaders(req, false)
+	addSessionIDHeader(req, sessionID)
 
 	profile := &ProfileResponse{}
 	if err := sendRequestAndReadTo(req, profile); err != nil {
@@ -143,12 +188,23 @@ func fnsGetProfile(sessionID string) (*ProfileResponse, error) {
 }
 
 func fnsAddReceipt(refQRText, sessionID string) (*ReceiptInfoResponse, error) {
+	// Accept-Encoding: gzip
+	// ClientVersion: 2.27.3
+	// Connection: Keep-Alive
+	// Content-Length: 73
+	// Content-Type: application/json; charset=UTF-8
+	// Device-Id: 1122334455667788 (ANDROID_ID, 64-bit number (expressed as a hexadecimal string), unique to each combination of app-signing key, user, and device)
+	// Device-OS: Android
+	// Host: irkkt-mobile.nalog.ru:8888
+	// sessionId: 009988776655443322110099:11223344-1122-4xxx-axxx-112233445566
+	// User-Agent: okhttp/5.0.0-alpha.2
 	params := map[string]string{"qr": refQRText}
 	req, err := newPostRequest("/v2/ticket", params)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	req.Header.Set("sessionId", sessionID)
+	addCommonHeaders(req, false)
+	addSessionIDHeader(req, sessionID)
 
 	recResp := &ReceiptInfoResponse{}
 	if err := sendRequestAndReadTo(req, recResp); err != nil {
@@ -162,12 +218,20 @@ func fnsAddReceipt(refQRText, sessionID string) (*ReceiptInfoResponse, error) {
 }
 
 func fnsGetReceiptData(receiptID, sessionID string) ([]byte, error) {
+	// Accept-Encoding: gzip
+	// ClientVersion: 2.27.3
+	// Connection: Keep-Alive
+	// Device-Id: 1122334455667788 (ANDROID_ID, 64-bit number (expressed as a hexadecimal string), unique to each combination of app-signing key, user, and device)
+	// Device-OS: Android
+	// Host: irkkt-mobile.nalog.ru:8888
+	// sessionId: 009988776655443322110099:11223344-1122-4xxx-axxx-112233445566
+	// User-Agent: okhttp/5.0.0-alpha.2
 	req, err := newGetRequest("/v2/tickets/" + receiptID)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	req.Header.Set("sessionId", sessionID)
-	addDeviceHeaders(req)
+	addCommonHeaders(req, false)
+	addSessionIDHeader(req, sessionID)
 
 	buf, err := sendRequestAndRead(req)
 	if err != nil {

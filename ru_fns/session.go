@@ -79,7 +79,7 @@ func updateSession(session *Session) error {
 }
 
 func updateSessionIfOld(session *Session) error {
-	if time.Now().Sub(session.UpdatedAt) > 10*time.Minute {
+	if time.Since(session.UpdatedAt) > 10*time.Minute {
 		return merry.Wrap(updateSession(session))
 	}
 	return nil
