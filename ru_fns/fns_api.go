@@ -2,6 +2,7 @@ package ru_fns
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"math/rand"
@@ -111,11 +112,22 @@ func sendRequestAndRead(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	buf, err := io.ReadAll(resp.Body)
+
+	bodyReader := resp.Body
+	defer bodyReader.Close()
+	// "if the user explicitly requested gzip it is not automatically uncompressed" https://go.dev/src/net/http/transport.go#L194
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		bodyReader, err = gzip.NewReader(bodyReader)
+		if err != nil {
+			return nil, merry.Wrap(err)
+		}
+		defer bodyReader.Close()
+	}
+
+	buf, err := io.ReadAll(bodyReader)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	defer resp.Body.Close()
 
 	log.Debug().Int("code", resp.StatusCode).Str("status", resp.Status).Str("path", req.URL.Path).Str("data", string(buf)).Msg("ru-fns: response")
 
