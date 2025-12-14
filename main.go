@@ -4,23 +4,64 @@ import (
 	"flag"
 	"os"
 	"receipt_qr_scanner/kg_gns"
+	"receipt_qr_scanner/receipts"
 	"receipt_qr_scanner/ru_fns"
 	"receipt_qr_scanner/utils"
-	"strings"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
+var allDomains = []receipts.Domain{
+	ru_fns.Domain,
+	kg_gns.Domain,
+}
+var usedDomains = allDomains
+
+func receiptRefFromText(refText string) (receipts.ReceiptRef, error) {
+	return receipts.ReceiptRefFromText(usedDomains, refText)
+}
+
 func main() {
+	var allSessionDomains []receipts.Domain
+	for _, d := range allDomains {
+		if _, ok := d.MakeClient().(receipts.ClientWithSession); ok {
+			allSessionDomains = append(allSessionDomains, d)
+		}
+	}
+
+	// allDomainCodes := make([]string, len(allDomains))
+	// allSessionDomainCodes := []string{}
+	// for i, d := range allDomains {
+	// 	allDomainCodes[i] = d.Code
+	// 	if _, ok := d.MakeClient().(receipts.ClientWithSession); ok {
+	// 		allSessionDomainCodes = append(allSessionDomainCodes, d.Code)
+	// 	}
+	// }
+
 	env := utils.Env{Val: "dev"}
+	domainToInit := utils.OptionValue[receipts.Domain]{
+		Options: allSessionDomains,
+		ToStr:   func(d receipts.Domain) string { return d.Code },
+	}
+	domainsToUse := utils.OptionValues[receipts.Domain]{
+		Options:   allDomains,
+		ToStr:     func(d receipts.Domain) string { return d.Code },
+		Separator: ",",
+	}
+
 	flag.Var(&env, "env", "evironment, dev or prod")
 	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
-	mustInitSession := flag.Bool("init-session", false, "init RU FNS session")
-	skipClients := flag.String("skip-clients", "", "do not init cliets (example: 'ru-fns kg-gns')")
+	flag.Var(&domainToInit, "init-session", "init session for client, possible values: "+domainToInit.JoinStrings(", "))
+	flag.Var(&domainsToUse, "clients", "use only specified cliets (all used by default: "+domainsToUse.JoinStrings(",")+")")
 	debugTSL := flag.Bool("debug-tls", false, "start HTTP server in TLS mode for debugging")
 	flag.Parse()
+
+	if len(domainsToUse.Values) == 0 {
+		domainsToUse.Values = allDomains
+	}
+	usedDomains = domainsToUse.Values
 
 	// Logger
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
@@ -32,18 +73,10 @@ func main() {
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
 
-	domain2client := map[string]utils.Client{
-		"ru-fns": &ru_fns.Client{},
-		"kg-gns": &kg_gns.Client{},
-	}
-
-	if *mustInitSession {
+	if domainToInit.Value != nil {
 		args := flag.Args()
-		if len(args) != 2 {
-			log.Fatal().Msg("exactly two arguments (refreshToken and clientSecret) are required for session init")
-		}
-		client := domain2client["ru-fns"].(*ru_fns.Client)
-		if err := client.InitSession(args[0], args[1]); err != nil {
+		client := domainToInit.Value.MakeClient().(receipts.ClientWithSession)
+		if err := client.InitSession(args...); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
 		if err := client.LoadSession(); err != nil {
@@ -52,16 +85,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	for domain, client := range domain2client {
-		if strings.Contains(*skipClients, domain) {
-			continue
-		}
+	domain2client := map[string]receipts.Client{}
+	for _, d := range usedDomains {
+		domain2client[d.Code] = d.MakeClient()
+	}
 
-		err := client.LoadSession()
-		if merry.Is(err, utils.ErrSessionNotFound) {
-			log.Fatal().Msg("session file not found, forgot to --init-session?")
-		} else if err != nil {
-			log.Fatal().Stack().Err(err).Msg("")
+	for domainCode, c := range domain2client {
+		if client, ok := c.(receipts.ClientWithSession); ok {
+			err := client.LoadSession()
+			if merry.Is(err, receipts.ErrSessionNotFound) {
+				log.Fatal().Str("domain", domainCode).Msgf("session file not found, forgot to --init-session %s?", domainCode)
+			} else if err != nil {
+				log.Fatal().Str("domain", domainCode).Stack().Err(err).Msg("")
+			}
 		}
 	}
 

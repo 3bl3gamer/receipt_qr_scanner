@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"path/filepath"
+	"receipt_qr_scanner/receipts"
 	"receipt_qr_scanner/utils"
 	"strconv"
 	"strings"
@@ -43,7 +44,7 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	log.Debug().Str("text", text).Msg("receipt ref text")
 
 	ref, err := receiptRefFromText(text)
-	var fErr utils.ReceiptRefFieldErr
+	var fErr receipts.ReceiptRefFieldErr
 	if errors.As(err, &fErr) {
 		prefix := "WRONG_VALUE_"
 		if fErr.IsMissing {
@@ -79,15 +80,15 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 }
 
 type ReceiptsBroadcaster struct {
-	InReceiptsChan chan *utils.Receipt
-	clients        map[chan *utils.Receipt]struct{}
+	InReceiptsChan chan *receipts.Receipt
+	clients        map[chan *receipts.Receipt]struct{}
 	mutex          sync.RWMutex
 }
 
 func NewReceiptsBroadcaster() *ReceiptsBroadcaster {
 	b := &ReceiptsBroadcaster{
-		InReceiptsChan: make(chan *utils.Receipt, 10),
-		clients:        make(map[chan *utils.Receipt]struct{}),
+		InReceiptsChan: make(chan *receipts.Receipt, 10),
+		clients:        make(map[chan *receipts.Receipt]struct{}),
 	}
 	go func() {
 		for rec := range b.InReceiptsChan {
@@ -97,15 +98,15 @@ func NewReceiptsBroadcaster() *ReceiptsBroadcaster {
 	return b
 }
 
-func (b *ReceiptsBroadcaster) AddClient() chan *utils.Receipt {
+func (b *ReceiptsBroadcaster) AddClient() chan *receipts.Receipt {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
-	client := make(chan *utils.Receipt, 10)
+	client := make(chan *receipts.Receipt, 10)
 	b.clients[client] = struct{}{}
 	return client
 }
 
-func (b *ReceiptsBroadcaster) RemoveClient(client chan *utils.Receipt) {
+func (b *ReceiptsBroadcaster) RemoveClient(client chan *receipts.Receipt) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 	if _, ok := b.clients[client]; ok {
@@ -114,7 +115,7 @@ func (b *ReceiptsBroadcaster) RemoveClient(client chan *utils.Receipt) {
 	}
 }
 
-func (b *ReceiptsBroadcaster) broadcast(rec *utils.Receipt) {
+func (b *ReceiptsBroadcaster) broadcast(rec *receipts.Receipt) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	for client := range b.clients {
@@ -182,9 +183,9 @@ func withGzip(handle httputils.HandlerExt) httputils.HandlerExt {
 	}
 }
 
-var emptyReceipts = []*utils.Receipt{}
+var emptyReceipts = []*receipts.Receipt{}
 
-func ensureRecsNotNil(receipts []*utils.Receipt) []*utils.Receipt {
+func ensureRecsNotNil(receipts []*receipts.Receipt) []*receipts.Receipt {
 	if receipts == nil {
 		return emptyReceipts
 	}
@@ -206,8 +207,9 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 	searchQuery := query.Get("search")
 
 	var err error
-	var receipts []*utils.Receipt
-	if sortMode == "id" {
+	var receiptsList []*receipts.Receipt
+	switch sortMode {
+	case "id":
 		beforeIDStr := query.Get("before_id")
 		beforeID := int64(0)
 		if beforeIDStr != "" {
@@ -216,8 +218,8 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 				return httputils.JsonError{Code: 400, Error: "WRONG_NUMBER_FORMAT"}, nil
 			}
 		}
-		receipts, err = loadReceiptsSortedByID(db, beforeID, searchQuery)
-	} else if sortMode == "created_at" {
+		receiptsList, err = loadReceiptsSortedByID(db, beforeID, searchQuery)
+	case "created_at":
 		beforeTimeStr := query.Get("before_time")
 		beforeTime := time.Time{}
 		if beforeTimeStr != "" {
@@ -226,7 +228,7 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 				return httputils.JsonError{Code: 400, Error: "WRONG_TIME_FORMAT"}, nil
 			}
 		}
-		receipts, err = loadReceiptsSortedByCreatedAt(db, beforeTime, searchQuery)
+		receiptsList, err = loadReceiptsSortedByCreatedAt(db, beforeTime, searchQuery)
 	}
 	if err != nil {
 		return nil, merry.Wrap(err)
@@ -234,13 +236,13 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 
 	startSSE := query.Get("sse")
 	if startSSE == "" || startSSE == "0" {
-		return ensureRecsNotNil(receipts), nil
+		return ensureRecsNotNil(receiptsList), nil
 	}
 
 	flusher, ok := wr.(http.Flusher)
 	if !ok {
 		log.Debug().Msg("SSE: flushing not available, aborting")
-		return ensureRecsNotNil(receipts), nil
+		return ensureRecsNotNil(receiptsList), nil
 	}
 	log.Debug().Msg("SSE: starting loop")
 
@@ -252,10 +254,10 @@ func (b *ReceiptsBroadcaster) HandleAPIReceiptsList(wr http.ResponseWriter, r *h
 	wr.Header().Set("Content-Type", "text/event-stream")
 	wr.Header().Set("X-Accel-Buffering", "no") //disabling Nginx buffering
 
-	if receipts == nil {
-		receipts = []*utils.Receipt{}
+	if receiptsList == nil {
+		receiptsList = []*receipts.Receipt{}
 	}
-	if err := writeSseJson(wr, "initial_receipts", receipts); err != nil {
+	if err := writeSseJson(wr, "initial_receipts", receiptsList); err != nil {
 		return nil, merry.Wrap(err)
 	}
 	flusher.Flush()
@@ -364,6 +366,9 @@ func StartHTTPServer(db *sql.DB, env utils.Env, address string, debugTLS bool, u
 	} else {
 		distPath := baseDir + "/www/dist"
 		bundleFPath, stylesFPath, err = httputils.LastJSAndCSSFNames(distPath, "bundle.", "bundle.")
+		if err != nil {
+			return merry.Wrap(err)
+		}
 		bundleFPath, err = httputils.LastBundleFName(distPath, "bundle.", ".js")
 		if err != nil {
 			return merry.Wrap(err)

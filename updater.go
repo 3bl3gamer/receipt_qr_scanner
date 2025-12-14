@@ -2,14 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"receipt_qr_scanner/utils"
+	"receipt_qr_scanner/receipts"
 	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog/log"
 )
 
-func updateIter(db *sql.DB, domain2client map[string]utils.Client, updatedReceiptIDsChan chan int64) error {
+func updateIter(db *sql.DB, domain2client map[string]receipts.Client, updatedReceiptIDsChan chan int64) error {
 	receipts, err := loadPendingReceipts(db, 5)
 	if err != nil {
 		return merry.Wrap(err)
@@ -18,9 +18,9 @@ func updateIter(db *sql.DB, domain2client map[string]utils.Client, updatedReceip
 	for _, rec := range receipts {
 		log.Info().Str("ref", rec.Ref.String()).Msg("fetching receipt")
 
-		client, ok := domain2client[rec.Ref.Domain()]
+		client, ok := domain2client[rec.Ref.Domain().Code]
 		if !ok {
-			return merry.Errorf("no client for domain '%s'", rec.Ref.Domain())
+			return merry.Errorf("no client for domain '%s'", rec.Ref.Domain().Code)
 		}
 
 		res, err := client.FetchReceipt(rec.Ref, func() error {
@@ -48,7 +48,7 @@ func updateIter(db *sql.DB, domain2client map[string]utils.Client, updatedReceip
 	return nil
 }
 
-func StartUpdater(db *sql.DB, domain2client map[string]utils.Client, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
+func StartUpdater(db *sql.DB, domain2client map[string]receipts.Client, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	timer := time.NewTimer(200 * 365 * 24 * time.Hour) //timedelta can store ~292 years
 	for {
 		if err := updateIter(db, domain2client, updatedReceiptIDsChan); err != nil {
@@ -58,7 +58,7 @@ func StartUpdater(db *sql.DB, domain2client map[string]utils.Client, triggerChan
 		if err != nil {
 			return merry.Wrap(err)
 		}
-		delay := nextRetryAt.Sub(time.Now())
+		delay := time.Until(nextRetryAt)
 		if delay < time.Second {
 			delay = time.Second
 		}

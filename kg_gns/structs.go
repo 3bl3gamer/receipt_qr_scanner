@@ -3,7 +3,7 @@ package kg_gns
 import (
 	"fmt"
 	"net/url"
-	"receipt_qr_scanner/utils"
+	"receipt_qr_scanner/receipts"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,14 +12,30 @@ import (
 	"github.com/ansel1/merry"
 )
 
+var Domain = receipts.Domain{
+	Code:           "kg-gns",
+	CurrencySymbol: "с",
+	FlagSymbol:     "🇰🇬",
+	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
+		return NewReceiptRef(refText)
+	},
+	MakeClient: func() receipts.Client {
+		return &Client{}
+	},
+}
+
 func NewReceiptRef(refText string) (ReceiptRef, error) {
-	ref := ReceiptRef{text: refText}
-	err := ref.ValidateFormat()
-	return ref, merry.Wrap(err)
+	data, err := parseRefText(refText)
+	if err != nil {
+		return ReceiptRef{}, merry.Wrap(err)
+	}
+	ref := ReceiptRef{text: refText, data: *data}
+	return ref, nil
 }
 
 type ReceiptRef struct {
 	text string
+	data ReceiptRefData
 }
 
 type ReceiptRefData struct {
@@ -35,20 +51,15 @@ type ReceiptRefData struct {
 }
 
 func (r ReceiptRef) String() string {
-	return fmt.Sprintf("Ref{%s:%s}", r.Domain(), r.text)
+	return fmt.Sprintf("Ref{%s:%s}", r.Domain().Code, r.text)
 }
 
-func (r ReceiptRef) Domain() string {
-	return "kg-gns"
+func (r ReceiptRef) Domain() receipts.Domain {
+	return Domain
 }
 
 func (r ReceiptRef) RefText() string {
 	return r.text
-}
-
-func (r ReceiptRef) ValidateFormat() error {
-	_, err := r.parseRefText()
-	return merry.Wrap(err)
 }
 
 func (r ReceiptRef) UniqueKey() string {
@@ -59,78 +70,70 @@ func (r ReceiptRef) UniqueKey() string {
 	}
 	items := strings.Split(query, "&")
 	sort.Strings(items)
-	return r.Domain() + ":" + strings.Join(items, "&")
+	return r.Domain().Code + ":" + strings.Join(items, "&")
 }
 
 func (r ReceiptRef) CreatedAt() (time.Time, error) {
-	data, err := r.parseRefText()
-	if err != nil {
-		return time.Time{}, merry.Wrap(err)
-	}
-	return data.CreatedAt, nil
+	return r.data.CreatedAt, nil
 }
 
 func (r ReceiptRef) SearchKeyItems() ([]string, error) {
-	data, err := r.parseRefText()
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
 	return []string{
-		"_created_at:" + data.CreatedAt.Format("2006-01-02 15:04"),
-		"_type:" + strconv.FormatInt(data.Kind, 10),
-		"_operation_type:" + strconv.FormatInt(data.OperationType, 10),
-		"_fiscal_module_serial_number:" + strconv.FormatInt(data.FiscalModuleSerialNumber, 10),
-		"_fiscal_document_number:" + strconv.FormatInt(data.FiscalDocumentNumber, 10),
-		"_fiscal_document_sign:" + strconv.FormatInt(data.FiscalDocumentSign, 10),
-		"_taxpayer_id_number:" + strconv.FormatInt(data.TaxpayerIdNumber, 10),
-		"_kkt_reg_number:" + strconv.FormatInt(data.KktRegNumber, 10),
-		"_sum:" + strconv.FormatFloat(data.Sum, 'f', 2, 64),
+		"_created_at:" + r.data.CreatedAt.Format("2006-01-02 15:04"),
+		"_type:" + strconv.FormatInt(r.data.Kind, 10),
+		"_operation_type:" + strconv.FormatInt(r.data.OperationType, 10),
+		"_fiscal_module_serial_number:" + strconv.FormatInt(r.data.FiscalModuleSerialNumber, 10),
+		"_fiscal_document_number:" + strconv.FormatInt(r.data.FiscalDocumentNumber, 10),
+		"_fiscal_document_sign:" + strconv.FormatInt(r.data.FiscalDocumentSign, 10),
+		"_taxpayer_id_number:" + strconv.FormatInt(r.data.TaxpayerIdNumber, 10),
+		"_kkt_reg_number:" + strconv.FormatInt(r.data.KktRegNumber, 10),
+		"_sum:" + strconv.FormatFloat(r.data.Sum, 'f', 2, 64),
 	}, nil
 }
 
-func (r ReceiptRef) parseRefText() (*ReceiptRefData, error) {
+func parseRefText(refText string) (*ReceiptRefData, error) {
 	// https://tax.salyk.kg/tax-web-control/client/api/v1/ticket
 	//   ?date=20230729T210806&type=3&operation_type=1&fn_number=000123&fd_number=123&fm=123&tin=123&regNumber=0001233&sum=12300
-	u, err := url.Parse(r.text)
+	u, err := url.Parse(refText)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
 
 	query := u.Query()
 	var data ReceiptRefData
-	data.CreatedAt, err = utils.ReceiptTime(query, "date")
+	data.CreatedAt, err = receipts.ReadTime(query, "date")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.Kind, err = utils.ReceiptInt64(query, "type")
+	data.Kind, err = receipts.ReadInt64(query, "type")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.OperationType, err = utils.ReceiptInt64(query, "operation_type")
+	data.OperationType, err = receipts.ReadInt64(query, "operation_type")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.FiscalModuleSerialNumber, err = utils.ReceiptInt64(query, "fn_number")
+	data.FiscalModuleSerialNumber, err = receipts.ReadInt64(query, "fn_number")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.FiscalDocumentNumber, err = utils.ReceiptInt64(query, "fd_number")
+	data.FiscalDocumentNumber, err = receipts.ReadInt64(query, "fd_number")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.FiscalDocumentSign, err = utils.ReceiptInt64(query, "fm")
+	data.FiscalDocumentSign, err = receipts.ReadInt64(query, "fm")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.TaxpayerIdNumber, err = utils.ReceiptInt64(query, "tin")
+	data.TaxpayerIdNumber, err = receipts.ReadInt64(query, "tin")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.KktRegNumber, err = utils.ReceiptInt64(query, "regNumber")
+	data.KktRegNumber, err = receipts.ReadInt64(query, "regNumber")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.Sum, err = utils.ReceiptFloat64(query, "sum")
+	data.Sum, err = receipts.ReadFloat64(query, "sum")
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"receipt_qr_scanner/utils"
+	"receipt_qr_scanner/receipts"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog/log"
@@ -14,12 +14,8 @@ var ErrReceiptItemsNotReady = merry.New("receipt items not ready")
 
 type Client struct{}
 
-func (c *Client) LoadSession() error {
-	return nil
-}
-
-func (c *Client) FetchReceipt(iRef utils.ReceiptRef, onIsCorrect func() error) (utils.FetchReceiptResult, error) {
-	res := utils.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
+func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error) (receipts.FetchReceiptResult, error) {
+	res := receipts.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
 
 	var ref ReceiptRef
 	switch r := iRef.(type) {
@@ -28,7 +24,7 @@ func (c *Client) FetchReceipt(iRef utils.ReceiptRef, onIsCorrect func() error) (
 	case *ReceiptRef:
 		ref = *r
 	default:
-		return res, merry.Errorf("ru-fns: unexpected receipt ref %#T %s", iRef, iRef.String())
+		return res, merry.Errorf("%s: unexpected receipt ref %#T %s", Domain.Code, iRef, iRef.String())
 	}
 
 	req, err := http.NewRequest("GET", ref.RefText(), nil)
@@ -46,19 +42,22 @@ func (c *Client) FetchReceipt(iRef utils.ReceiptRef, onIsCorrect func() error) (
 	}
 	defer resp.Body.Close()
 
-	log.Debug().Int("code", resp.StatusCode).Str("status", resp.Status).Str("path", req.URL.Path).Str("data", string(buf)).Msg("kg-gns: response")
+	log.Debug().
+		Int("code", resp.StatusCode).Str("status", resp.Status).
+		Str("path", req.URL.Path).Str("data", string(buf)).
+		Msgf("%s: response", Domain.Code)
 
 	if resp.Status != "200 OK" {
 		if resp.StatusCode == 404 {
 			res.ShouldDecreaseRetries = true //либо чек некорректен, либо касса была в оффлайне
 		}
-		return res, utils.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
+		return res, receipts.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
 	}
 
 	var items struct{ Items []json.RawMessage }
 	if err := json.Unmarshal(buf, &items); err != nil {
 		res.ShouldDecreaseRetries = true
-		return res, utils.ErrResponseDataMalformed.Here().Append(string(buf))
+		return res, receipts.ErrResponseDataMalformed.Here().Append(string(buf))
 	}
 	if len(items.Items) == 0 {
 		res.ShouldDecreaseRetries = true //

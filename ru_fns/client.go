@@ -1,7 +1,7 @@
 package ru_fns
 
 import (
-	"receipt_qr_scanner/utils"
+	"receipt_qr_scanner/receipts"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -12,7 +12,12 @@ type Client struct {
 	session *Session
 }
 
-func (c *Client) InitSession(refreshToken, clientSecret string) error {
+func (c *Client) InitSession(args ...string) error {
+	if len(args) != 2 {
+		return merry.Errorf("exactly two arguments (refreshToken and clientSecret) are required for session init, got %d", len(args))
+	}
+	refreshToken := args[0]
+	clientSecret := args[1]
 	session, err := initSession(refreshToken, clientSecret)
 	if err != nil {
 		return merry.Wrap(err)
@@ -40,7 +45,7 @@ func (c *Client) LoadSession() error {
 	}
 	for i := 2; i >= 0; i-- {
 		if err := updateSessionAndPrintProfile(); err != nil {
-			if i > 0 && !merry.Is(err, utils.ErrUnexpectedHttpStatus) {
+			if i > 0 && !merry.Is(err, receipts.ErrUnexpectedHttpStatus) {
 				log.Warn().Err(err).Int("retries_left", i).Msg("ru-fns: can not get profile")
 				time.Sleep(3 * time.Second)
 				continue
@@ -54,8 +59,8 @@ func (c *Client) LoadSession() error {
 	return nil
 }
 
-func (c *Client) FetchReceipt(iRef utils.ReceiptRef, onIsCorrect func() error) (utils.FetchReceiptResult, error) {
-	res := utils.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
+func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error) (receipts.FetchReceiptResult, error) {
+	res := receipts.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
 
 	if c.session == nil {
 		return res, merry.New("ru-fns: session is not ready")

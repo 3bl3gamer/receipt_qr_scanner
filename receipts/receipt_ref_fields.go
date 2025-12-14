@@ -1,4 +1,4 @@
-package utils
+package receipts
 
 import (
 	"net/url"
@@ -28,15 +28,15 @@ func (e ReceiptRefFieldErr) Error() string {
 	return s
 }
 
-func ReceiptString(values url.Values, name string) (string, error) {
+func ReadString(values url.Values, name string) (string, error) {
 	if _, ok := values[name]; !ok {
 		return "", ReceiptRefFieldErr{Name: name, ValueStr: "", IsMissing: true}
 	}
 	return values.Get(name), nil
 }
 
-func ReceiptInt64(values url.Values, name string) (int64, error) {
-	valueStr, jsonErr := ReceiptString(values, name)
+func ReadInt64(values url.Values, name string) (int64, error) {
+	valueStr, jsonErr := ReadString(values, name)
 	if jsonErr != nil {
 		return 0, jsonErr
 	}
@@ -47,8 +47,8 @@ func ReceiptInt64(values url.Values, name string) (int64, error) {
 	return value, nil
 }
 
-func ReceiptFloat64(values url.Values, name string) (float64, error) {
-	valueStr, jsonErr := ReceiptString(values, name)
+func ReadFloat64(values url.Values, name string) (float64, error) {
+	valueStr, jsonErr := ReadString(values, name)
 	if jsonErr != nil {
 		return 0, jsonErr
 	}
@@ -59,8 +59,8 @@ func ReceiptFloat64(values url.Values, name string) (float64, error) {
 	return value, nil
 }
 
-func ReceiptTime(values url.Values, name string) (time.Time, error) {
-	valueStr, jsonErr := ReceiptString(values, name)
+func ReadTime(values url.Values, name string) (time.Time, error) {
+	valueStr, jsonErr := ReadString(values, name)
 	if jsonErr != nil {
 		return time.Time{}, jsonErr
 	}

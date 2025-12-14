@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"receipt_qr_scanner/receipts"
 	"receipt_qr_scanner/utils"
 	"strings"
 	"time"
@@ -58,7 +59,7 @@ func readSession(session *Session) error {
 	}
 	file, err := os.Open(configDir + "/ru_fns_session.json")
 	if os.IsNotExist(err) {
-		return utils.ErrSessionNotFound.Here()
+		return receipts.ErrSessionNotFound.Here()
 	}
 	if err != nil {
 		return merry.Wrap(err)

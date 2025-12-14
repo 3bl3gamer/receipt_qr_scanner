@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"receipt_qr_scanner/utils"
+	"receipt_qr_scanner/receipts"
 	"strconv"
 
 	"github.com/ansel1/merry"
@@ -136,7 +136,7 @@ func sendRequestAndRead(req *http.Request) ([]byte, error) {
 	}
 
 	if resp.Status != "200 OK" {
-		return nil, utils.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
+		return nil, receipts.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
 	}
 	return buf, nil
 }

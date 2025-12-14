@@ -1,20 +1,22 @@
-package utils
+package receipts
 
 import (
+	"errors"
 	"time"
-
-	"github.com/ansel1/merry"
 )
 
-var ErrSessionNotFound = merry.New("session not found")
-var ErrUnexpectedHttpStatus = merry.New("unexpected HTTP status")
-var ErrResponseDataMalformed = merry.New("response data malformed")
+type Domain struct {
+	Code            string
+	CurrencySymbol  string
+	FlagSymbol      string
+	ParseReceiptRef func(refText string) (ReceiptRef, error)
+	MakeClient      func() Client
+}
 
 type ReceiptRef interface {
 	String() string
-	Domain() string
+	Domain() Domain
 	RefText() string
-	ValidateFormat() error
 	UniqueKey() string
 	CreatedAt() (time.Time, error)
 	SearchKeyItems() ([]string, error)
@@ -34,12 +36,14 @@ type Receipt struct {
 	NextRetryAt time.Time `json:"nextRetryAt"`
 }
 
-type FetchReceiptResult struct {
-	ShouldDecreaseRetries bool
-	Data                  []byte
-}
-
-type Client interface {
-	LoadSession() error
-	FetchReceipt(ref ReceiptRef, onIsCorrect func() error) (FetchReceiptResult, error)
+func ReceiptRefFromText(domains []Domain, refText string) (ReceiptRef, error) {
+	var errs []error
+	for _, d := range domains {
+		ref, err := d.ParseReceiptRef(refText)
+		if err == nil {
+			return ref, nil
+		}
+		errs = append(errs, err)
+	}
+	return nil, errors.Join(errs...)
 }
