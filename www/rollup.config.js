@@ -8,13 +8,19 @@ export default async function (commandOptions) {
 	const isProd = process.env.NODE_ENV === 'production'
 	return [
 		{
-			input: 'src/index.js',
+			input: 'src/index.jsx',
 			output: {
 				format: 'esm',
 				dir: 'dist',
 				entryFileNames: isProd ? 'bundle.[hash].js' : 'bundle.js',
 				assetFileNames: isProd ? '[name].[hash][extname]' : '[name][extname]',
 				sourcemap: true,
+			},
+			jsx: {
+				mode: 'classic',
+				factory: 'h',
+				fragment: 'Fragment',
+				importSource: 'preact',
 			},
 			plugins: [
 				css({ name: 'bundle.css' }),
@@ -35,8 +41,19 @@ export default async function (commandOptions) {
 						livereload({ verbose: true, watch: 'dist/bundle.js' }),
 					)),
 				commonjs({}),
-				nodeResolve({ mainFields: (isProd ? [] : ['source']).concat(['module', 'main']) }),
-				typescript(),
+				nodeResolve({
+					mainFields: (isProd ? [] : ['source']).concat(['module', 'main']),
+					extensions: ['.js', '.jsx', '.ts', '.tsx'],
+				}),
+				typescript({
+					tsconfig: 'tsconfig.json',
+					include: ['src/**/*'],
+					exclude: ['src/vendor/**/*'],
+				}),
+				typescript({
+					tsconfig: false,
+					include: ['src/vendor/**/*'],
+				}),
 				copy({
 					targets: [
 						{ src: 'src/icon-256.png', dest: 'dist' },

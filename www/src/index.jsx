@@ -1,6 +1,6 @@
 import './errors'
-import { setupReceiptViewComponent } from './comp_receipt_view'
-import { setupReceiptListComponent } from './comp_receipt_list'
+import { render } from 'preact'
+import { ReceiptListPanel } from './components/ReceiptList'
 import { setupScannerComponent } from './comp_scanner'
 
 import './index.css'
@@ -14,5 +14,5 @@ if ('serviceWorker' in navigator) {
 }
 
 setupScannerComponent()
-setupReceiptListComponent()
-setupReceiptViewComponent()
+
+render(<ReceiptListPanel />, document.body)

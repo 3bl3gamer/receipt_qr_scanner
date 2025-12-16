@@ -293,6 +293,8 @@ export function parseKgGnsRefText(refText) {
  * }} CommonReceiptData
  */
 
+/** @typedef {Exclude<ReturnType<typeof getReceiptDataFrom>, null>} FullReceiptData */
+
 /** @param {Receipt} rec */
 export function getReceiptDataFrom(rec) {
 	if (!rec.data) return null
@@ -461,50 +463,9 @@ export function makeKgGnsReceiptTitle(locationName) {
 }
 
 /**
- * @param {string|undefined} text
- * @param {string} substr
- * @param {number} [maxFirstOffset]
- * @param {number} [maxTotalLen]
- * @returns {DocumentFragment|null}
+ * @param {unknown} err
+ * @returns {boolean}
  */
-export function highlightedIfFound(text, substr, maxFirstOffset, maxTotalLen) {
-	if (!text || substr.length == 0) return null
-	let textLC = text.toLowerCase()
-	substr = substr.toLowerCase()
-
-	const res = createFragment()
-	let prevEnd = 0
-	while (true) {
-		const isFirstIter = prevEnd === 0
-		let index = textLC.indexOf(substr, prevEnd) //не совсем правильно, но для русских и английских символов должно работать
-		if (isFirstIter && index === -1) return null
-		if (index === -1) index = text.length
-
-		if (prevEnd === 0 && maxFirstOffset !== undefined && index > maxFirstOffset) {
-			const offset = index - Math.ceil(maxFirstOffset * 0.8)
-			text = '…' + text.slice(offset)
-			textLC = '…' + textLC.slice(offset)
-			index = index - offset + '…'.length
-		}
-
-		if (maxTotalLen !== undefined && index > maxTotalLen) {
-			res.appendChild(document.createTextNode(text.slice(prevEnd, maxTotalLen) + '…'))
-			break
-		}
-		res.appendChild(document.createTextNode(text.slice(prevEnd, index)))
-		if (index === text.length) break
-
-		res.appendChild(createElem('span', 'highlight', text.slice(index, index + substr.length)))
-		prevEnd = index + substr.length
-	}
-	return res
-}
-
-/** @param {number} summ */
-export function dimKops(summ) {
-	const [int, fract] = summ.toFixed(2).split('.')
-	const frag = createFragment()
-	frag.appendChild(document.createTextNode(int))
-	frag.appendChild(createElem('span', 'kopeks', '.' + fract))
-	return frag
+export function isAbortError(err) {
+	return err instanceof Error && err.name === 'AbortError'
 }

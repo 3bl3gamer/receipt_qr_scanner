@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"checkJs": true,
+		"noEmit": true,
+
+		"jsx": "react-jsx",
+		"jsxImportSource": "preact",
+		"module": "ESNext",
+		"target": "esnext",
+		"lib": ["ESNext", "DOM"],
+		"moduleResolution": "bundler",
+
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictBindCallApply": true,
+		"strictPropertyInitialization": true,
+		"noImplicitThis": true,
+		"noImplicitAny": true,
+
+		"baseUrl": "src"
+	},
+	"exclude": ["node_modules", "dist", "src/vendor"],
+}

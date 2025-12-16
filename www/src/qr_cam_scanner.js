@@ -277,14 +277,14 @@ export function QRCamScanner(wrap, handleDecodedQR) {
 
 	/** @param {import('./vendor/jsQR/src/BitMatrix').BitMatrix} bitMatrix */
 	function bitMatrixData(bitMatrix) {
-		// @ts-ignore
+		// @ts-expect-error читаем приватное поле
 		return bitMatrix.data
 	}
 
 	// ---
 
 	this.scanFrameCanvasData = scanFrameCanvasData
-	this.toggleDebug = (/**@type {boolean}*/ debug_) => {
+	this.toggleDebug = (/**@type {boolean|void}*/ debug_) => {
 		debug = debug_ === undefined ? !debug : debug_
 	}
 
@@ -310,7 +310,7 @@ export function QRCamScanner(wrap, handleDecodedQR) {
  * @param {import('./vendor/jsQR/src/BitMatrix').BitMatrix} image
  * @param {import('./vendor/jsQR/src/locator').QRLocation} location
  */
-export function extractWithArea(image, location) {
+function extractWithArea(image, location) {
 	const qToS = quadrilateralToSquare(
 		{ x: 3.5, y: 3.5 },
 		{ x: location.dimension - 3.5, y: 3.5 },

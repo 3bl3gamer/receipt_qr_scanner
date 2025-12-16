@@ -7,12 +7,14 @@
 		<link rel="stylesheet" href="{{.StylesFPath}}" />
 	</head>
 	<body>
+		<div class="DUMMY TODO"></div>
 		<div class="receipt-info-box-wrap"></div>
 		<div class="video-wrap"></div>
 		<button class="debug-mode-image"><img src="developer_mode_icon.svg" /></button>
 		<button class="open-image"><img src="image_icon.svg" /></button>
 
-		<div class="receipt-side-panel hidden">
+		<!-- UNUSED -->
+		<div class="receipt-side-panel hidden" style="display:none">
 			<div class="receipt-filter-wrap">
 				<button class="receipt-side-panel-collapse-btn">&gt;&gt;</button>
 				<form class="receipt-filter-form">
@@ -35,6 +37,7 @@
 
 		<script src="{{.BundleFPath}}"></script>
 
+		<!-- UNUSED (now in JSX: ReceiptList.jsx) -->
 		<div class="template receipt-list-item">
 			<div class="title">
 				<div class="value"></div>
@@ -55,6 +58,7 @@
 			<div class="searched_details"></div>
 		</div>
 
+		<!-- UNUSED (now in JSX: ReceiptView.jsx) -->
 		<div class="template receipt-view">
 			<h1 class="title"></h1>
 			<div class="receipt-items"></div>
@@ -120,6 +124,7 @@
 			<h3>Значение для поиска</h3>
 			<pre class="receipt-seach-key"></pre>
 		</div>
+		<!-- UNUSED (now in JSX: ReceiptView.jsx) -->
 		<div class="template receipt-item">
 			<div class="name"></div>
 			<div class="price">
