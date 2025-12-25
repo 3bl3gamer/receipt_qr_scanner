@@ -1,10 +1,11 @@
-import { describe, it } from 'mocha'
-import { assert as test } from 'chai'
-import { makeKgGnsReceiptTitle, makeRuFnsReceiptTitle, searchBinary } from './utils.js'
+import { describe, it } from 'node:test'
+import test from 'node:assert/strict'
+// @ts-expect-error нужно бы добавить allowImportingTsExtensions, но он ломает билд
+import { makeKgGnsReceiptTitle, makeRuFnsReceiptTitle, searchBinary } from './utils.ts'
 
 describe('searchBinary', () => {
 	it('should return element index and status', () => {
-		const t = /**@type {const}*/ ([
+		const t = [
 			[[], 0, 0, false],
 			[[1], 0, 0, false],
 			[[1], 1, 0, true],
@@ -13,7 +14,7 @@ describe('searchBinary', () => {
 			[[1, 2], 1, 0, true],
 			[[1, 2], 2, 1, true],
 			[[1, 2], 3, 2, false],
-		])
+		] as const
 		for (const [arr, elem, index, exists] of t) {
 			test.strictEqual(searchBinary(arr, elem, (a, b) => a - b)[0], index, `index: ${arr} ${elem}`)
 			test.strictEqual(searchBinary(arr, elem, (a, b) => a - b)[1], exists, `exists: ${arr} ${elem}`)
@@ -22,8 +23,7 @@ describe('searchBinary', () => {
 })
 
 describe('makeReceiptTitle', () => {
-	/** @param {*} dest @param {*} data */
-	function check(dest, data) {
+	function check(dest: unknown, data: Record<string, unknown> | null) {
 		test.strictEqual(makeRuFnsReceiptTitle(data), dest)
 	}
 
@@ -76,7 +76,7 @@ describe('makeReceiptTitle', () => {
 
 describe('makeKgGnsReceiptTitle', () => {
 	/** @param {*} dest @param {*} data */
-	function check(dest, data) {
+	function check(dest: unknown, data: string) {
 		test.strictEqual(makeKgGnsReceiptTitle(data), dest)
 	}
 

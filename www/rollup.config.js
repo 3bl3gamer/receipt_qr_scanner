@@ -1,6 +1,6 @@
 import nodeResolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
-import typescript from '@rollup/plugin-typescript'
+import typescript from 'rollup-plugin-typescript2'
 import replace from '@rollup/plugin-replace'
 import copy from 'rollup-plugin-copy'
 
@@ -8,7 +8,7 @@ export default async function (commandOptions) {
 	const isProd = process.env.NODE_ENV === 'production'
 	return [
 		{
-			input: 'src/index.jsx',
+			input: 'src/index.tsx',
 			output: {
 				format: 'esm',
 				dir: 'dist',
@@ -24,10 +24,6 @@ export default async function (commandOptions) {
 			},
 			plugins: [
 				css({ name: 'bundle.css' }),
-				replace({
-					'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
-					preventAssignment: true,
-				}),
 				!isProd &&
 					(await import('rollup-plugin-serve').then(({ default: serve }) =>
 						serve({
@@ -46,13 +42,16 @@ export default async function (commandOptions) {
 					extensions: ['.js', '.jsx', '.ts', '.tsx'],
 				}),
 				typescript({
-					tsconfig: 'tsconfig.json',
-					include: ['src/**/*'],
 					exclude: ['src/vendor/**/*'],
 				}),
 				typescript({
-					tsconfig: false,
+					check: false,
 					include: ['src/vendor/**/*'],
+				}),
+				replace({
+					// должно идти после typescript(), иначе он будет ругаться на "production" === "development"
+					'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
+					preventAssignment: true,
 				}),
 				copy({
 					targets: [

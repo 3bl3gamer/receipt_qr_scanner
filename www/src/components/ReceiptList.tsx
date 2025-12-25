@@ -48,7 +48,7 @@ export function ReceiptListPanel() {
 
 	return (
 		<>
-			<div class={`receipt-side-panel${isPanelHidden ? ' hidden' : ''}`} onClick={onPanelClick}>
+			<div class={`receipt-side-panel${isPanelHidden ? ' hidden' : ''}`} onClickCapture={onPanelClick}>
 				<div class="receipt-filter-wrap">
 					<button class="receipt-side-panel-collapse-btn">&gt;&gt;</button>
 					<ReceiptFilterForm
@@ -179,7 +179,7 @@ function ReceiptList({
 					key={receipt.id}
 					receipt={receipt}
 					searchQuery={searchQuery}
-					onClick={() => onItemClick(receipt)}
+					onClick={onItemClick}
 					isNew={index === 0 && shouldTriggerTopReceiptAnimation}
 				/>
 			))}
@@ -198,7 +198,7 @@ function ReceiptListItem({
 }: {
 	receipt: Receipt
 	searchQuery: string
-	onClick: () => void
+	onClick: (receipt: Receipt) => void
 	isNew: boolean
 }) {
 	const itemRef = useRef<HTMLDivElement | null>(null)
@@ -220,8 +220,12 @@ function ReceiptListItem({
 	if (data) classes.push('filled')
 	if (!receipt.isCorrect && receipt.retriesLeft === 0) classes.push('failed')
 
+	const onClickInner = useCallback(() => {
+		onClick(receipt)
+	}, [onClick, receipt])
+
 	return (
-		<div ref={itemRef} class={classes.join(' ')} onClick={onClick}>
+		<div ref={itemRef} class={classes.join(' ')} onClick={onClickInner}>
 			<div class="title">
 				<div class="value">
 					<HighlightedText text={data?.common.title} searchQuery={searchQuery} />

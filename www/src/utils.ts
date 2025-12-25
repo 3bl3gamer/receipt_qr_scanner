@@ -1,145 +1,102 @@
-/**
- * @typedef {{
- *   id: number,
- *   domain: string,
- *   savedAt: string,
- *   updatedAt: string,
- *   createdAt: string,
- *   refText: string,
- *   isCorrect: boolean,
- *   data: string,
- *   searchKey: string,
- *   retriesLeft: number,
- *   nextRetryAt: string,
- * }} Receipt
- */
+export type Receipt = {
+	id: number
+	domain: string
+	savedAt: string
+	updatedAt: string
+	createdAt: string
+	refText: string
+	isCorrect: boolean
+	data: string
+	searchKey: string
+	retriesLeft: number
+	nextRetryAt: string
+}
 
-/** @param {unknown} err */
-export function onError(err) {
+export function onError(err: unknown): void {
 	// eslint-disable-next-line no-console
 	console.error(err)
 }
 
-/**
- * @template T
- * @param {T|null} val
- * @returns {T}
- */
-export function mustBeNotNull(val) {
+export function mustBeNotNull<T>(val: T | null): T {
 	if (val === null) throw new Error('must not be null')
 	return val
 }
 
-/**
- * @template T
- * @param {T|undefined} val
- * @returns {T}
- */
-export function mustBeDefined(val) {
+export function mustBeDefined<T>(val: T | undefined): T {
 	if (val === undefined) throw new Error('must not be undefined')
 	return val
 }
 
-/**
- * @template {{new (...args: any): any}[]} T
- * @param {any} obj
- * @param {T} classes
- * @returns {InstanceType<T[number]>}
- */
-export function mustBeInstanceOf(obj, ...classes) {
+export function mustBeInstanceOf<T extends Array<new (...args: unknown[]) => unknown>>(
+	obj: unknown,
+	...classes: T
+): InstanceType<T[number]> {
 	for (const class_ of classes) {
-		if (obj instanceof class_) return obj
+		if (obj instanceof class_) return obj as InstanceType<T[number]>
 	}
 	throw new Error(`object is ${obj}, expected ${classes.map(x => x.name).join('|')}`)
 }
 
-/**
- * @template {{new (...args: any): any}} T
- * @param {ParentNode} parent
- * @param {string} selector
- * @param {T} class_
- * @returns {InstanceType<T>|null}
- */
-export function $inOpt(parent, selector, class_) {
+export function $inOpt<T extends new (...args: unknown[]) => unknown>(
+	parent: ParentNode,
+	selector: string,
+	class_: T,
+): InstanceType<T> | null {
 	const elem = parent.querySelector(selector)
 	return mustBeInstanceOf(elem, class_)
 }
 
-/**
- * @template {{new (...args: any): any}} T
- * @param {ParentNode} parent
- * @param {string} selector
- * @param {T} class_
- * @returns {InstanceType<T>}
- */
-export function $in(parent, selector, class_) {
+export function $in<T extends new (...args: unknown[]) => unknown>(
+	parent: ParentNode,
+	selector: string,
+	class_: T,
+): InstanceType<T> {
 	const elem = $inOpt(parent, selector, class_)
 	if (elem === null) throw new Error(`elem not found in ${parent} by '${selector}'`)
 	return elem
 }
 
-/**
- * @param {ParentNode} parent
- * @param {string} selector
- */
-export function $removeIn(parent, selector) {
+export function $removeIn(parent: ParentNode, selector: string): void {
 	const elems = parent.querySelectorAll(selector)
 	for (let i = 0; i < elems.length; i++) elems[i].remove()
 }
 
-/**
- * @template {{new (...args: any): any}} T
- * @param {string} selector
- * @param {T} class_
- * @returns {InstanceType<T>}
- */
-export function $template(selector, class_) {
+export function $template<T extends new (...args: unknown[]) => Element>(
+	selector: string,
+	class_: T,
+): InstanceType<T> {
 	const elem = cloneNodeDeep($(selector, class_))
 	elem.classList.remove('template')
 	return elem
 }
 
-/**
- * @param {ParentNode} parent
- * @param {string} selector
- * @param {Node} child
- */
-export function $child(parent, selector, child) {
+export function $child(parent: ParentNode, selector: string, child: Node): void {
 	const elem = $in(parent, selector, Element)
 	elem.innerHTML = ''
 	elem.appendChild(child)
 }
 
-/**
- * @template {{new (...args: any): any}} T
- * @param {string} selector
- * @param {T} class_
- * @returns {InstanceType<T>|null}
- */
-export function $opt(selector, class_) {
+export function $opt<T extends new (...args: unknown[]) => unknown>(
+	selector: string,
+	class_: T,
+): InstanceType<T> | null {
 	return $inOpt(document, selector, class_)
 }
 
-/**
- * @template {{new (...args: any): any}} T
- * @param {string} selector
- * @param {T} class_
- * @returns {InstanceType<T>}
- */
-export function $(selector, class_) {
+export function $<T extends new (...args: unknown[]) => unknown>(
+	selector: string,
+	class_: T,
+): InstanceType<T> {
 	const elem = $opt(selector, class_)
 	if (elem === null) throw new Error(`elem not found by '${selector}'`)
 	return elem
 }
 
-/**
- * @template {keyof HTMLElementTagNameMap} K
- * @param {K} tagName
- * @param {string|null|undefined} [className]
- * @param {string|Node|null|undefined} [child]
- * @returns {HTMLElementTagNameMap[K]}
- */
-export function createElem(tagName, className, child) {
+export function createElem<K extends keyof HTMLElementTagNameMap>(
+	tagName: K,
+	className?: string | null,
+	child?: string | Node | null,
+): HTMLElementTagNameMap[K] {
 	const el = document.createElement(tagName)
 	if (className) el.className = className
 	if (typeof child === 'string') {
@@ -150,11 +107,7 @@ export function createElem(tagName, className, child) {
 	return el
 }
 
-/**
- * @param {string|Node|null|undefined} [child]
- * @returns {DocumentFragment}
- */
-export function createFragment(child) {
+export function createFragment(child?: string | Node | null): DocumentFragment {
 	const frag = document.createDocumentFragment()
 	if (typeof child === 'string') {
 		frag.appendChild(document.createTextNode(child))
@@ -164,27 +117,19 @@ export function createFragment(child) {
 	return frag
 }
 
-/**
- * @template {Node} T
- * @param {T} node
- * @returns {T}
- */
-export function cloneNodeDeep(node) {
-	return /** @type {T} */ (node.cloneNode(true))
+export function cloneNodeDeep<T extends Node>(node: T): T {
+	return node.cloneNode(true) as T
 }
 
-/**
- * @template T
- * @param {readonly T[]} arr
- * @param {T} elem
- * @param {(a: T, b: T) => number} sortFunc
- * @returns {[number,boolean]}
- */
-export function searchBinary(arr, elem, sortFunc) {
+export function searchBinary<T>(
+	arr: readonly T[],
+	elem: T,
+	sortFunc: (a: T, b: T) => number,
+): [number, boolean] {
 	let startI = 0
 	let endI = arr.length
 	while (startI < endI) {
-		let midI = Math.floor((startI + endI) / 2)
+		const midI = Math.floor((startI + endI) / 2)
 		const cmp = sortFunc(elem, arr[midI])
 		if (cmp < 0) {
 			endI = midI
@@ -197,13 +142,11 @@ export function searchBinary(arr, elem, sortFunc) {
 	return [startI, false]
 }
 
-/** @param {number} num */
-function pad00(num) {
+function pad00(num: number): string {
 	return num < 10 ? '0' + num : '' + num
 }
 
-/** @param {string} str */
-export function dateStrAsYMDHM(str) {
+export function dateStrAsYMDHM(str: string): string {
 	const date = new Date(str)
 	const y = date.getFullYear()
 	const m = pad00(date.getMonth() + 1)
@@ -218,26 +161,21 @@ export const DOMAIN_CURRENCY_SYMBOLS = new Map([
 	['kg-gns', 'с'],
 ])
 
-/** @param {string} refText */
-export function guessDomain(refText) {
+export function guessDomain(refText: string): string {
 	if (refText.match(/^https?:\/\/[^/]+\.kg\//)) {
 		return 'kg-gns'
 	}
 	return 'ru-fns'
 }
-/**
- * @param {string|null} domain
- * @param {string} refText
- */
-export function parseRefText(domain, refText) {
+
+export function parseRefText(domain: string | null, refText: string): Record<string, string | null> | null {
 	if (!domain) domain = guessDomain(refText)
 	if (domain === 'ru-fns') return parseRuFnsRefText(refText)
 	if (domain === 'kg-gns') return parseKgGnsRefText(refText)
 	return null
 }
 
-/** @param {string} refText */
-export function parseRuFnsRefText(refText) {
+export function parseRuFnsRefText(refText: string): Record<string, string | null> {
 	const params = new URLSearchParams(refText)
 	return {
 		fiscalNum: params.get('fn'),
@@ -249,9 +187,8 @@ export function parseRuFnsRefText(refText) {
 	}
 }
 
-/** @param {string} refText */
-export function parseKgGnsRefText(refText) {
-	let url
+export function parseKgGnsRefText(refText: string): Record<string, string | null> | null {
+	let url: URL
 	try {
 		url = new URL(refText)
 	} catch (ex) {
@@ -272,38 +209,35 @@ export function parseKgGnsRefText(refText) {
 	}
 }
 
-/**
- * @typedef {{
- *   title: string,
- *   flag: string,
- *   totalSum: number | undefined,
- *   itemsCount: number | undefined,
- *   placeName: string | undefined,
- *   orgInn: string | undefined,
- *   address: string | undefined,
- *   cashierName: string | undefined,
- *   shiftNumber: number | undefined,
- *   taxOrgUrl: string | undefined,
- *   items: {
- *     name: string | undefined,
- *     quantity: number | undefined,
- *     price: number | undefined,
- *     sum: number | undefined,
- *   }[]
- * }} CommonReceiptData
- */
+export interface CommonReceiptData {
+	title: string
+	flag: string
+	totalSum: number | undefined
+	itemsCount: number | undefined
+	placeName: string | undefined
+	orgInn: string | undefined
+	address: string | undefined
+	cashierName: string | undefined
+	shiftNumber: number | undefined
+	taxOrgUrl: string | undefined
+	items: {
+		name: string | undefined
+		quantity: number | undefined
+		price: number | undefined
+		sum: number | undefined
+	}[]
+}
 
-/** @typedef {Exclude<ReturnType<typeof getReceiptDataFrom>, null>} FullReceiptData */
+export type FullReceiptData = Exclude<ReturnType<typeof getReceiptDataFrom>, null>
 
-/** @param {Receipt} rec */
-export function getReceiptDataFrom(rec) {
+export function getReceiptDataFrom(rec: Receipt) {
 	if (!rec.data) return null
 	if (rec.domain === 'ru-fns') return getRuFnsReceiptDataFrom(rec)
 	if (rec.domain === 'kg-gns') return getKgGnsReceiptDataFrom(rec)
 	return null
 }
-/** @param {Receipt} rec */
-function getRuFnsReceiptDataFrom(rec) {
+
+function getRuFnsReceiptDataFrom(rec: Receipt) {
 	const data = JSON.parse(rec.data)
 	const receipt =
 		'ticket' in data
@@ -311,7 +245,6 @@ function getRuFnsReceiptDataFrom(rec) {
 			: data.document.receipt //FNS API version 1
 	const refData = parseRuFnsRefText(rec.refText)
 	return {
-		/** @type {CommonReceiptData} */
 		common: {
 			title: makeRuFnsReceiptTitle(receipt) ?? '—',
 			flag: '🇷🇺',
@@ -323,13 +256,14 @@ function getRuFnsReceiptDataFrom(rec) {
 			cashierName: receipt.operator,
 			shiftNumber: receipt.shiftNumber,
 			taxOrgUrl: receipt.fnsUrl,
-			items: /**@type {any[]}*/ (receipt.items).map(x => ({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			items: (receipt.items as any[]).map(x => ({
 				name: x.name,
 				quantity: x.quantity,
 				price: x.price / 100,
 				sum: x.sum / 100,
 			})),
-		},
+		} as CommonReceiptData,
 		ruFns: {
 			kktRegId: receipt.kktRegId,
 			fiscalDriveNumber: receipt.fiscalDriveNumber ?? refData.fiscalNum,
@@ -342,12 +276,11 @@ function getRuFnsReceiptDataFrom(rec) {
 		raw: data,
 	}
 }
-/** @param {Receipt} rec */
-function getKgGnsReceiptDataFrom(rec) {
+
+function getKgGnsReceiptDataFrom(rec: Receipt) {
 	const data = JSON.parse(rec.data)
 	const refData = parseKgGnsRefText(rec.refText)
 	return {
-		/** @type {CommonReceiptData} */
 		common: {
 			title: makeKgGnsReceiptTitle(data.crData.locationName),
 			flag: '🇰🇬',
@@ -359,13 +292,14 @@ function getKgGnsReceiptDataFrom(rec) {
 			cashierName: data.crData.cashierName,
 			shiftNumber: data.crData.shiftNumber,
 			taxOrgUrl: kgGnsUrl(rec.refText),
-			items: /**@type {any[]}*/ (data.items).map(x => ({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			items: (data.items as any[]).map(x => ({
 				name: x.goodName,
 				quantity: x.goodQuantity,
 				price: x.goodPrice / 100,
 				sum: x.goodCost / 100,
 			})),
-		},
+		} as CommonReceiptData,
 		kgGns: {
 			// https://www.sti.gov.kg/docs/default-source/kkm/form_fd.pdf
 			kktRegNumber: data.crRegisterNumber ?? refData?.kktRegNumber, //РН ККМ, регистрационный номер ККМ
@@ -376,19 +310,16 @@ function getKgGnsReceiptDataFrom(rec) {
 		raw: data,
 	}
 }
-/** @param {string} refText */
-function kgGnsUrl(refText) {
+
+function kgGnsUrl(refText: string): string | undefined {
 	const m = refText.match(/^https?:\/\/([^/]+)/)
 	return m ? m[1] : undefined
 }
 
-/**
- * @param {Record<string, any>|null} recData
- * @returns {string|null}
- */
-export function makeRuFnsReceiptTitle(recData) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function makeRuFnsReceiptTitle(recData: Record<string, any> | null): string | null {
 	if (recData !== null) {
-		let t
+		let t: string | undefined
 		let placeName = ''
 		let placeFullName = ''
 		if (recData.retailPlace) {
@@ -430,31 +361,26 @@ export function makeRuFnsReceiptTitle(recData) {
 	}
 	return null
 
-	/** @param {string} name */
-	function isLikePersonName(name) {
+	function isLikePersonName(name: string): boolean {
 		name = name.trim().replace(/^(ип|индивидуальный предприниматель)\s+/i, '')
 		return /^[а-яёА-ЯЁ\s]*$/.test(name) && name.split(/\s+/).length === 3
 	}
 
-	/** @param {string} name */
-	function chooseLongestURL(name) {
+	function chooseLongestURL(name: string): string {
 		const items = name.split(';')
 		if (items.length === 1 || !items.every(x => /^\s*https?:\/\//.test(x))) return name
 		return items.sort((a, b) => b.length - a.length)[0]
 	}
 }
-/** @type {Record<string, string|undefined>} */
-const RECEIPT_NAME_EXCEPTIONS = {
+
+const RECEIPT_NAME_EXCEPTIONS: Record<string, string | undefined> = {
 	'Магазин "Читай-Город"': 'Читай-Город',
 	'Магазин упаковки': 'Магазин упаковки',
 	'МОБИЛЬНЫЕ ТЕЛЕСИСТЕМЫ': 'МТС',
 	'dom.ru': 'dom.ru',
 }
 
-/**
- * @param {string} locationName
- */
-export function makeKgGnsReceiptTitle(locationName) {
+export function makeKgGnsReceiptTitle(locationName: string): string {
 	return locationName
 		.replace(/^осоо(?=\W)/i, '')
 		.replace(/^магазин\s/i, '')
@@ -462,10 +388,6 @@ export function makeKgGnsReceiptTitle(locationName) {
 		.trim()
 }
 
-/**
- * @param {unknown} err
- * @returns {boolean}
- */
-export function isAbortError(err) {
+export function isAbortError(err: unknown): boolean {
 	return err instanceof Error && err.name === 'AbortError'
 }

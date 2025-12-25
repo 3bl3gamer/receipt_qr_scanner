@@ -28,12 +28,11 @@ td[title] {
 	flex-direction: column-reverse;
 	top: 0;
 	z-index: 1;
-	max-height: 55px;
 }
 
 .receipt-info-box {
 	height: 25px;
-	padding: 3px;
+	padding: 1px 4px 0;
 	margin: 7px 0 0 0;
 	box-sizing: border-box;
 	border-radius: 4px;
@@ -41,6 +40,7 @@ td[title] {
 	box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	text-align: center;
 	opacity: 0.8;
+	overflow: hidden;
 	transition: opacity 0.8s ease, height 0.3s ease, padding 0.3s ease, background-color 0.2s ease;
 }
 
@@ -80,6 +80,7 @@ td[title] {
 	height: 100vh;
 	width: 100dvw;
 	height: 100dvh;
+	background-color: darkgray;
 }
 
 .debug-mode-image,

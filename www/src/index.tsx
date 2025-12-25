@@ -1,7 +1,7 @@
 import './errors'
 import { render } from 'preact'
 import { ReceiptListPanel } from './components/ReceiptList'
-import { setupScannerComponent } from './comp_scanner'
+import { Scanner } from './components/Scanner'
 
 import './index.css'
 
@@ -13,6 +13,10 @@ if ('serviceWorker' in navigator) {
 	}
 }
 
-setupScannerComponent()
-
-render(<ReceiptListPanel />, document.body)
+render(
+	<>
+		<Scanner />
+		<ReceiptListPanel />
+	</>,
+	document.body,
+)

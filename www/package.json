@@ -7,7 +7,7 @@
 	"scripts": {
 		"dev": "./node_modules/.bin/rollup --config rollup.config.js --watch",
 		"build": "./node_modules/.bin/rollup --config rollup.config.js --environment NODE_ENV:production",
-		"test": "mocha './src/**/*.test.js' --parallel"
+		"test": "node --test './src/**/*.test.ts'"
 	},
 	"author": "",
 	"license": "ISC",
@@ -15,7 +15,6 @@
 		"@rollup/plugin-commonjs": "^29.0.0",
 		"@rollup/plugin-node-resolve": "^16.0.3",
 		"@rollup/plugin-replace": "^6.0.3",
-		"@rollup/plugin-typescript": "^12.3.0",
 		"@types/jest": "^30.0.0",
 		"preact": "^10.28.0",
 		"rollup": "^4.53.4",
@@ -25,15 +24,14 @@
 		"typescript": "^5.9.3"
 	},
 	"devDependencies": {
-		"chai": "^6.2.1",
 		"eslint": "^9.39.2",
 		"eslint-config-preact": "^2.0.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.4",
-		"mocha": "^11.7.5",
 		"prettier": "^3.7.4",
 		"rollup-plugin-livereload": "^2.0.0",
 		"rollup-plugin-serve": "^3.0.0",
+		"rollup-plugin-typescript2": "^0.36.0",
 		"typescript-eslint": "^8.50.0"
 	}
 }
