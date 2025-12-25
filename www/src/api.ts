@@ -13,8 +13,25 @@ export type ReceiptCreationResult = {
 	sum: number
 }
 
+export type DomainMetadata = {
+	domainCode: string
+	currencySymbol: string
+	flagSymbol: string
+}
+
+export class ApiError extends Error {
+	constructor(res: ApiResponseErr) {
+		super(`${res.error}: ${res.description}`)
+	}
+}
+
 export function saveReceipt(refText: string): Promise<ApiResponse<ReceiptCreationResult>> {
 	return fetch('./api/receipt', { method: 'POST', body: refText }) //
+		.then(r => r.json())
+}
+
+export function fetchDomainsMetadata(): Promise<ApiResponse<DomainMetadata[]>> {
+	return fetch('./api/domains_metadata') //
 		.then(r => r.json())
 }
 

@@ -88,6 +88,24 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	return httputils.JsonOk{Ok: true, Result: refResponse}, nil
 }
 
+func HandleAPIDomainsMetadata(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
+	type DomainMetadata struct {
+		DomainCode     string `json:"domainCode"`
+		CurrencySymbol string `json:"currencySymbol"`
+		FlagSymbol     string `json:"flagSymbol"`
+	}
+
+	domains := make([]DomainMetadata, len(usedDomains))
+	for i, d := range usedDomains {
+		domains[i] = DomainMetadata{
+			DomainCode:     d.Code,
+			CurrencySymbol: d.CurrencySymbol,
+			FlagSymbol:     d.FlagSymbol,
+		}
+	}
+	return domains, nil
+}
+
 type ReceiptsBroadcaster struct {
 	InReceiptsChan chan *receipts.Receipt
 	clients        map[chan *receipts.Receipt]struct{}
@@ -351,6 +369,7 @@ func StartHTTPServer(db *sql.DB, env utils.Env, address string, debugTLS bool, u
 
 	// Routes
 	route("GET", "/", HandleIndex)
+	route("GET", "/api/domains_metadata", HandleAPIDomainsMetadata)
 	route("POST", "/api/receipt", HandleAPIReceipt)
 	route("GET", "/api/receipts_list", withGzip, receiptsBroadcaster.HandleAPIReceiptsList)
 

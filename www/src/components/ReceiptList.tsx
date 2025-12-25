@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'preact/hooks'
 import { useReceiptsLoader } from '../hooks/useReceiptsLoader'
-import { getReceiptDataFrom, dateStrAsYMDHM, DOMAIN_CURRENCY_SYMBOLS, Receipt } from '../utils'
+import { getReceiptDataFrom, dateStrAsYMDHM, Receipt } from '../utils'
 import { highlightedIfFound, HighlightedText } from './HighlightedText'
 import { ReceiptView } from './ReceiptView'
 import { JSX } from 'preact/jsx-runtime'
 import { ReceiptsSortMode } from 'api'
+import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 
 /**
  * Панель со списокм чеков.
@@ -204,8 +205,8 @@ function ReceiptListItem({
 	isNew: boolean
 }) {
 	const itemRef = useRef<HTMLDivElement | null>(null)
+	const { domainsMetadata } = useDomainsMetadata()
 	const data = getReceiptDataFrom(receipt)
-	const currencySuffix = data ? ' ' + (DOMAIN_CURRENCY_SYMBOLS.get(receipt.domain) ?? '?') : ''
 
 	// принудительно запускаем анимацию (сработает только для новых элементов; а для других и не надо)
 	useLayoutEffect(() => {
@@ -226,6 +227,9 @@ function ReceiptListItem({
 		onClick(receipt)
 	}, [onClick, receipt])
 
+	const flagSymbol = domainsMetadata.get(receipt.domain)?.flagSymbol
+	const currencySuffix = data ? ' ' + (domainsMetadata.get(receipt.domain)?.currencySymbol ?? '?') : ''
+
 	return (
 		<div ref={itemRef} class={classes.join(' ')} onClick={onClickInner}>
 			<div class="title">
@@ -233,7 +237,7 @@ function ReceiptListItem({
 					<HighlightedText text={data?.common.title} searchQuery={searchQuery} />
 				</div>
 				<div class="flag">
-					<HighlightedText text={data?.common.flag} searchQuery={searchQuery} />
+					<HighlightedText text={flagSymbol} searchQuery={searchQuery} />
 				</div>
 			</div>
 			<div class="main-info">

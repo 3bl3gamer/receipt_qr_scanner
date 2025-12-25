@@ -17,6 +17,10 @@ export function onError(err: unknown): void {
 	console.error(err)
 }
 
+export function isNil(x: unknown): x is null | undefined {
+	return x == void 0
+}
+
 export function mustBeNotNull<T>(val: T | null): T {
 	if (val === null) throw new Error('must not be null')
 	return val
@@ -156,11 +160,6 @@ export function dateStrAsYMDHM(str: string): string {
 	return `${y}-${m}-${d} ${hr}:${mn}`
 }
 
-export const DOMAIN_CURRENCY_SYMBOLS = new Map([
-	['ru-fns', '₽'],
-	['kg-gns', 'с'],
-])
-
 export function parseRuFnsRefText(refText: string): Record<string, string | null> {
 	const params = new URLSearchParams(refText)
 	return {
@@ -197,7 +196,6 @@ export function parseKgGnsRefText(refText: string): Record<string, string | null
 
 export interface CommonReceiptData {
 	title: string
-	flag: string
 	totalSum: number | undefined
 	itemsCount: number | undefined
 	placeName: string | undefined
@@ -233,7 +231,6 @@ function getRuFnsReceiptDataFrom(rec: Receipt) {
 	return {
 		common: {
 			title: makeRuFnsReceiptTitle(receipt) ?? '—',
-			flag: '🇷🇺',
 			totalSum: receipt.totalSum / 100,
 			itemsCount: receipt.items.length,
 			placeName: receipt.retailPlace,
@@ -269,7 +266,6 @@ function getKgGnsReceiptDataFrom(rec: Receipt) {
 	return {
 		common: {
 			title: makeKgGnsReceiptTitle(data.crData.locationName),
-			flag: '🇰🇬',
 			totalSum: data.ticketTotalSum / 100,
 			itemsCount: data.items.length,
 			placeName: data.crData.locationName,

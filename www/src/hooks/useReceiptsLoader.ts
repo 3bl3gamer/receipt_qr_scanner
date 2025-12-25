@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
 import { onError, searchBinary, Receipt, isAbortError } from '../utils'
-import { fetchReceipts, makeReceiptsEventSource, ReceiptsSortMode } from 'api'
+import { ApiError, fetchReceipts, makeReceiptsEventSource, ReceiptsSortMode } from 'api'
 
 /**
  * Загружает/подгружает чеки частями, слушает серверные события обновления чеков.
@@ -109,7 +109,7 @@ export function useReceiptsLoader(
 
 		fetchReceipts(sortMode, searchQuery, baseReceiptForNextChunk, abortControllerRef.current.signal)
 			.then(res => {
-				if (!res.ok) throw new Error(`${res.error}: ${res.description}`)
+				if (!res.ok) throw new ApiError(res)
 				if (res.result.length === 0) {
 					setHasFullyLoaded(true)
 				} else {

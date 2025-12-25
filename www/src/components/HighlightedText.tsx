@@ -1,4 +1,5 @@
 import { JSX } from 'preact/jsx-runtime'
+import { isNil } from 'utils'
 
 /**
  * Подсвечивает искомую подстроку в тексте.
@@ -28,7 +29,14 @@ export function HighlightedText({
 	suffix?: string
 }) {
 	const res = highlightedIfFound(text, searchQuery, maxFirstOffset, maxTotalLen, suffix)
-	return res ?? <>{text ?? '—'}</>
+	if (res !== null) return res
+	if (isNil(text)) return '—'
+	return (
+		<>
+			{text}
+			{suffix}
+		</>
+	)
 }
 
 /**

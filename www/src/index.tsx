@@ -2,6 +2,7 @@ import './errors'
 import { render } from 'preact'
 import { ReceiptListPanel } from './components/ReceiptList'
 import { Scanner } from './components/Scanner'
+import { DomainsMetadataProvider } from './contexts/DomainsMetadataContext'
 
 import './index.css'
 
@@ -14,9 +15,9 @@ if ('serviceWorker' in navigator) {
 }
 
 render(
-	<>
+	<DomainsMetadataProvider>
 		<Scanner />
 		<ReceiptListPanel />
-	</>,
+	</DomainsMetadataProvider>,
 	document.body,
 )

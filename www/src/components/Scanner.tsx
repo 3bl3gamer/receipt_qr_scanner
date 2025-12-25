@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { QRCamScanner } from '../QRCamScanner'
-import { dateStrAsYMDHM, DOMAIN_CURRENCY_SYMBOLS, onError } from '../utils'
+import { dateStrAsYMDHM, onError } from '../utils'
 import { saveReceipt } from 'api'
+import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 
 type ScannedQRStatus = 'saving' | 'saved' | 'exists' | 'error'
 
@@ -136,6 +137,7 @@ export function Scanner() {
 function ScannedQRInfoBox({ data }: { data: ScannedQRData }) {
 	const boxRef = useRef<HTMLDivElement>(null)
 	const [isNew, setIsNew] = useState(true)
+	const { domainsMetadata } = useDomainsMetadata()
 
 	// анимация появления
 	useLayoutEffect(() => {
@@ -150,7 +152,7 @@ function ScannedQRInfoBox({ data }: { data: ScannedQRData }) {
 
 	const time = data.time ?? '----.--.-- --:--'
 	const summ = data.summ?.toFixed(data.summ % 1 < 0.005 ? 0 : 2) ?? '?.??'
-	const curSym = (data.domain && DOMAIN_CURRENCY_SYMBOLS.get(data.domain)) ?? '?'
+	const curSym = (data.domain && domainsMetadata.get(data.domain)?.currencySymbol) ?? '?'
 	const label =
 		`${time}, ${summ}\u00A0${curSym}, ${data.status}` +
 		(data.errorMessage ? ': ' + data.errorMessage : '')
