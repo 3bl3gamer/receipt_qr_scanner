@@ -1,20 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
 import { onError, searchBinary, Receipt, isAbortError } from '../utils'
-
-export type SortMode = 'id' | 'created_at'
-
-interface ReceiptsApiResponse {
-	ok: boolean
-	result: Receipt[]
-	error?: string
-	description?: string
-}
+import { fetchReceipts, makeReceiptsEventSource, ReceiptsSortMode } from 'api'
 
 /**
  * Загружает/подгружает чеки частями, слушает серверные события обновления чеков.
  */
 export function useReceiptsLoader(
-	sortMode: SortMode,
+	sortMode: ReceiptsSortMode,
 	searchQuery: string,
 ): {
 	receipts: Receipt[]
@@ -41,28 +33,26 @@ export function useReceiptsLoader(
 
 		function start() {
 			stop()
-			const path = makeReceiptsListPath(true, sortMode, searchQuery)
-			eventSource = new EventSource(path)
-			eventSource.addEventListener('initial_receipts', onInitialReceipts)
-			eventSource.addEventListener('receipt', onReceipt)
-			eventSource.addEventListener('error', onError)
+			eventSource = makeReceiptsEventSource(sortMode, searchQuery, {
+				onInitialReceipts,
+				onReceipt,
+				onError,
+			})
 		}
 		function stop() {
 			eventSource?.close()
 		}
 
-		function onInitialReceipts(event: MessageEvent) {
+		function onInitialReceipts(receipts: Receipt[]) {
 			setIsLoadingChunk(false)
-			const receipts = JSON.parse(event.data) as Receipt[]
-			// если это пеервая загрузка чанка (а не загрузка после переподключения)
+			// если это первая загрузка чанка (а не загрузка после переподключения)
 			if (!hasReceivedInitialChunk) {
 				setReceipts(receipts)
 				setBaseReceiptForNextChunk(receipts.at(-1) ?? null)
 			}
 			hasReceivedInitialChunk = true
 		}
-		function onReceipt(event: MessageEvent) {
-			const newReceipt = JSON.parse(event.data) as Receipt
+		function onReceipt(newReceipt: Receipt) {
 			setReceipts(prev => {
 				const [index, exists] = searchBinary(prev, newReceipt, getSortFunc(sortMode))
 				if (exists) {
@@ -114,15 +104,11 @@ export function useReceiptsLoader(
 
 		setIsLoadingChunk(true)
 
-		// Abort previous request if still pending
 		abortControllerRef.current.abort()
 		abortControllerRef.current = new AbortController()
 
-		const path = makeReceiptsListPath(false, sortMode, searchQuery, baseReceiptForNextChunk)
-
-		fetch(path, { signal: abortControllerRef.current.signal })
-			.then(r => r.json())
-			.then((res: ReceiptsApiResponse) => {
+		fetchReceipts(sortMode, searchQuery, baseReceiptForNextChunk, abortControllerRef.current.signal)
+			.then(res => {
 				if (!res.ok) throw new Error(`${res.error}: ${res.description}`)
 				if (res.result.length === 0) {
 					setHasFullyLoaded(true)
@@ -149,19 +135,7 @@ export function useReceiptsLoader(
 	}
 }
 
-function makeReceiptsListPath(sse: boolean, sortMode: SortMode, searchQuery: string, lastReceipt?: Receipt) {
-	let path = `./api/receipts_list?sse=${sse ? '1' : '0'}&sort_mode=${sortMode}&search=${encodeURIComponent(searchQuery)}`
-	if (lastReceipt) {
-		if (sortMode === 'created_at') {
-			path += '&before_time=' + encodeURIComponent(new Date(lastReceipt.createdAt).toISOString())
-		} else {
-			path += '&before_id=' + lastReceipt.id
-		}
-	}
-	return path
-}
-
-function getSortFunc(sortMode: SortMode): (a: Receipt, b: Receipt) => number {
+function getSortFunc(sortMode: ReceiptsSortMode): (a: Receipt, b: Receipt) => number {
 	if (sortMode === 'created_at') return (a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id
 	return (a, b) => b.id - a.id
 }

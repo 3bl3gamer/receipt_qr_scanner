@@ -18,8 +18,9 @@ type ReceiptRef interface {
 	Domain() Domain
 	RefText() string
 	UniqueKey() string
-	CreatedAt() (time.Time, error)
-	SearchKeyItems() ([]string, error)
+	CreatedAt() time.Time
+	Sum() float64
+	SearchKeyItems() []string
 }
 
 type Receipt struct {

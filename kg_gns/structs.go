@@ -73,11 +73,15 @@ func (r ReceiptRef) UniqueKey() string {
 	return r.Domain().Code + ":" + strings.Join(items, "&")
 }
 
-func (r ReceiptRef) CreatedAt() (time.Time, error) {
-	return r.data.CreatedAt, nil
+func (r ReceiptRef) CreatedAt() time.Time {
+	return r.data.CreatedAt
 }
 
-func (r ReceiptRef) SearchKeyItems() ([]string, error) {
+func (r ReceiptRef) Sum() float64 {
+	return r.data.Sum
+}
+
+func (r ReceiptRef) SearchKeyItems() []string {
 	return []string{
 		"_created_at:" + r.data.CreatedAt.Format("2006-01-02 15:04"),
 		"_type:" + strconv.FormatInt(r.data.Kind, 10),
@@ -88,7 +92,7 @@ func (r ReceiptRef) SearchKeyItems() ([]string, error) {
 		"_taxpayer_id_number:" + strconv.FormatInt(r.data.TaxpayerIdNumber, 10),
 		"_kkt_reg_number:" + strconv.FormatInt(r.data.KktRegNumber, 10),
 		"_sum:" + strconv.FormatFloat(r.data.Sum, 'f', 2, 64),
-	}, nil
+	}
 }
 
 func parseRefText(refText string) (*ReceiptRefData, error) {
@@ -133,7 +137,7 @@ func parseRefText(refText string) (*ReceiptRefData, error) {
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
-	data.Sum, err = receipts.ReadFloat64(query, "sum")
+	data.Sum, err = receipts.ReadFloat64Div(query, "sum", 100)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}

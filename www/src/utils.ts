@@ -161,20 +161,6 @@ export const DOMAIN_CURRENCY_SYMBOLS = new Map([
 	['kg-gns', 'с'],
 ])
 
-export function guessDomain(refText: string): string {
-	if (refText.match(/^https?:\/\/[^/]+\.kg\//)) {
-		return 'kg-gns'
-	}
-	return 'ru-fns'
-}
-
-export function parseRefText(domain: string | null, refText: string): Record<string, string | null> | null {
-	if (!domain) domain = guessDomain(refText)
-	if (domain === 'ru-fns') return parseRuFnsRefText(refText)
-	if (domain === 'kg-gns') return parseKgGnsRefText(refText)
-	return null
-}
-
 export function parseRuFnsRefText(refText: string): Record<string, string | null> {
 	const params = new URLSearchParams(refText)
 	return {

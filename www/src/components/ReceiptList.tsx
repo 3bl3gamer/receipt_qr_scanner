@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'preact/hooks'
-import { SortMode, useReceiptsLoader } from '../hooks/useReceiptsLoader'
+import { useReceiptsLoader } from '../hooks/useReceiptsLoader'
 import { getReceiptDataFrom, dateStrAsYMDHM, DOMAIN_CURRENCY_SYMBOLS, Receipt } from '../utils'
 import { highlightedIfFound, HighlightedText } from './HighlightedText'
 import { ReceiptView } from './ReceiptView'
 import { JSX } from 'preact/jsx-runtime'
+import { ReceiptsSortMode } from 'api'
 
 /**
  * Панель со списокм чеков.
@@ -12,12 +13,12 @@ import { JSX } from 'preact/jsx-runtime'
  * а также показывает попап с полными данными чека.
  */
 export function ReceiptListPanel() {
-	const [sortMode, setSortMode] = useState<SortMode>('id')
+	const [sortMode, setSortMode] = useState<ReceiptsSortMode>('id')
 	const [searchQuery, setSearchQuery] = useState('')
 	const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null)
 	const [isPanelHidden, setIsPanelHidden] = useState(true)
 
-	const onFilterChange = useCallback((newSortMode: SortMode, newSearchQuery: string) => {
+	const onFilterChange = useCallback((newSortMode: ReceiptsSortMode, newSearchQuery: string) => {
 		setSortMode(newSortMode)
 		setSearchQuery(newSearchQuery)
 	}, [])
@@ -78,14 +79,15 @@ function ReceiptFilterForm({
 	searchQuery,
 	onChange,
 }: {
-	sortMode: SortMode
+	sortMode: ReceiptsSortMode
 	searchQuery: string
-	onChange: (sortMode: SortMode, searchQuery: string) => void
+	onChange: (sortMode: ReceiptsSortMode, searchQuery: string) => void
 }) {
 	const onFormChange = useCallback(
 		(e: preact.TargetedEvent<HTMLFormElement, Event>) => {
 			const form = e.currentTarget
-			const newSortMode = (form.elements.namedItem('sort_mode') as HTMLInputElement).value as SortMode
+			const newSortMode = (form.elements.namedItem('sort_mode') as HTMLInputElement)
+				.value as ReceiptsSortMode
 			const newSearchQuery = (form.elements.namedItem('search') as HTMLInputElement).value
 			onChange(newSortMode, newSearchQuery)
 		},
@@ -129,7 +131,7 @@ function ReceiptList({
 	searchQuery,
 	onItemClick,
 }: {
-	sortMode: SortMode
+	sortMode: ReceiptsSortMode
 	searchQuery: string
 	onItemClick: (receipt: Receipt) => void
 }) {

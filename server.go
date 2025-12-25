@@ -64,10 +64,18 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 		}, nil
 	}
 
+	refResponse := map[string]interface{}{
+		"exists":     false,
+		"domainCode": ref.Domain().Code,
+		"createdAt":  ref.CreatedAt(),
+		"sum":        ref.Sum(),
+	}
+
 	db := r.Context().Value(CtxKeyDB).(*sql.DB)
 	recID, err := saveRecieptRef(db, ref)
 	if merry.Is(err, ErrReceiptRefAlreadyExists) {
-		return httputils.JsonError{Code: 400, Error: "ALREADY_EXISTS"}, nil
+		refResponse["exists"] = true
+		return httputils.JsonOk{Ok: true, Result: refResponse}, nil
 	} else if err != nil {
 		return nil, merry.Wrap(err)
 	}
@@ -76,7 +84,8 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	updaterTriggerChan <- struct{}{}
 	updatedReceiptIDsChan := r.Context().Value(CtxKeyUpdateRec).(chan int64)
 	updatedReceiptIDsChan <- recID
-	return "ok", nil
+
+	return httputils.JsonOk{Ok: true, Result: refResponse}, nil
 }
 
 type ReceiptsBroadcaster struct {

@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { QRCamScanner } from '../QRCamScanner'
-import { DOMAIN_CURRENCY_SYMBOLS, guessDomain, parseRefText, onError } from '../utils'
+import { dateStrAsYMDHM, DOMAIN_CURRENCY_SYMBOLS, onError } from '../utils'
+import { saveReceipt } from 'api'
 
 type ScannedQRStatus = 'saving' | 'saved' | 'exists' | 'error'
 
 type ScannedQRData = {
-	text: string
 	status: ScannedQRStatus
-	errorMessage: string | null
-	time: string
-	summ: string
+	refText: string
+	domain?: string
+	time?: string
+	summ?: number
+	errorMessage?: string
 }
 
 /**
@@ -25,7 +27,7 @@ export function Scanner() {
 
 	const addOrReplaceScannedQR = useCallback((scannedQR: ScannedQRData) => {
 		setShownScannedQRs(items => {
-			const existingI = items.findIndex(x => x.text === scannedQR.text)
+			const existingI = items.findIndex(x => x.refText === scannedQR.refText)
 			if (existingI === -1) {
 				items = [scannedQR, ...items]
 				if (items.length > 3) items.pop()
@@ -38,14 +40,29 @@ export function Scanner() {
 	}, [])
 
 	const onScannedText = useCallback(
-		(text: string) => {
-			if (text === '') return
+		(refText: string) => {
+			if (refText === '') return
 
-			if (!shownScannedQRsRef.current.find(x => x.text === text)) {
-				const scannedQR = saveReceiptRefText(text, qrData => {
-					addOrReplaceScannedQR({ ...qrData })
-				})
-				addOrReplaceScannedQR(scannedQR)
+			if (!shownScannedQRsRef.current.find(x => x.refText === refText)) {
+				const qr: ScannedQRData = { status: 'saving', refText }
+
+				addOrReplaceScannedQR(qr)
+
+				saveReceipt(refText)
+					.then(res => {
+						const updQr = { ...qr }
+						if (res.ok) {
+							updQr.status = res.result.exists ? 'exists' : 'saved'
+							updQr.domain = res.result.domainCode
+							updQr.time = dateStrAsYMDHM(res.result.createdAt)
+							updQr.summ = res.result.sum
+						} else {
+							updQr.status = 'error'
+							updQr.errorMessage = res.error + (res.description ? ` (${res.description})` : '')
+						}
+						addOrReplaceScannedQR(updQr)
+					})
+					.catch(onError)
 			}
 		},
 		[addOrReplaceScannedQR],
@@ -99,7 +116,7 @@ export function Scanner() {
 		<>
 			<div className="receipt-info-box-wrap">
 				{shownScannedQRs.map(qr => (
-					<ScannedQRInfoBox key={qr.text} data={qr} />
+					<ScannedQRInfoBox key={qr.refText} data={qr} />
 				))}
 			</div>
 			<div ref={videoWrapRef} className="video-wrap" />
@@ -131,10 +148,11 @@ function ScannedQRInfoBox({ data }: { data: ScannedQRData }) {
 		}
 	}, [isNew])
 
-	const domain = guessDomain(data.text)
-	const curSym = DOMAIN_CURRENCY_SYMBOLS.get(domain) ?? '?'
+	const time = data.time ?? '----.--.-- --:--'
+	const summ = data.summ?.toFixed(data.summ % 1 < 0.005 ? 0 : 2) ?? '?.??'
+	const curSym = (data.domain && DOMAIN_CURRENCY_SYMBOLS.get(data.domain)) ?? '?'
 	const label =
-		`${data.time}, ${data.summ}\u00A0${curSym}, ${data.status}` +
+		`${time}, ${summ}\u00A0${curSym}, ${data.status}` +
 		(data.errorMessage ? ': ' + data.errorMessage : '')
 
 	return (
@@ -142,45 +160,4 @@ function ScannedQRInfoBox({ data }: { data: ScannedQRData }) {
 			{label}
 		</div>
 	)
-}
-
-function saveReceiptRefText(text: string, onStatusChange: (qr: ScannedQRData) => void): ScannedQRData {
-	const qr: ScannedQRData = {
-		text,
-		status: 'saving',
-		errorMessage: null,
-		time: '----.--.-- --:--',
-		summ: '?.??',
-	}
-
-	const refData = parseRefText(null, text)
-	if (refData) {
-		const match = refData.createdAt?.match(/^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)/)
-		if (match) {
-			const [, y, m, d, H, M] = match
-			qr.time = `${y}.${m}.${d} ${H}:${M}`
-		} else {
-			qr.time = refData.createdAt?.replace('T', ' ') ?? qr.time
-		}
-
-		const summ = refData.sum === null ? NaN : parseFloat(refData.sum) / 100
-		qr.summ = isNaN(summ) ? qr.summ : summ.toFixed(2)
-	}
-
-	fetch('./api/receipt', { method: 'POST', body: text })
-		.then(r => r.json())
-		.then(res => {
-			if (res.ok) {
-				qr.status = 'saved'
-			} else if (res.error === 'ALREADY_EXISTS') {
-				qr.status = 'exists'
-			} else {
-				qr.status = 'error'
-				qr.errorMessage = res.error + (res.description ? ` (${res.description})` : '')
-			}
-			onStatusChange({ ...qr })
-		})
-		.catch(onError)
-
-	return qr
 }

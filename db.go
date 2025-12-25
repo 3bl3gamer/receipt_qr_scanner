@@ -264,10 +264,7 @@ func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]strin
 	}
 }
 func makeReceiptSearchKey(ref receipts.ReceiptRef, dataStr string) (string, error) {
-	items, err := ref.SearchKeyItems()
-	if err != nil {
-		return "", merry.Wrap(err)
-	}
+	items := ref.SearchKeyItems()
 	if dataStr != "" {
 		var data interface{}
 		if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
@@ -293,10 +290,8 @@ func saveRecieptRef(db *sql.DB, ref receipts.ReceiptRef) (int64, error) {
 	if err != nil {
 		return 0, merry.Wrap(err)
 	}
-	createdAt, err := ref.CreatedAt()
-	if err != nil {
-		return 0, merry.Wrap(err)
-	}
+	createdAt := ref.CreatedAt()
+
 	res, err := db.Exec(`
 		INSERT INTO receipts (domain, unique_key, ref_text, created_at, search_key)
 		VALUES (?,?,?,?,?)`,

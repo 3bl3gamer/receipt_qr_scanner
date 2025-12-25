@@ -58,6 +58,13 @@ func ReadFloat64(values url.Values, name string) (float64, error) {
 	}
 	return value, nil
 }
+func ReadFloat64Div(values url.Values, name string, divider float64) (float64, error) {
+	value, err := ReadFloat64(values, name)
+	if err == nil {
+		value /= divider
+	}
+	return value, err
+}
 
 func ReadTime(values url.Values, name string) (time.Time, error) {
 	valueStr, jsonErr := ReadString(values, name)
