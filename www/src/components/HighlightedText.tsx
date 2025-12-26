@@ -1,5 +1,5 @@
 import { JSX } from 'preact/jsx-runtime'
-import { isNil } from 'utils'
+import { isNil } from '../utils.js'
 
 /**
  * Подсвечивает искомую подстроку в тексте.
@@ -28,9 +28,9 @@ export function HighlightedText({
 	/** опциональный суффикс для текста (может быть подсвечен) */
 	suffix?: string
 }) {
+	if (isNil(text)) return '—'
 	const res = highlightedIfFound(text, searchQuery, maxFirstOffset, maxTotalLen, suffix)
 	if (res !== null) return res
-	if (isNil(text)) return '—'
 	return (
 		<>
 			{text}
@@ -51,16 +51,16 @@ export function highlightedIfFound(
 	 * макс.длина текста перед первым вхождением подстроки, заменяет начало текста на "…":
 	 * "longprefix[text]" -> "…fix[text]"
 	 */
-	maxFirstOffset?: number,
+	maxFirstOffset?: number | null,
 	/**
 	 * макс.длина возвращаемой строки, заменяет конец текста на "…":
 	 * "[text]longsuffix" -> "[text]long…"
 	 */
-	maxTotalLen?: number,
+	maxTotalLen?: number | null,
 	/** опциональный суффикс для текста (может быть подсвечен) */
 	suffix: string = '',
 ): JSX.Element | null {
-	if (text === '') return null
+	if (text === '' || isNil(text)) return null
 
 	const textStr = String(text) + suffix
 
@@ -83,7 +83,7 @@ export function highlightedIfFound(
 		if (index === -1) index = workingText.length
 
 		// обрезка по maxFirstOffset
-		if (prevEnd === 0 && maxFirstOffset !== undefined && index > maxFirstOffset) {
+		if (prevEnd === 0 && !isNil(maxFirstOffset) && index > maxFirstOffset) {
 			const offset = index - Math.ceil(maxFirstOffset * 0.8)
 			workingText = '…' + workingText.slice(offset)
 			workingTextLC = '…' + workingTextLC.slice(offset)
@@ -91,7 +91,7 @@ export function highlightedIfFound(
 		}
 
 		// обрезка по maxTotalLen
-		if (maxTotalLen !== undefined && index > maxTotalLen) {
+		if (!isNil(maxTotalLen) && index > maxTotalLen) {
 			parts.push(workingText.slice(prevEnd, maxTotalLen) + '…')
 			break
 		}
