@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"maps"
 	"receipt_qr_scanner/receipts"
+	"slices"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -10,7 +12,9 @@ import (
 )
 
 func updateIter(db *sql.DB, domain2client map[string]receipts.Client, updatedReceiptIDsChan chan int64) error {
-	receipts, err := loadPendingReceipts(db, 5)
+	domainCodes := slices.Collect(maps.Keys(domain2client))
+
+	receipts, err := loadPendingReceipts(db, domainCodes, 5)
 	if err != nil {
 		return merry.Wrap(err)
 	}

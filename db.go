@@ -143,7 +143,7 @@ var migrations = []func(*sql.Tx) error{
 			if err != nil {
 				return merry.Wrap(err)
 			}
-			ref, err := receiptRefFromText(refText)
+			ref, err := receipts.ReceiptRefFromText(allDomains, refText)
 			if err != nil {
 				return merry.Wrap(err)
 			}
@@ -175,7 +175,7 @@ var migrations = []func(*sql.Tx) error{
 			if err != nil {
 				return merry.Wrap(err)
 			}
-			ref, err := receiptRefFromText(refText)
+			ref, err := receipts.ReceiptRefFromText(allDomains, refText)
 			if err != nil {
 				return merry.Wrap(err)
 			}
@@ -345,15 +345,22 @@ func saveRecieptData(db *sql.DB, ref receipts.ReceiptRef, data []byte) error {
 	return merry.Wrap(err)
 }
 
-func loadPendingReceipts(db *sql.DB, limit int64) ([]*ReceiptPending, error) {
+func loadPendingReceipts(db *sql.DB, domainCodes []string, limit int64) ([]*ReceiptPending, error) {
+	args := make([]any, 0, len(domainCodes)+1)
+	for _, code := range domainCodes {
+		args = append(args, code)
+	}
+	args = append(args, limit)
+
 	rows, err := db.Query(`
 		SELECT id, ref_text, COALESCE(is_correct, 0)
 		FROM receipts
 		WHERE (is_correct IS NULL OR data IS NULL)
 		  AND next_retry_at <= CURRENT_TIMESTAMP
 		  AND retries_left > 0
+		  AND domain IN (`+strings.Repeat(",?", len(domainCodes))[1:]+`)
 		ORDER BY next_retry_at
-		LIMIT ?`, limit)
+		LIMIT ?`, args...)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
@@ -366,7 +373,7 @@ func loadPendingReceipts(db *sql.DB, limit int64) ([]*ReceiptPending, error) {
 		if err != nil {
 			return nil, merry.Wrap(err)
 		}
-		rec.Ref, err = receiptRefFromText(refText)
+		rec.Ref, err = receipts.ReceiptRefFromText(allDomains, refText)
 		if err != nil {
 			return nil, merry.Wrap(err)
 		}

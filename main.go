@@ -17,11 +17,6 @@ var allDomains = []receipts.Domain{
 	ru_fns.Domain,
 	kg_gns.Domain,
 }
-var usedDomains = allDomains
-
-func receiptRefFromText(refText string) (receipts.ReceiptRef, error) {
-	return receipts.ReceiptRefFromText(usedDomains, refText)
-}
 
 func main() {
 	var allSessionDomains []receipts.Domain
@@ -31,21 +26,12 @@ func main() {
 		}
 	}
 
-	// allDomainCodes := make([]string, len(allDomains))
-	// allSessionDomainCodes := []string{}
-	// for i, d := range allDomains {
-	// 	allDomainCodes[i] = d.Code
-	// 	if _, ok := d.MakeClient().(receipts.ClientWithSession); ok {
-	// 		allSessionDomainCodes = append(allSessionDomainCodes, d.Code)
-	// 	}
-	// }
-
 	env := utils.Env{Val: "dev"}
-	domainToInit := utils.OptionValue[receipts.Domain]{
+	domainClientsToInit := utils.OptionValue[receipts.Domain]{
 		Options: allSessionDomains,
 		ToStr:   func(d receipts.Domain) string { return d.Code },
 	}
-	domainsToUse := utils.OptionValues[receipts.Domain]{
+	domainsClientsToUse := utils.OptionValues[receipts.Domain]{
 		Options:   allDomains,
 		ToStr:     func(d receipts.Domain) string { return d.Code },
 		Separator: ",",
@@ -53,15 +39,14 @@ func main() {
 
 	flag.Var(&env, "env", "evironment, dev or prod")
 	serverAddr := flag.String("addr", "127.0.0.1:9010", "HTTP server address:port")
-	flag.Var(&domainToInit, "init-session", "init session for client, possible values: "+domainToInit.JoinStrings(", "))
-	flag.Var(&domainsToUse, "clients", "use only specified cliets (all used by default: "+domainsToUse.JoinStrings(",")+")")
+	flag.Var(&domainClientsToInit, "init-session", "init session for client, possible values: "+domainClientsToInit.JoinStrings(", "))
+	flag.Var(&domainsClientsToUse, "clients", "use only specified cliets (all used by default: "+domainsClientsToUse.JoinStrings(",")+")")
 	debugTSL := flag.Bool("debug-tls", false, "start HTTP server in TLS mode for debugging")
 	flag.Parse()
 
-	if len(domainsToUse.Values) == 0 {
-		domainsToUse.Values = allDomains
+	if len(domainsClientsToUse.Values) == 0 {
+		domainsClientsToUse.Values = allDomains
 	}
-	usedDomains = domainsToUse.Values
 
 	// Logger
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
@@ -73,9 +58,9 @@ func main() {
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
 
-	if domainToInit.Value != nil {
+	if domainClientsToInit.Value != nil {
 		args := flag.Args()
-		client := domainToInit.Value.MakeClient().(receipts.ClientWithSession)
+		client := domainClientsToInit.Value.MakeClient().(receipts.ClientWithSession)
 		if err := client.InitSession(args...); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
@@ -86,7 +71,7 @@ func main() {
 	}
 
 	domain2client := map[string]receipts.Client{}
-	for _, d := range usedDomains {
+	for _, d := range domainsClientsToUse.Values {
 		domain2client[d.Code] = d.MakeClient()
 	}
 

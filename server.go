@@ -43,7 +43,7 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 	text := string(buf)
 	log.Debug().Str("text", text).Msg("receipt ref text")
 
-	ref, err := receiptRefFromText(text)
+	ref, err := receipts.ReceiptRefFromText(allDomains, text)
 	var fErr receipts.ReceiptRefFieldErr
 	if errors.As(err, &fErr) {
 		prefix := "WRONG_VALUE_"
@@ -95,8 +95,8 @@ func HandleAPIDomainsMetadata(wr http.ResponseWriter, r *http.Request, ps httpro
 		FlagSymbol     string `json:"flagSymbol"`
 	}
 
-	domains := make([]DomainMetadata, len(usedDomains))
-	for i, d := range usedDomains {
+	domains := make([]DomainMetadata, len(allDomains))
+	for i, d := range allDomains {
 		domains[i] = DomainMetadata{
 			DomainCode:     d.Code,
 			CurrencySymbol: d.CurrencySymbol,
