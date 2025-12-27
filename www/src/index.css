@@ -339,11 +339,16 @@ td[title] {
 
 .receipt-view .receipt-place-info {
 	margin-bottom: 24px;
-	word-break: break-word;
+}
+.receipt-view .receipt-place-info tr:last-child {
+	overflow-wrap: anywhere;
 }
 
 .receipt-view .receipt-contacts {
 	margin-bottom: 24px;
+}
+.receipt-view .receipt-contacts .tax-org-url {
+	overflow-wrap: anywhere;
 }
 
 .receipt-view .receipt-info {

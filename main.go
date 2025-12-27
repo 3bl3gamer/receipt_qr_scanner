@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"receipt_qr_scanner/kg_gns"
+	"receipt_qr_scanner/kz_ktc"
 	"receipt_qr_scanner/receipts"
 	"receipt_qr_scanner/ru_fns"
 	"receipt_qr_scanner/utils"
@@ -16,6 +17,7 @@ import (
 var allDomains = []receipts.Domain{
 	ru_fns.Domain,
 	kg_gns.Domain,
+	kz_ktc.Domain,
 }
 
 func main() {
@@ -58,6 +60,7 @@ func main() {
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
 
+	// инициализация одного клиента (если выбрано)
 	if domainClientsToInit.Value != nil {
 		args := flag.Args()
 		client := domainClientsToInit.Value.MakeClient().(receipts.ClientWithSession)
@@ -70,20 +73,25 @@ func main() {
 		os.Exit(0)
 	}
 
+	// инициализация клиентов
 	domain2client := map[string]receipts.Client{}
-	for _, d := range domainsClientsToUse.Values {
-		domain2client[d.Code] = d.MakeClient()
-	}
+	for _, domain := range domainsClientsToUse.Values {
+		client := domain.MakeClient()
 
-	for domainCode, c := range domain2client {
-		if client, ok := c.(receipts.ClientWithSession); ok {
-			err := client.LoadSession()
+		if err := client.Init(); err != nil {
+			log.Fatal().Stack().Err(err).Msg("")
+		}
+
+		if clientSess, ok := client.(receipts.ClientWithSession); ok {
+			err := clientSess.LoadSession()
 			if merry.Is(err, receipts.ErrSessionNotFound) {
-				log.Fatal().Str("domain", domainCode).Msgf("session file not found, forgot to --init-session %s?", domainCode)
+				log.Fatal().Str("domain", domain.Code).Msgf("session file not found, forgot to --init-session %s ?", domain.Code)
 			} else if err != nil {
-				log.Fatal().Str("domain", domainCode).Stack().Err(err).Msg("")
+				log.Fatal().Str("domain", domain.Code).Stack().Err(err).Msg("")
 			}
 		}
+
+		domain2client[domain.Code] = client
 	}
 
 	// DB
@@ -98,6 +106,7 @@ func main() {
 	}
 	defer db.Close()
 
+	// запуск
 	triggerChan := make(chan struct{}, 10)
 	updatedReceiptIDsChan := make(chan int64, 10)
 

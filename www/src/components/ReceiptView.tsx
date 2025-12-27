@@ -214,8 +214,8 @@ function ReceiptContacts({ data, searchQuery }: { data: FullReceiptData | null; 
 					)}
 					{data?.common.taxOrgUrl && (
 						<tr>
-							<td>Сайт для проверки ФПД</td>
-							<td>
+							<td>Сайт для проверки</td>
+							<td class="tax-org-url">
 								<Link text={data.common.taxOrgUrl} searchQuery={searchQuery} />
 							</td>
 						</tr>
@@ -265,7 +265,7 @@ function ReceiptItem({
 function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
 	if (!data) return null
 
-	const items: [string, string, string][] = []
+	const items: [string, string, string | null | undefined][] = []
 
 	if ('ruFns' in data) {
 		items.push(['РН ККТ', 'Регистрационный номер ККТ', data.ruFns.kktRegId])
@@ -275,10 +275,17 @@ function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null;
 	}
 
 	if ('kgGns' in data) {
-		items.push(['РН ККМ', 'регистрационный номер ККМ', data.kgGns.kktRegNumber])
+		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kgGns.kktRegNumber])
 		items.push(['ФМ №', 'Серийный номер фискального модуля', data.kgGns.fiscalModuleSerialNumber])
 		items.push(['ФД №', 'Номер фискального документа', data.kgGns.fiscalDocumentNumber])
 		items.push(['ФПД', 'Фискальный признак документа', data.kgGns.fiscalDocumentSign])
+	}
+
+	if ('kzKtc' in data) {
+		items.push(['Сер. №', 'Серийный номер ККМ', data.kzKtc.kkmSerialNumber])
+		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzKtc.kkmFnsId])
+		items.push(['ФП', 'Фискальный признак документа', data.kzKtc.fiscalId])
+		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzKtc.orgId])
 	}
 
 	if (items.length === 0) return null

@@ -12,6 +12,10 @@ type Client struct {
 	session *Session
 }
 
+func (c *Client) Init() error {
+	return nil
+}
+
 func (c *Client) InitSession(args ...string) error {
 	if len(args) != 2 {
 		return merry.Errorf("exactly two arguments (refreshToken and clientSecret) are required for session init, got %d", len(args))

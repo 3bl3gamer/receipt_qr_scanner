@@ -12,6 +12,7 @@ type FetchReceiptResult struct {
 }
 
 type Client interface {
+	Init() error
 	FetchReceipt(ref ReceiptRef, onIsCorrect func() error) (FetchReceiptResult, error)
 }
 

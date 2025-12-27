@@ -14,6 +14,10 @@ var ErrReceiptItemsNotReady = merry.New("receipt items not ready")
 
 type Client struct{}
 
+func (c *Client) Init() error {
+	return nil
+}
+
 func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error) (receipts.FetchReceiptResult, error) {
 	res := receipts.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
 

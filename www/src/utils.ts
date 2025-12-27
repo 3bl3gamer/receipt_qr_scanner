@@ -160,7 +160,7 @@ export function dateStrAsYMDHM(str: string): string {
 	return `${y}-${m}-${d} ${hr}:${mn}`
 }
 
-export function parseRuFnsRefText(refText: string): Record<string, string | null> {
+function parseRuFnsRefText(refText: string): Record<string, string | null> {
 	const params = new URLSearchParams(refText)
 	return {
 		fiscalNum: params.get('fn'),
@@ -172,7 +172,7 @@ export function parseRuFnsRefText(refText: string): Record<string, string | null
 	}
 }
 
-export function parseKgGnsRefText(refText: string): Record<string, string | null> | null {
+function parseKgGnsRefText(refText: string): Record<string, string | null> | null {
 	let url: URL
 	try {
 		url = new URL(refText)
@@ -194,7 +194,30 @@ export function parseKgGnsRefText(refText: string): Record<string, string | null
 	}
 }
 
-export interface CommonReceiptData {
+function parseKzKtcRefText(refText: string): Record<string, string | null> | null {
+	let url: URL
+	try {
+		url = new URL(refText)
+	} catch (ex) {
+		onError(ex)
+		return null
+	}
+	const params = url.searchParams
+	return {
+		fiscalId: params.get('i'),
+		kkmFnsId: params.get('f'),
+		sum: params.get('s'),
+		createdAt: params.get('t'),
+	}
+}
+
+export type ReceiptData<T> = {
+	common: CommonReceiptData
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	raw: any
+} & T
+
+export type CommonReceiptData = {
 	title: string
 	totalSum: number | undefined
 	itemsCount: number | undefined
@@ -218,10 +241,20 @@ export function getReceiptDataFrom(rec: Receipt) {
 	if (!rec.data) return null
 	if (rec.domain === 'ru-fns') return getRuFnsReceiptDataFrom(rec)
 	if (rec.domain === 'kg-gns') return getKgGnsReceiptDataFrom(rec)
+	if (rec.domain === 'kz-ktc') return getKzKtcReceiptDataFrom(rec)
 	return null
 }
 
-function getRuFnsReceiptDataFrom(rec: Receipt) {
+type RuFnsExtraData = {
+	kktRegId: ReturnType<typeof optStr>
+	fiscalDriveNumber: ReturnType<typeof optStr>
+	fiscalDocumentNumber: ReturnType<typeof optStr>
+	fiscalDocumentSign: ReturnType<typeof optStr>
+	orgName: ReturnType<typeof optStr>
+	buyerPhoneOrAddress: ReturnType<typeof optStr>
+	sellerAddress: ReturnType<typeof optStr>
+}
+function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFnsExtraData }> {
 	const data = JSON.parse(rec.data)
 	const receipt =
 		'ticket' in data
@@ -246,7 +279,7 @@ function getRuFnsReceiptDataFrom(rec: Receipt) {
 				price: x.price / 100,
 				sum: x.sum / 100,
 			})),
-		} as CommonReceiptData,
+		},
 		ruFns: {
 			kktRegId: receipt.kktRegId,
 			fiscalDriveNumber: receipt.fiscalDriveNumber ?? refData.fiscalNum,
@@ -260,7 +293,14 @@ function getRuFnsReceiptDataFrom(rec: Receipt) {
 	}
 }
 
-function getKgGnsReceiptDataFrom(rec: Receipt) {
+/** https://www.sti.gov.kg/docs/default-source/kkm/form_fd.pdf */
+type KgGnsExtraData = {
+	kktRegNumber: ReturnType<typeof optStr>
+	fiscalModuleSerialNumber: ReturnType<typeof optStr>
+	fiscalDocumentNumber: ReturnType<typeof optStr>
+	fiscalDocumentSign: ReturnType<typeof optStr>
+}
+function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGnsExtraData }> {
 	const data = JSON.parse(rec.data)
 	const refData = parseKgGnsRefText(rec.refText)
 	return {
@@ -281,13 +321,56 @@ function getKgGnsReceiptDataFrom(rec: Receipt) {
 				price: x.goodPrice / 100,
 				sum: x.goodCost / 100,
 			})),
-		} as CommonReceiptData,
+		},
 		kgGns: {
 			// https://www.sti.gov.kg/docs/default-source/kkm/form_fd.pdf
-			kktRegNumber: data.crRegisterNumber ?? refData?.kktRegNumber, //РН ККМ, регистрационный номер ККМ
-			fiscalModuleSerialNumber: data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber, //ФМ, серийный номер фискального модуля
-			fiscalDocumentNumber: data.fdNumber ?? refData?.fiscalDocumentNumber, //ФД, номер фискального документа
-			fiscalDocumentSign: data.documentFiscalMark ?? refData?.fiscalDocumentSign, //ФПД, фискальный признак документа
+			kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber), //РН ККМ, регистрационный номер ККМ
+			fiscalModuleSerialNumber: optStr(data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber), //ФМ, серийный номер фискального модуля
+			fiscalDocumentNumber: optStr(data.fdNumber ?? refData?.fiscalDocumentNumber), //ФД, номер фискального документа
+			fiscalDocumentSign: optStr(data.documentFiscalMark ?? refData?.fiscalDocumentSign), //ФПД, фискальный признак документа
+		},
+		raw: data,
+	}
+}
+
+type KzKtcExtraData = {
+	kkmSerialNumber: ReturnType<typeof optStr>
+	kkmFnsId: ReturnType<typeof optStr>
+	fiscalId: ReturnType<typeof optStr>
+	orgId: ReturnType<typeof optStr>
+}
+function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKtcExtraData }> {
+	const data = JSON.parse(rec.data)
+	const ticket = data.ticket
+	const refData = parseKzKtcRefText(rec.refText)
+
+	// Фильтруем только товарные позиции (itemType === 1)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const productItems = (ticket.items as any[]).filter(x => x.itemType === 1)
+
+	return {
+		common: {
+			title: makeKzKtcReceiptTitle(data.orgTitle),
+			totalSum: ticket.totalSum,
+			itemsCount: productItems.length,
+			placeName: data.orgTitle,
+			orgInn: data.orgId,
+			address: data.retailPlaceAddress,
+			cashierName: ticket.operator?.name,
+			shiftNumber: ticket.shiftNumber,
+			taxOrgUrl: kzKtcUrl(rec.refText),
+			items: productItems.map(x => ({
+				name: x.commodity?.name,
+				quantity: x.commodity?.quantity,
+				price: x.commodity?.price,
+				sum: x.commodity?.sum,
+			})),
+		},
+		kzKtc: {
+			kkmSerialNumber: optStr(data.kkmSerialNumber),
+			kkmFnsId: optStr(data.kkmFnsId ?? refData?.kkmFnsId),
+			fiscalId: optStr(ticket.fiscalId ?? refData?.fiscalId),
+			orgId: optStr(data.orgId),
 		},
 		raw: data,
 	}
@@ -296,6 +379,24 @@ function getKgGnsReceiptDataFrom(rec: Receipt) {
 function kgGnsUrl(refText: string): string | undefined {
 	const m = refText.match(/^https?:\/\/([^/]+)/)
 	return m ? m[1] : undefined
+}
+
+function kzKtcUrl(refText: string): string | undefined {
+	const m = refText.match(/^https?:\/\/([^/]+)/)
+	return m ? m[1] : undefined
+}
+
+export function makeKzKtcReceiptTitle(orgTitle: string): string {
+	return orgTitle
+		.replace(/товарищество с ограниченной ответственностью\s+/i, '')
+		.replace(/^"([^"]*)"$/, '$1')
+		.trim()
+}
+
+function optStr(val: unknown): string | null | undefined {
+	if (typeof val === 'string') return val
+	if (isNil(val)) return val
+	return val + ''
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
