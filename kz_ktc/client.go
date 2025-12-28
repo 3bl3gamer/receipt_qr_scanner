@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"receipt_qr_scanner/receipts"
+	"receipt_qr_scanner/utils"
 	"strconv"
 	"time"
 
@@ -92,14 +92,9 @@ func (c *Client) Init() error {
 func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error) (receipts.FetchReceiptResult, error) {
 	res := receipts.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
 
-	var ref ReceiptRef
-	switch r := iRef.(type) {
-	case ReceiptRef:
-		ref = r
-	case *ReceiptRef:
-		ref = *r
-	default:
-		return res, merry.Errorf("%s: unexpected receipt ref %#T %s", Domain.Code, iRef, iRef.String())
+	ref, err := receipts.CasetReceiptRefTo[ReceiptRef](iRef, Domain.Code)
+	if err != nil {
+		return res, err
 	}
 
 	checkCertExpiration(c.customCert)
@@ -112,15 +107,10 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 		return res, merry.Wrap(err)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, buf, err := utils.GetHTTPBody(c.httpClient, req)
 	if err != nil {
-		return res, merry.Wrap(err)
+		return res, err
 	}
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return res, merry.Wrap(err)
-	}
-	defer resp.Body.Close()
 
 	if resp.TLS != nil {
 		checkVerifiedChains(resp.TLS.VerifiedChains, c.customCert)
@@ -171,7 +161,7 @@ func checkCertExpiration(cert *x509.Certificate) {
 
 	if timeUntilExpiry <= 365*24*time.Hour {
 		log.Warn().
-			Str("domain", domainCode).
+			Str("domain", Domain.Code).
 			Time("expires_at", cert.NotAfter).
 			Dur("time_until_expiry", timeUntilExpiry).
 			Msg("Custom CA certificate will expire in less than a year")

@@ -12,16 +12,14 @@ import (
 	"github.com/ansel1/merry"
 )
 
-const domainCode = "kz-ktc"
-
 var Domain = receipts.Domain{
-	Code:           domainCode,
+	Code:           "kz-ktc",
 	CurrencySymbol: "₸",
 	FlagSymbol:     "🇰🇿",
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
 		return NewReceiptRef(refText)
 	},
-	MakeClient: func() receipts.Client {
+	NewClient: func() receipts.Client {
 		return &Client{}
 	},
 }

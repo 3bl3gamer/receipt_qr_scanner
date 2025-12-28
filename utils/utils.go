@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"io"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
@@ -122,4 +124,21 @@ func MakeConfigDir() (string, error) {
 		return "", merry.Wrap(err)
 	}
 	return dir, nil
+}
+
+// GetHTTPBody делает GET-запрос и возвращает тело в виде []byte.
+// Response.Body будет заерыт.
+func GetHTTPBody(client *http.Client, req *http.Request) (*http.Response, []byte, error) {
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, merry.Wrap(err)
+	}
+	defer resp.Body.Close()
+
+	buf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return resp, nil, merry.Wrap(err)
+	}
+
+	return resp, buf, nil
 }

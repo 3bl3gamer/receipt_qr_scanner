@@ -25,7 +25,7 @@ var allDomains = []receipts.Domain{
 func main() {
 	var allSessionDomains []receipts.Domain
 	for _, d := range allDomains {
-		if _, ok := d.MakeClient().(receipts.ClientWithSession); ok {
+		if _, ok := d.NewClient().(receipts.ClientWithSession); ok {
 			allSessionDomains = append(allSessionDomains, d)
 		}
 	}
@@ -65,7 +65,7 @@ func main() {
 	// инициализация одного клиента (если выбрано)
 	if domainClientsToInit.Value != nil {
 		args := flag.Args()
-		client := domainClientsToInit.Value.MakeClient().(receipts.ClientWithSession)
+		client := domainClientsToInit.Value.NewClient().(receipts.ClientWithSession)
 		if err := client.InitSession(args...); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")
 		}
@@ -78,7 +78,7 @@ func main() {
 	// инициализация клиентов
 	domain2client := map[string]receipts.Client{}
 	for _, domain := range domainsClientsToUse.Values {
-		client := domain.MakeClient()
+		client := domain.NewClient()
 
 		if err := client.Init(); err != nil {
 			log.Fatal().Stack().Err(err).Msg("")

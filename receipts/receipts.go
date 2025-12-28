@@ -3,6 +3,8 @@ package receipts
 import (
 	"errors"
 	"time"
+
+	"github.com/ansel1/merry"
 )
 
 type Domain struct {
@@ -10,7 +12,7 @@ type Domain struct {
 	CurrencySymbol  string
 	FlagSymbol      string
 	ParseReceiptRef func(refText string) (ReceiptRef, error)
-	MakeClient      func() Client
+	NewClient       func() Client
 }
 
 type ReceiptRef interface {
@@ -47,4 +49,19 @@ func ReceiptRefFromText(domains []Domain, refText string) (ReceiptRef, error) {
 		errs = append(errs, err)
 	}
 	return nil, errors.Join(errs...)
+}
+
+// CasetReceiptRefTo кастует iRef в T
+// (обычно — интерфейс receipts.ReceiptRef в конкретный например ru_fns.ReceiptRef),
+// дереференсит при необходимости.
+func CasetReceiptRefTo[T ReceiptRef](iRef any, domainCode string) (T, error) {
+	var zero T
+	switch r := iRef.(type) {
+	case T:
+		return r, nil
+	case *T:
+		return *r, nil
+	default:
+		return zero, merry.Errorf("%s: unexpected receipt ref %#T %s", domainCode, iRef, iRef)
+	}
 }

@@ -70,14 +70,9 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 		return res, merry.New("ru-fns: session is not ready")
 	}
 
-	var ref ReceiptRef
-	switch r := iRef.(type) {
-	case ReceiptRef:
-		ref = r
-	case *ReceiptRef:
-		ref = *r
-	default:
-		return res, merry.Errorf("ru-fns: unexpected receipt ref %#T %s", iRef, iRef.String())
+	ref, err := receipts.CasetReceiptRefTo[ReceiptRef](iRef, "ru-fns")
+	if err != nil {
+		return res, err
 	}
 
 	if err := updateSessionIfOld(c.session); err != nil {

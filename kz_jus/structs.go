@@ -19,7 +19,7 @@ var Domain = receipts.Domain{
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
 		return NewReceiptRef(refText)
 	},
-	MakeClient: func() receipts.Client {
+	NewClient: func() receipts.Client {
 		return &Client{}
 	},
 }

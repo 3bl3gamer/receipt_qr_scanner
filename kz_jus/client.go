@@ -3,10 +3,10 @@ package kz_jus
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"receipt_qr_scanner/receipts"
+	"receipt_qr_scanner/utils"
 
 	"github.com/ansel1/merry"
 	"github.com/rs/zerolog/log"
@@ -21,14 +21,9 @@ func (c *Client) Init() error {
 func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error) (receipts.FetchReceiptResult, error) {
 	res := receipts.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
 
-	var ref ReceiptRef
-	switch r := iRef.(type) {
-	case ReceiptRef:
-		ref = r
-	case *ReceiptRef:
-		ref = *r
-	default:
-		return res, merry.Errorf("%s: unexpected receipt ref %#T %s", Domain.Code, iRef, iRef.String())
+	ref, err := receipts.CasetReceiptRefTo[ReceiptRef](iRef, Domain.Code)
+	if err != nil {
+		return res, err
 	}
 
 	// https://cabinet.kofd.kz/api/tickets?registrationNumber={f}&ticketNumber={i}&ticketDate={date}
@@ -39,15 +34,9 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 		return res, merry.Wrap(err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, buf, err := utils.GetHTTPBody(http.DefaultClient, req)
 	if err != nil {
-		return res, merry.Wrap(err)
-	}
-	defer resp.Body.Close()
-
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return res, merry.Wrap(err)
+		return res, err
 	}
 
 	// если номер ККМ неправильный:
