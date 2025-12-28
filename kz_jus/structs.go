@@ -6,7 +6,6 @@ import (
 	"receipt_qr_scanner/kz_ktc"
 	"receipt_qr_scanner/receipts"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -40,7 +39,7 @@ type ReceiptRef struct {
 }
 
 // формат тот же, то и в kz_ktc
-type ReceiptRefData kz_ktc.ReceiptRefData
+type ReceiptRefData = kz_ktc.ReceiptRefData
 
 func (r ReceiptRef) String() string {
 	return fmt.Sprintf("Ref{%s:%s}", r.Domain().Code, r.text)
@@ -66,20 +65,15 @@ func (r ReceiptRef) UniqueKey() string {
 }
 
 func (r ReceiptRef) CreatedAt() time.Time {
-	return r.data.TransactionDate
+	return r.data.CreatedAt
 }
 
 func (r ReceiptRef) Sum() float64 {
-	return r.data.TotalSum
+	return r.data.Sum
 }
 
 func (r ReceiptRef) SearchKeyItems() []string {
-	return []string{
-		"_created_at:" + r.data.TransactionDate.Format("2006-01-02 15:04"),
-		"_fiscal_id:" + r.data.FiscalId,
-		"_kkm_fns_id:" + r.data.KkmFnsId,
-		"_sum:" + strconv.FormatFloat(r.data.TotalSum, 'f', 2, 64),
-	}
+	return r.data.SearchKeyItems()
 }
 
 func parseRefText(refText string) (*ReceiptRefData, error) {
@@ -93,23 +87,7 @@ func parseRefText(refText string) (*ReceiptRefData, error) {
 		return nil, merry.Errorf("unexpected host: %s", u.Host)
 	}
 
-	query := u.Query()
 	var data ReceiptRefData
-	data.FiscalId, err = receipts.ReadString(query, "i")
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
-	data.KkmFnsId, err = receipts.ReadString(query, "f")
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
-	data.TotalSum, err = receipts.ReadFloat64(query, "s")
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
-	data.TransactionDate, err = receipts.ReadTime(query, "t")
-	if err != nil {
-		return nil, merry.Wrap(err)
-	}
+	data.FillFromQuery(u.Query())
 	return &data, nil
 }

@@ -45,19 +45,19 @@ func TestParseReceiptRef(t *testing.T) {
 				return
 			}
 
-			if ref.data.FiscalId != tt.wantTicketNumber {
-				t.Errorf("TicketNumber = %v, want %v", ref.data.FiscalId, tt.wantTicketNumber)
+			if ref.data.FiscalID != tt.wantTicketNumber {
+				t.Errorf("TicketNumber = %v, want %v", ref.data.FiscalID, tt.wantTicketNumber)
 			}
 			if ref.data.KkmFnsId != tt.wantRegistrationNumber {
 				t.Errorf("RegistrationNumber = %v, want %v", ref.data.KkmFnsId, tt.wantRegistrationNumber)
 			}
-			if ref.data.TotalSum != tt.wantSum {
-				t.Errorf("TotalSum = %v, want %v", ref.data.TotalSum, tt.wantSum)
+			if ref.data.Sum != tt.wantSum {
+				t.Errorf("TotalSum = %v, want %v", ref.data.Sum, tt.wantSum)
 			}
 
 			wantTime, _ := time.Parse("2006-01-02 15:04:05", tt.wantDate)
-			if !ref.data.TransactionDate.Equal(wantTime) {
-				t.Errorf("TransactionDate = %v, want %v", ref.data.TransactionDate, wantTime)
+			if !ref.data.CreatedAt.Equal(wantTime) {
+				t.Errorf("TransactionDate = %v, want %v", ref.data.CreatedAt, wantTime)
 			}
 
 			// Проверка методов интерфейса

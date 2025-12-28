@@ -150,14 +150,14 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 }
 
 func makeAPIURL(data ReceiptRefData) string {
-	dateStr := data.TransactionDate.Format("20060102T150405")
+	dateStr := data.CreatedAt.Format("20060102T150405")
 
 	// 2 знака после запятой
-	sumStr := strconv.FormatFloat(data.TotalSum, 'f', 2, 64)
+	sumStr := strconv.FormatFloat(data.Sum, 'f', 2, 64)
 
 	params := url.Values{}
 	params.Set("t", dateStr)
-	params.Set("i", data.FiscalId)
+	params.Set("i", data.FiscalID)
 	params.Set("f", data.KkmFnsId)
 	params.Set("s", sumStr)
 

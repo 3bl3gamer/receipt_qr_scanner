@@ -9,6 +9,7 @@ type KzKtcExtraData = {
 	kkmFnsId: ReturnType<typeof optStr>
 	/** ФП, фискальный признак ККМ */
 	fiscalId: ReturnType<typeof optStr>
+	/** БИН, Бизнес-идентификационный номер организации */
 	orgId: ReturnType<typeof optStr>
 }
 export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKtcExtraData }> {

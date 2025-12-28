@@ -85,11 +85,11 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 }
 
 func makeAPIURL(data ReceiptRefData) string {
-	dateStr := data.TransactionDate.Format("2006-01-02")
+	dateStr := data.CreatedAt.Format("2006-01-02")
 
 	params := url.Values{}
 	params.Set("registrationNumber", data.KkmFnsId)
-	params.Set("ticketNumber", data.FiscalId)
+	params.Set("ticketNumber", data.FiscalID)
 	params.Set("ticketDate", dateStr)
 
 	return fmt.Sprintf("https://cabinet.kofd.kz/api/tickets?%s", params.Encode())
