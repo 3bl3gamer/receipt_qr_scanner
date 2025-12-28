@@ -132,9 +132,7 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 		Msgf("%s: response", Domain.Code)
 
 	if resp.Status != "200 OK" {
-		if resp.StatusCode == 404 {
-			res.ShouldDecreaseRetries = true // на случай, если чек ещё не загружен в систему
-		}
+		res.ShouldDecreaseRetries = true
 		return res, receipts.ErrUnexpectedHttpStatus.Here().Append(resp.Status).Append(string(buf))
 	}
 

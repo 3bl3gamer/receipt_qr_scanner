@@ -1,8 +1,9 @@
-package kz_ktc
+package kz_jus
 
 import (
 	"fmt"
 	"net/url"
+	"receipt_qr_scanner/kz_ktc"
 	"receipt_qr_scanner/receipts"
 	"sort"
 	"strconv"
@@ -12,10 +13,8 @@ import (
 	"github.com/ansel1/merry"
 )
 
-const domainCode = "kz-ktc"
-
 var Domain = receipts.Domain{
-	Code:           domainCode,
+	Code:           "kz-jus",
 	CurrencySymbol: "₸",
 	FlagSymbol:     "🇰🇿",
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
@@ -40,12 +39,8 @@ type ReceiptRef struct {
 	data ReceiptRefData
 }
 
-type ReceiptRefData struct {
-	FiscalId        string //ФП, фискальный признак ККМ (возможно нужно сохранять нули в начале)
-	KkmFnsId        string //Код ККМ, РНМ, регистрационный номер ККМ (нужно сохранять нули в начале)
-	TotalSum        float64
-	TransactionDate time.Time
-}
+// формат тот же, то и в kz_ktc
+type ReceiptRefData kz_ktc.ReceiptRefData
 
 func (r ReceiptRef) String() string {
 	return fmt.Sprintf("Ref{%s:%s}", r.Domain().Code, r.text)
@@ -88,13 +83,13 @@ func (r ReceiptRef) SearchKeyItems() []string {
 }
 
 func parseRefText(refText string) (*ReceiptRefData, error) {
-	// http://consumer.oofd.kz?i=123456789&f=010101012345&s=1600.00&t=20240309T123456
+	// http://consumer.kofd.kz?i=123456789012&f=010101234567&s=1230.00&t=20251208T123456
 	u, err := url.Parse(refText)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
 
-	if u.Host != "consumer.oofd.kz" {
+	if u.Host != "consumer.kofd.kz" {
 		return nil, merry.Errorf("unexpected host: %s", u.Host)
 	}
 

@@ -1,7 +1,6 @@
 import { useEffect } from 'preact/hooks'
 import { dateStrAsYMDHM } from '../utils'
-import { getReceiptDataFrom, FullReceiptData } from 'receipts'
-import { Receipt } from 'receipts'
+import { Receipt, getReceiptDataFrom, FullReceiptData } from '../receipts'
 import { HighlightedText } from './HighlightedText'
 import { DimmedKopeks } from './DimmedKopeks'
 import { JSX } from 'preact/jsx-runtime'
@@ -284,9 +283,9 @@ function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null;
 	}
 
 	if ('kzKtc' in data) {
-		items.push(['Сер. №', 'Серийный номер ККМ', data.kzKtc.kkmSerialNumber])
+		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzKtc.kkmSerialNumber])
 		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzKtc.kkmFnsId])
-		items.push(['ФП', 'Фискальный признак документа', data.kzKtc.fiscalId])
+		items.push(['ФП', 'Фискальный признак ККМ', data.kzKtc.fiscalId])
 		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzKtc.orgId])
 	}
 

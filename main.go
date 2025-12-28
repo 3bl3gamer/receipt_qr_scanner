@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"receipt_qr_scanner/kg_gns"
+	"receipt_qr_scanner/kz_jus"
 	"receipt_qr_scanner/kz_ktc"
 	"receipt_qr_scanner/receipts"
 	"receipt_qr_scanner/ru_fns"
@@ -18,6 +19,7 @@ var allDomains = []receipts.Domain{
 	ru_fns.Domain,
 	kg_gns.Domain,
 	kz_ktc.Domain,
+	kz_jus.Domain,
 }
 
 func main() {

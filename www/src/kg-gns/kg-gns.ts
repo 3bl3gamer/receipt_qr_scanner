@@ -1,11 +1,14 @@
 import { Receipt, ReceiptData } from '../receipts'
 import { optStr, onError, urlWithoutProtocol } from '../utils'
 
-/** https://www.sti.gov.kg/docs/default-source/kkm/form_fd.pdf */
 type KgGnsExtraData = {
+	/** РН ККМ, регистрационный номер контрольно-кассовой машины */
 	kktRegNumber: ReturnType<typeof optStr>
+	/** ФМ, серийный номер фискального модуля */
 	fiscalModuleSerialNumber: ReturnType<typeof optStr>
+	/** ФД, номер фискального документа */
 	fiscalDocumentNumber: ReturnType<typeof optStr>
+	/** ФПД, фискальный признак документа */
 	fiscalDocumentSign: ReturnType<typeof optStr>
 }
 export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGnsExtraData }> {
@@ -31,11 +34,10 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 			})),
 		},
 		kgGns: {
-			// https://www.sti.gov.kg/docs/default-source/kkm/form_fd.pdf
-			kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber), //РН ККМ, регистрационный номер ККМ
-			fiscalModuleSerialNumber: optStr(data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber), //ФМ, серийный номер фискального модуля
-			fiscalDocumentNumber: optStr(data.fdNumber ?? refData?.fiscalDocumentNumber), //ФД, номер фискального документа
-			fiscalDocumentSign: optStr(data.documentFiscalMark ?? refData?.fiscalDocumentSign), //ФПД, фискальный признак документа
+			kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber),
+			fiscalModuleSerialNumber: optStr(data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber),
+			fiscalDocumentNumber: optStr(data.fdNumber ?? refData?.fiscalDocumentNumber),
+			fiscalDocumentSign: optStr(data.documentFiscalMark ?? refData?.fiscalDocumentSign),
 		},
 		raw: data,
 	}
@@ -49,6 +51,7 @@ function parseKgGnsRefText(refText: string): Record<string, string | null> | nul
 		return null
 	}
 	const params = url.searchParams
+	// описания поей в kg_gns.ReceiptRefData
 	return {
 		createdAt: params.get('date'),
 		type: params.get('type'),

@@ -1,9 +1,13 @@
 import { Receipt, ReceiptData } from '../receipts'
 import { optStr, onError, urlWithoutProtocol } from '../utils'
 
+/** https://online.zakon.kz/Document/?doc_id=35619701 */
 type KzKtcExtraData = {
+	/** ЗНМ, заводской номер ККМ */
 	kkmSerialNumber: ReturnType<typeof optStr>
+	/** Код ККМ, РНМ, регистрационный номер ККМ */
 	kkmFnsId: ReturnType<typeof optStr>
+	/** ФП, фискальный признак ККМ */
 	fiscalId: ReturnType<typeof optStr>
 	orgId: ReturnType<typeof optStr>
 }

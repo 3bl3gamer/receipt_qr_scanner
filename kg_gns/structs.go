@@ -38,15 +38,35 @@ type ReceiptRef struct {
 	data ReceiptRefData
 }
 
+// https://sti.gov.kg/section/0/%D0%BA%D0%BA%D0%BC_%D0%BE%D0%BD%D0%BB%D0%B0%D0%B9%D0%BD
+//
+// https://sti.gov.kg/section/view-pdf?filePath=websti%2F2023%2F1%2F12%2Fstidocument_f1a2adc3-cb14-438f-81a3-2200ec03ff0b.pdf
+//
+// https://sti.gov.kg/section/view-pdf?filePath=websti%2F2023%2F1%2F12%2Fstidocument_683ca1c7-8db1-4d25-9898-5f0a43f4fe46.pdf
 type ReceiptRefData struct {
-	CreatedAt                time.Time
-	Kind                     int64
+	CreatedAt time.Time
+	// Код формы фискального документа
+	//   - 1 Отчет о регистрации
+	//   - 11 Отчет об изменении параметров регистрации
+	//   - 2 Отчет об открытии смены
+	//   - 3 Кассовый чек
+	//   - 5 Отчет о закрытии смены
+	//   - 6 Отчет о закрытии фискального модуля
+	//   - 7 Подтверждение оператора
+	// https://sti.gov.kg/section/view-pdf?filePath=websti%2F2023%2F1%2F12%2Fstidocument_683ca1c7-8db1-4d25-9898-5f0a43f4fe46.pdf
+	Kind int64
+	// Тип кассовой расчетной операции
+	//   - 1 продажа (приход)
+	//   - 2 возврат продажи (возврат прихода)
+	//   - 3 покупка (расход)
+	//   - 4 возврат покупки (возврат расхода)
+	// https://sti.gov.kg/section/view-pdf?filePath=websti%2F2023%2F1%2F12%2Fstidocument_f1a2adc3-cb14-438f-81a3-2200ec03ff0b.pdf
 	OperationType            int64
-	FiscalModuleSerialNumber int64
-	FiscalDocumentNumber     int64
-	FiscalDocumentSign       int64
-	TaxpayerIdNumber         int64
-	KktRegNumber             int64
+	FiscalModuleSerialNumber int64 //ФМ, серийный номер фискального модуля
+	FiscalDocumentNumber     int64 //ФД, номер фискального документа
+	FiscalDocumentSign       int64 //ФПД, фискальный признак документа
+	TaxpayerIdNumber         int64 //ИНН, идентификационный номер налогоплательщика
+	KktRegNumber             int64 //РН ККМ, регистрационный номер контрольно-кассовой машины
 	Sum                      float64
 }
 
@@ -101,6 +121,10 @@ func parseRefText(refText string) (*ReceiptRefData, error) {
 	u, err := url.Parse(refText)
 	if err != nil {
 		return nil, merry.Wrap(err)
+	}
+
+	if u.Host != "tax.salyk.kg" {
+		return nil, merry.Errorf("unexpected host: %s", u.Host)
 	}
 
 	query := u.Query()
