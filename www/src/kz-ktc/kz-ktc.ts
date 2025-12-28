@@ -63,7 +63,7 @@ function parseKzKtcRefText(refText: string): Record<string, string | null> | nul
 
 export function makeKzKtcReceiptTitle(orgTitle: string): string {
 	return orgTitle
-		.replace(/товарищество с ограниченной ответственностью\s+/i, '')
+		.replace(/^товарищество с ограниченной ответственностью\s+/i, '')
 		.replace(/^"([^"]*)"$/, '$1')
 		.trim()
 }

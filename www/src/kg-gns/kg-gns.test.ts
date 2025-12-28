@@ -3,7 +3,6 @@ import { suite as describe, it } from 'node:test'
 import { makeKgGnsReceiptTitle } from './kg-gns'
 
 describe('makeKgGnsReceiptTitle', () => {
-	/** @param {*} dest @param {*} data */
 	function check(dest: unknown, data: string) {
 		test.strictEqual(makeKgGnsReceiptTitle(data), dest)
 	}
