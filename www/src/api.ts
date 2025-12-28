@@ -1,4 +1,4 @@
-import { Receipt } from 'utils'
+import { Receipt } from 'receipts'
 
 export type ApiResponse<T> = ApiResponseOk<T> | ApiResponseErr
 export type ApiResponseOk<T> = { ok: true; result: T }

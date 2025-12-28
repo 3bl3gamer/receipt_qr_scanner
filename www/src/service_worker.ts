@@ -1,4 +1,10 @@
-const cacheName = 'receipt_qr_scanner_v0.5.0'
+/* eslint-disable no-console */
+
+/// <reference lib="WebWorker" />
+export type {}
+declare let self: ServiceWorkerGlobalScope
+
+const CACHE_KEY = 'receipt_qr_scanner_v0.5.0'
 
 /*
 self.addEventListener('install', e => {
@@ -17,7 +23,7 @@ self.addEventListener('activate', event => {
 		caches.keys().then(keyList => {
 			return Promise.all(
 				keyList.map(key => {
-					if (key !== cacheName) return caches.delete(key)
+					if (key !== CACHE_KEY) return caches.delete(key)
 				}),
 			)
 		}),
@@ -31,7 +37,7 @@ self.addEventListener('fetch', event => {
 		event.respondWith(fetch(event.request))
 	} else {
 		event.respondWith(
-			caches.open(cacheName).then(cache =>
+			caches.open(CACHE_KEY).then(cache =>
 				cache.match(event.request).then(resp => {
 					if (resp) {
 						console.log('[Service Worker] Returning from cache: ' + event.request.url)

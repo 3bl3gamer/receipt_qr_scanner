@@ -54,24 +54,24 @@ export default async function (commandOptions) {
 					preventAssignment: true,
 				}),
 				copy({
-					targets: [
-						{ src: 'src/icon-256.png', dest: 'dist' },
-						{ src: 'src/image_icon.svg', dest: 'dist' },
-						{ src: 'src/developer_mode_icon.svg', dest: 'dist' },
-						{ src: 'src/receipt_qr_scanner.webmanifest', dest: 'dist' },
-					],
+					targets: [{ src: 'public/**/*', dest: 'dist' }],
 				}),
 			],
 			watch: { clearScreen: false },
 		},
 		{
-			input: 'src/service_worker.js',
+			input: 'src/service_worker.ts',
 			output: {
 				format: 'esm',
 				dir: 'dist',
 				entryFileNames: 'service_worker.js',
 				sourcemap: true,
 			},
+			plugins: [
+				typescript({
+					exclude: ['src/vendor/**/*'],
+				}),
+			],
 		},
 	]
 }
@@ -86,7 +86,7 @@ function css({ name }) {
 			style = code
 			return ''
 		},
-		generateBundle(opts) {
+		generateBundle(_opts) {
 			if (style === null) return
 			this.emitFile({ type: 'asset', name, source: style })
 			style = null

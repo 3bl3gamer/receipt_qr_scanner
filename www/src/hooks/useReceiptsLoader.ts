@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
-import { onError, searchBinary, Receipt, isAbortError } from '../utils'
+import { onError, searchBinary, isAbortError } from '../utils'
+import { Receipt } from 'receipts'
 import { ApiError, fetchReceipts, makeReceiptsEventSource, ReceiptsSortMode } from 'api'
 
 /**

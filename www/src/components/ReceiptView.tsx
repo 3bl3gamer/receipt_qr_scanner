@@ -1,5 +1,7 @@
 import { useEffect } from 'preact/hooks'
-import { getReceiptDataFrom, dateStrAsYMDHM, FullReceiptData, Receipt } from '../utils'
+import { dateStrAsYMDHM } from '../utils'
+import { getReceiptDataFrom, FullReceiptData } from 'receipts'
+import { Receipt } from 'receipts'
 import { HighlightedText } from './HighlightedText'
 import { DimmedKopeks } from './DimmedKopeks'
 import { JSX } from 'preact/jsx-runtime'

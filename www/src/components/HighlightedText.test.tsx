@@ -1,8 +1,7 @@
 import { describe, it } from 'node:test'
 import test from 'node:assert/strict'
 import { render } from '@testing-library/preact'
-// @ts-expect-error нужно бы добавить allowImportingTsExtensions, но он ломает билд
-import { highlightedIfFound, HighlightedText } from './HighlightedText.tsx'
+import { highlightedIfFound, HighlightedText } from './HighlightedText'
 
 describe('HighlightedText', () => {
 	describe('no text', () => {
