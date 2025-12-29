@@ -4,6 +4,7 @@ import { Receipt, getReceiptDataFrom, FullReceiptData } from '../receipts'
 import { HighlightedText } from './HighlightedText'
 import { DimmedKopeks } from './DimmedKopeks'
 import { JSX } from 'preact/jsx-runtime'
+import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 
 /**
  * Попап с данными из чека.
@@ -59,10 +60,7 @@ export function ReceiptView({
 
 				<ReceiptParseErrors data={data} />
 
-				<h3>Ответ ФНС</h3>
-				<pre class="receipt-json-data">
-					<HighlightedText text={JSON.stringify(data?.raw, null, '  ')} searchQuery={searchQuery} />
-				</pre>
+				<ProviderResponse receipt={receipt} data={data} searchQuery={searchQuery} />
 
 				<h3>Значение для поиска</h3>
 				<pre class="receipt-seach-key">
@@ -334,6 +332,33 @@ function ReceiptParseErrors({ data }: { data: FullReceiptData | null }) {
 			<h3>Ошибки парсинга</h3>
 			<pre>{data.common.parseErrors.join('\n')}</pre>
 		</div>
+	)
+}
+
+/**
+ * Провайдер и его ответ
+ */
+function ProviderResponse({
+	receipt,
+	data,
+	searchQuery,
+}: {
+	receipt: Receipt
+	data: FullReceiptData | null
+	searchQuery: string
+}) {
+	const { domainsMetadata } = useDomainsMetadata()
+	const providerName = domainsMetadata.get(receipt.domain)?.providerName
+
+	return (
+		<>
+			<h3>
+				Ответ <HighlightedText text={providerName} searchQuery={searchQuery} />
+			</h3>
+			<pre class="receipt-json-data">
+				<HighlightedText text={JSON.stringify(data?.raw, null, '  ')} searchQuery={searchQuery} />
+			</pre>
+		</>
 	)
 }
 

@@ -17,6 +17,9 @@ export type DomainMetadata = {
 	domainCode: string
 	currencySymbol: string
 	flagSymbol: string
+	providerName: string
+	providerShortLabel: string
+	providerColor: string
 }
 
 export class ApiError extends Error {

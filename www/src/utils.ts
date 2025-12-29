@@ -92,3 +92,9 @@ export function urlWithoutProtocol(url: string): string {
 	// https://en.wikipedia.org/wiki/URL#Syntax
 	return url.replace(/^[a-z][a-z0-9.+-]+:\/\//i, '')
 }
+
+export function arrCount<T>(arr: T[], filter: (x: T) => boolean): number {
+	let count = 0
+	for (let i = 0; i < arr.length; i++) if (filter(arr[i])) count++
+	return count
+}

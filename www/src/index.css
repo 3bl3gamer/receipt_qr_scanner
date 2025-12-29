@@ -21,7 +21,7 @@ td[title] {
 	text-decoration-style: dashed;
 	cursor: help;
 }
-.error-icon[title] {
+.icon-with-title[title] {
 	text-decoration: none;
 }
 
@@ -200,6 +200,39 @@ td[title] {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-weight: bold;
+}
+
+.receipt-list-item .provider {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.receipt-list-item .provider .provider-label {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	margin-right: 3px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: bold;
+	line-height: 14px;
+	text-align: center;
+	color: white;
+	transition: opacity 0.1s ease;
+}
+
+.receipt-list-item .provider.one-of-many-in-country .provider-label {
+	opacity: 0.8;
+}
+.receipt-list-item .provider.sole-in-country .provider-label {
+	position: absolute;
+	right: 100%;
+	opacity: 0;
+}
+
+.receipt-list-item .provider:hover .provider-label {
+	opacity: 1;
 }
 
 .receipt-list-item .main-info {

@@ -16,6 +16,11 @@ var Domain = receipts.Domain{
 	Code:           "ru-fns",
 	CurrencySymbol: "₽",
 	FlagSymbol:     "🇷🇺",
+	Provider: receipts.Provider{
+		Name:       "ФНС РФ",
+		ShortLabel: "Ф",
+		Color:      "#47B7FB",
+	},
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
 		return NewReceiptRef(refText)
 	},

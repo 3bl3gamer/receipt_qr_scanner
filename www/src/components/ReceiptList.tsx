@@ -231,6 +231,12 @@ function ReceiptListItem({
 	const flagSymbol = domainsMetadata.get(receipt.domain)?.flagSymbol
 	const currencySuffix = data ? ' ' + (domainsMetadata.get(receipt.domain)?.currencySymbol ?? '?') : ''
 
+	const domainMetadata = domainsMetadata.get(receipt.domain)
+	const providerLabel = domainMetadata?.providerShortLabel
+	const providerColor = domainMetadata?.providerColor
+	const providerName = domainMetadata?.providerName
+	const providerCountClass = domainMetadata?.isSoleInCountry ? 'sole-in-country' : 'one-of-many-in-country'
+
 	const hasParseErrors = data && data.common.parseErrors.length > 0
 
 	return (
@@ -238,14 +244,19 @@ function ReceiptListItem({
 			<div class="title">
 				<div class="value">
 					{hasParseErrors && (
-						<span class="error-icon" title="Ошибки парсинга">
+						<span class="icon-with-title" title="Ошибки парсинга">
 							⚠️{' '}
 						</span>
 					)}
 					<HighlightedText text={data?.common.title} searchQuery={searchQuery} />
 				</div>
-				<div class="flag">
-					<HighlightedText text={flagSymbol} searchQuery={searchQuery} />
+				<div class={`provider ${providerCountClass} icon-with-title`} title={providerName}>
+					{providerLabel && (
+						<div class="provider-label" style={{ backgroundColor: providerColor }}>
+							{providerLabel}
+						</div>
+					)}
+					<div class="flag">{flagSymbol}</div>
 				</div>
 			</div>
 			<div class="main-info">

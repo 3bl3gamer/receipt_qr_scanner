@@ -16,6 +16,11 @@ var Domain = receipts.Domain{
 	Code:           "kz-ktc",
 	CurrencySymbol: "₸",
 	FlagSymbol:     "🇰🇿",
+	Provider: receipts.Provider{
+		Name:       "ОФД «Казахтелеком»",
+		ShortLabel: "К",
+		Color:      "#0072BB",
+	},
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
 		return NewReceiptRef(refText)
 	},

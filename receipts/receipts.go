@@ -11,8 +11,19 @@ type Domain struct {
 	Code            string
 	CurrencySymbol  string
 	FlagSymbol      string
+	Provider        Provider
 	ParseReceiptRef func(refText string) (ReceiptRef, error)
 	NewClient       func() Client
+}
+
+type Provider struct {
+	// название сервиса, с котрого скачиваются чеки (оператор фискальных данных или сервис-прослойка)
+	Name string
+	// короткий (желательно однобуквенный) лейбл провадера,
+	// чтоб отличать разных провайдеров одной страны (будет выводить рядом с флагом)
+	ShortLabel string
+	// цвет провайдера, #RRGGBB, в основном для ShortLabel
+	Color string
 }
 
 type ReceiptRef interface {

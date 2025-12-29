@@ -90,17 +90,23 @@ func HandleAPIReceipt(wr http.ResponseWriter, r *http.Request, ps httprouter.Par
 
 func HandleAPIDomainsMetadata(wr http.ResponseWriter, r *http.Request, ps httprouter.Params) (interface{}, error) {
 	type DomainMetadata struct {
-		DomainCode     string `json:"domainCode"`
-		CurrencySymbol string `json:"currencySymbol"`
-		FlagSymbol     string `json:"flagSymbol"`
+		DomainCode         string `json:"domainCode"`
+		CurrencySymbol     string `json:"currencySymbol"`
+		FlagSymbol         string `json:"flagSymbol"`
+		ProviderName       string `json:"providerName"`
+		ProviderShortLabel string `json:"providerShortLabel"`
+		ProviderColor      string `json:"providerColor"`
 	}
 
 	domains := make([]DomainMetadata, len(allDomains))
 	for i, d := range allDomains {
 		domains[i] = DomainMetadata{
-			DomainCode:     d.Code,
-			CurrencySymbol: d.CurrencySymbol,
-			FlagSymbol:     d.FlagSymbol,
+			DomainCode:         d.Code,
+			CurrencySymbol:     d.CurrencySymbol,
+			FlagSymbol:         d.FlagSymbol,
+			ProviderName:       d.Provider.Name,
+			ProviderShortLabel: d.Provider.ShortLabel,
+			ProviderColor:      d.Provider.Color,
 		}
 	}
 	return domains, nil

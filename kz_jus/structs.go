@@ -16,6 +16,11 @@ var Domain = receipts.Domain{
 	Code:           "kz-jus",
 	CurrencySymbol: "₸",
 	FlagSymbol:     "🇰🇿",
+	Provider: receipts.Provider{
+		Name:       "ОФД Jusan Mobile",
+		ShortLabel: "J",
+		Color:      "#FF5100",
+	},
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
 		return NewReceiptRef(refText)
 	},
