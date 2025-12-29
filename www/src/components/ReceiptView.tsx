@@ -357,7 +357,7 @@ function ProviderResponse({
 			<h3>
 				Ответ <HighlightedText text={providerName} searchQuery={searchQuery} />
 			</h3>
-			<pre class="receipt-json-data">
+			<pre class="receipt-raw-data">
 				<HighlightedText text={JSON.stringify(data?.raw, null, '  ')} searchQuery={searchQuery} />
 			</pre>
 		</>

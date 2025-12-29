@@ -10,10 +10,6 @@ body {
 	height: 100dvh;
 }
 
-.template {
-	display: none;
-}
-
 div[title],
 span[title],
 td[title] {
@@ -401,7 +397,7 @@ td[title] {
 	word-break: break-word;
 }
 
-.receipt-view .receipt-json-data {
+.receipt-view .receipt-raw-data {
 	max-width: 100%;
 	overflow-x: auto;
 }
