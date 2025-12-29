@@ -57,6 +57,8 @@ export function ReceiptView({
 
 				<ReceiptInfoTable data={data} searchQuery={searchQuery} />
 
+				<ReceiptParseErrors data={data} />
+
 				<h3>Ответ ФНС</h3>
 				<pre class="receipt-json-data">
 					<HighlightedText text={JSON.stringify(data?.raw, null, '  ')} searchQuery={searchQuery} />
@@ -289,6 +291,16 @@ function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null;
 		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzKtc.orgId])
 	}
 
+	if ('kzJus' in data) {
+		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzJus.kkmSerialNumber])
+		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzJus.kkmFnsId])
+		items.push(['ИНК', 'Идентификационный номер кассы', data.kzJus.kkmInkNumber])
+		items.push(['ФП', 'Фискальный признак ККМ', data.kzJus.fiscalId])
+		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzJus.orgId])
+		items.push(['Чек №', 'Порядковый номер чека', data.kzJus.receiptNumber])
+		items.push(['Кассир', 'Код кассира', data.kzJus.cashierCode])
+	}
+
 	if (items.length === 0) return null
 
 	return (
@@ -305,6 +317,22 @@ function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null;
 					))}
 				</tbody>
 			</table>
+		</div>
+	)
+}
+
+/**
+ * Ошибки парсинга чека
+ */
+function ReceiptParseErrors({ data }: { data: FullReceiptData | null }) {
+	if (!data || data.common.parseErrors.length === 0) {
+		return null
+	}
+
+	return (
+		<div class="receipt-parse-errors">
+			<h3>Ошибки парсинга</h3>
+			<pre>{data.common.parseErrors.join('\n')}</pre>
 		</div>
 	)
 }

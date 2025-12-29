@@ -21,6 +21,9 @@ td[title] {
 	text-decoration-style: dashed;
 	cursor: help;
 }
+.error-icon[title] {
+	text-decoration: none;
+}
 
 .receipt-info-box-wrap {
 	position: fixed;
@@ -349,6 +352,11 @@ td[title] {
 }
 .receipt-view .receipt-contacts .tax-org-url {
 	overflow-wrap: anywhere;
+}
+
+.receipt-view .receipt-parse-errors pre {
+	background-color: rgba(255, 0, 0, 0.2);
+	overflow-x: auto;
 }
 
 .receipt-view .receipt-info {

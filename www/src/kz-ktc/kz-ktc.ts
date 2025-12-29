@@ -38,6 +38,7 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 				price: x.commodity?.price,
 				sum: x.commodity?.sum,
 			})),
+			parseErrors: [],
 		},
 		kzKtc: {
 			kkmSerialNumber: optStr(data.kkmSerialNumber),

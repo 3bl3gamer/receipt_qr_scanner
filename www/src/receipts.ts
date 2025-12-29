@@ -1,4 +1,5 @@
 import { getKzKtcReceiptDataFrom } from 'kz-ktc/kz-ktc'
+import { getKzJusReceiptDataFrom } from 'kz-jus/kz-jus'
 import { getKgGnsReceiptDataFrom } from 'kg-gns/kg-gns'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
 
@@ -30,7 +31,7 @@ export type CommonReceiptData = {
 	orgInn: string | undefined
 	address: string | undefined
 	cashierName: string | undefined
-	shiftNumber: number | undefined
+	shiftNumber: string | undefined
 	taxOrgUrl: string | undefined
 	items: {
 		name: string | undefined
@@ -38,6 +39,7 @@ export type CommonReceiptData = {
 		price: number | undefined
 		sum: number | undefined
 	}[]
+	parseErrors: string[]
 }
 
 export type FullReceiptData = Exclude<ReturnType<typeof getReceiptDataFrom>, null>
@@ -47,5 +49,6 @@ export function getReceiptDataFrom(rec: Receipt) {
 	if (rec.domain === 'ru-fns') return getRuFnsReceiptDataFrom(rec)
 	if (rec.domain === 'kg-gns') return getKgGnsReceiptDataFrom(rec)
 	if (rec.domain === 'kz-ktc') return getKzKtcReceiptDataFrom(rec)
+	if (rec.domain === 'kz-jus') return getKzJusReceiptDataFrom(rec)
 	return null
 }

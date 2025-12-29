@@ -32,6 +32,7 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 				price: x.goodPrice / 100,
 				sum: x.goodCost / 100,
 			})),
+			parseErrors: [],
 		},
 		kgGns: {
 			kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber),

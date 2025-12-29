@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'preact/hooks'
+import { JSX } from 'preact/jsx-runtime'
 import { useReceiptsLoader } from '../hooks/useReceiptsLoader'
 import { dateStrAsYMDHM } from '../utils'
-import { getReceiptDataFrom } from 'receipts'
-import { Receipt } from 'receipts'
+import { Receipt, getReceiptDataFrom } from '../receipts'
 import { highlightedIfFound, HighlightedText } from './HighlightedText'
 import { ReceiptView } from './ReceiptView'
-import { JSX } from 'preact/jsx-runtime'
-import { ReceiptsSortMode } from 'api'
+import { ReceiptsSortMode } from '../api'
 import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 
 /**
@@ -232,10 +231,17 @@ function ReceiptListItem({
 	const flagSymbol = domainsMetadata.get(receipt.domain)?.flagSymbol
 	const currencySuffix = data ? ' ' + (domainsMetadata.get(receipt.domain)?.currencySymbol ?? '?') : ''
 
+	const hasParseErrors = data && data.common.parseErrors.length > 0
+
 	return (
 		<div ref={itemRef} class={classes.join(' ')} onClick={onClickInner}>
 			<div class="title">
 				<div class="value">
+					{hasParseErrors && (
+						<span class="error-icon" title="Ошибки парсинга">
+							⚠️{' '}
+						</span>
+					)}
 					<HighlightedText text={data?.common.title} searchQuery={searchQuery} />
 				</div>
 				<div class="flag">

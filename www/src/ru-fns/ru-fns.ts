@@ -35,6 +35,7 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 				price: x.price / 100,
 				sum: x.sum / 100,
 			})),
+			parseErrors: [],
 		},
 		ruFns: {
 			kktRegId: receipt.kktRegId,
