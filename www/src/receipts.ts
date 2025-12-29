@@ -2,6 +2,7 @@ import { getKzKtcReceiptDataFrom } from 'kz-ktc/kz-ktc'
 import { getKzJusReceiptDataFrom } from 'kz-jus/kz-jus'
 import { getKgGnsReceiptDataFrom } from 'kg-gns/kg-gns'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
+import { OptNum, OptStr } from 'utils'
 
 export type Receipt = {
 	id: number
@@ -24,20 +25,20 @@ export type ReceiptData<T> = {
 } & T
 
 export type CommonReceiptData = {
-	title: string
-	totalSum: number | undefined
-	itemsCount: number | undefined
-	placeName: string | undefined
-	orgInn: string | undefined
-	address: string | undefined
-	cashierName: string | undefined
-	shiftNumber: string | undefined
-	taxOrgUrl: string | undefined
+	title: OptStr
+	totalSum: OptNum
+	itemsCount: OptNum
+	placeName: OptStr
+	orgInn: OptStr
+	address: OptStr
+	cashierName: OptStr
+	shiftNumber: OptStr
+	taxOrgUrl: OptStr
 	items: {
-		name: string | undefined
-		quantity: number | undefined
-		price: number | undefined
-		sum: number | undefined
+		name: OptStr
+		quantity: OptNum
+		price: OptNum
+		sum: OptNum
 	}[]
 	parseErrors: string[]
 }

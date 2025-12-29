@@ -1,48 +1,47 @@
 import { Receipt, ReceiptData } from '../receipts'
-import { optStr, urlWithoutProtocol } from '../utils'
+import { isRecord, optArr, OptNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
 
 type KzJusExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: string | null | undefined
+	kkmSerialNumber: OptStr
 	/** Код ККМ, РНМ, регистрационный номер ККМ */
-	kkmFnsId: string | null | undefined
+	kkmFnsId: OptStr
 	/** КСН/ИНК, идентификационный номер кассы */
-	kkmInkNumber: string | null | undefined
+	kkmInkNumber: OptStr
 	/** ФП, фискальный признак ККМ */
-	fiscalId: string | null | undefined
+	fiscalId: OptStr
 	/** БИН, бизнес-идентификационный номер организации */
-	orgId: string | null | undefined
+	orgId: OptStr
 	/** Порядковый номер чека */
-	receiptNumber: string | null | undefined
+	receiptNumber: OptStr
 	/** Код кассира */
-	cashierCode: string | null | undefined
+	cashierCode: OptStr
 }
 
 type ParsedReceipt = {
-	orgName: string | undefined
-	orgId: string | undefined
-	receiptNumber: string | undefined
-	shiftNumber: string | undefined
-	fiscalId: string | undefined
-	cashierCode: string | undefined
-	kkmSerialNumber: string | undefined
-	kkmInkNumber: string | undefined
-	kkmFnsId: string | undefined
-	totalSum: number | undefined
+	orgName: OptStr
+	orgId: OptStr
+	receiptNumber: OptStr
+	shiftNumber: OptStr
+	fiscalId: OptStr
+	cashierCode: OptStr
+	kkmSerialNumber: OptStr
+	kkmInkNumber: OptStr
+	kkmFnsId: OptStr
+	totalSum: OptNum
 	items: Array<{
-		name: string | undefined
-		quantity: number | undefined
-		price: number | undefined
-		sum: number | undefined
+		name: OptStr
+		quantity: OptNum
+		price: OptNum
+		sum: OptNum
 	}>
 	parseErrors: string[]
 }
 
 export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJusExtraData }> {
-	const data = JSON.parse(rec.data)
-	const lines = data.data.ticket as Array<{ text: string; style: number }>
+	const data: Record<string, unknown> = JSON.parse(rec.data)
+	const lines = optArr(isRecord(data.data) ? data.data.ticket : undefined, [])
 
-	// Parse receipt lines
 	const parsed = parseKzJusReceipt(lines)
 	const refData = parseKzJusRefText(rec.refText)
 
@@ -73,7 +72,7 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 	}
 }
 
-export function parseKzJusReceipt(lines: Array<{ text: string; style: number }>): ParsedReceipt {
+export function parseKzJusReceipt(lines: unknown[]): ParsedReceipt {
 	const result: ParsedReceipt = {
 		orgName: undefined,
 		orgId: undefined,
@@ -96,7 +95,14 @@ export function parseKzJusReceipt(lines: Array<{ text: string; style: number }>)
 
 	lineLoop: for (let i = 0; i < lines.length; i++) {
 		const line = lines[i]
-		const text = line.text.trim()
+
+		let text: string
+		if (isRecord(line) && typeof line.text === 'string') {
+			text = line.text.trim()
+		} else {
+			result.parseErrors.push(`Неккоректная строка ${i + 1}: ${JSON.stringify(line)}`)
+			continue
+		}
 
 		if (text === '') continue
 		nonEmptyLinesCount += 1
@@ -259,8 +265,8 @@ function parseKzJusRefText(refText: string): Record<string, string | null> | nul
 	}
 }
 
-export function makeKzJusReceiptTitle(orgName: string | undefined): string {
-	if (!orgName) return ''
+export function makeKzJusReceiptTitle(orgName: OptStr): OptStr {
+	if (!orgName) return orgName
 	return orgName
 		.replace(/^ТОО\s+/i, '')
 		.replace(/^Товарищество с ограниченной ответственностью\s+/i, '')

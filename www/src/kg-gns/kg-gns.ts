@@ -1,37 +1,40 @@
 import { Receipt, ReceiptData } from '../receipts'
-import { optStr, onError, urlWithoutProtocol } from '../utils'
+import { optStr, onError, urlWithoutProtocol, OptStr, optArr, optNum, divBy100, isRecord } from '../utils'
 
 type KgGnsExtraData = {
 	/** РН ККМ, регистрационный номер контрольно-кассовой машины */
-	kktRegNumber: ReturnType<typeof optStr>
+	kktRegNumber: OptStr
 	/** ФМ, серийный номер фискального модуля */
-	fiscalModuleSerialNumber: ReturnType<typeof optStr>
+	fiscalModuleSerialNumber: OptStr
 	/** ФД, номер фискального документа */
-	fiscalDocumentNumber: ReturnType<typeof optStr>
+	fiscalDocumentNumber: OptStr
 	/** ФПД, фискальный признак документа */
-	fiscalDocumentSign: ReturnType<typeof optStr>
+	fiscalDocumentSign: OptStr
 }
 export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGnsExtraData }> {
-	const data = JSON.parse(rec.data)
+	const data: Record<string, unknown> = JSON.parse(rec.data)
+	const data_crData = isRecord(data.crData) ? data.crData : {}
 	const refData = parseKgGnsRefText(rec.refText)
 	return {
 		common: {
-			title: makeKgGnsReceiptTitle(data.crData.locationName),
-			totalSum: data.ticketTotalSum / 100,
-			itemsCount: data.items.length,
-			placeName: data.crData.locationName,
-			orgInn: data.tin,
-			address: data.crData.locationAddress,
-			cashierName: data.crData.cashierName,
-			shiftNumber: data.crData.shiftNumber,
+			title: makeKgGnsReceiptTitle(optStr(data_crData.locationName)),
+			totalSum: optNum(data.ticketTotalSum, divBy100),
+			itemsCount: optArr(data.items)?.length,
+			placeName: optStr(data_crData.locationName),
+			orgInn: optStr(data.tin),
+			address: optStr(data_crData.locationAddress),
+			cashierName: optStr(data_crData.cashierName),
+			shiftNumber: optStr(data_crData.shiftNumber),
 			taxOrgUrl: urlWithoutProtocol(rec.refText),
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			items: (data.items as any[]).map(x => ({
-				name: x.goodName,
-				quantity: x.goodQuantity,
-				price: x.goodPrice / 100,
-				sum: x.goodCost / 100,
-			})),
+			items: optArr(data.items, []).map(item => {
+				const x = isRecord(item) ? item : { name: item }
+				return {
+					name: optStr(x.goodName),
+					quantity: optNum(x.goodQuantity),
+					price: optNum(x.goodPrice, divBy100),
+					sum: optNum(x.goodCost, divBy100),
+				}
+			}),
 			parseErrors: [],
 		},
 		kgGns: {
@@ -66,7 +69,8 @@ function parseKgGnsRefText(refText: string): Record<string, string | null> | nul
 	}
 }
 
-export function makeKgGnsReceiptTitle(locationName: string): string {
+export function makeKgGnsReceiptTitle(locationName: OptStr): OptStr {
+	if (!locationName) return locationName
 	return locationName
 		.replace(/^осоо(?=\W)/i, '')
 		.replace(/^магазин\s/i, '')

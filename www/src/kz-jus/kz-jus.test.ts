@@ -155,6 +155,37 @@ describe('parseKzJusReceipt', () => {
 		)
 	})
 
+	it('should handle invalid line structures and report errors', () => {
+		const lines = [
+			{ text: 'ТОО "STORE"' },
+			null,
+			undefined,
+			'just a string',
+			123,
+			[1, 2, 3],
+			{ style: 0 },
+			{ text: 456 },
+			{ text: null },
+			{ text: undefined },
+			{ text: 'БАРЛЫҒЫ/ИТОГО:100,00₸' },
+		]
+		const result = parseKzJusReceipt(lines)
+
+		test.deepStrictEqual(result.parseErrors, [
+			'Неккоректная строка 2: null',
+			'Неккоректная строка 3: undefined',
+			'Неккоректная строка 4: "just a string"',
+			'Неккоректная строка 5: 123',
+			'Неккоректная строка 6: [1,2,3]',
+			'Неккоректная строка 7: {"style":0}',
+			'Неккоректная строка 8: {"text":456}',
+			'Неккоректная строка 9: {"text":null}',
+			'Неккоректная строка 10: {}',
+		])
+		test.strictEqual(result.orgName, 'ТОО "STORE"')
+		test.deepStrictEqual(result.totalSum, 100)
+	})
+
 	it('should parse real receipt #1', () => {
 		const lines = [
 			{ text: '                    АДК-КСФ                     ', style: 0 },

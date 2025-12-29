@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks'
-import { dateStrAsYMDHM } from '../utils'
+import { dateStrAsYMDHM, OptStr } from '../utils'
 import { Receipt, getReceiptDataFrom, FullReceiptData } from '../receipts'
 import { HighlightedText } from './HighlightedText'
 import { DimmedKopeks } from './DimmedKopeks'
@@ -268,7 +268,7 @@ function ReceiptItem({
 function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
 	if (!data) return null
 
-	const items: [string, string, string | null | undefined][] = []
+	const items: [string, string, OptStr][] = []
 
 	if ('ruFns' in data) {
 		items.push(['РН ККТ', 'Регистрационный номер ККТ', data.ruFns.kktRegId])

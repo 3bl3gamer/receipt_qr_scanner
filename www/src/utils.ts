@@ -11,6 +11,10 @@ export function isNil(x: unknown): x is null | undefined {
 	return x == void 0
 }
 
+export function isRecord(x: unknown): x is Record<string | number | symbol, unknown> {
+	return x !== null && typeof x === 'object'
+}
+
 export function mustBeNotNull<T>(val: T | null): T {
 	if (val === null) throw new Error('must not be null')
 	return val
@@ -56,10 +60,32 @@ export function dateStrAsYMDHM(str: string): string {
 	return `${y}-${m}-${d} ${hr}:${mn}`
 }
 
-export function optStr(val: unknown): string | null | undefined {
+export type OptNum = number | undefined
+export function optNum(val: unknown, map?: (x: number) => number): OptNum {
+	let num = optNumPlain(val)
+	if (map && num !== undefined) num = map(num)
+	return num
+}
+function optNumPlain(val: unknown): OptNum {
+	if (typeof val === 'number') return val
+	if (val === undefined) return val
+	return +('' + val) //+ попытается парсить значение целиком: "12wrong" -> NaN
+}
+export function divBy100(x: number): number {
+	return x / 100
+}
+
+export type OptStr = string | undefined
+export function optStr(val: unknown): OptStr {
 	if (typeof val === 'string') return val
-	if (isNil(val)) return val
+	if (val === undefined) return val
 	return val + ''
+}
+
+export function optArr(val: unknown): unknown[] | undefined
+export function optArr<T>(val: unknown, defaut_: T): unknown[] | T
+export function optArr<T>(val: unknown, defaut_?: T): unknown[] | T {
+	return Array.isArray(val) ? val : (defaut_ as T)
 }
 
 export function urlWithoutProtocol(url: string): string {

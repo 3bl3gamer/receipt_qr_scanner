@@ -1,43 +1,45 @@
 import { Receipt, ReceiptData } from '../receipts'
-import { optStr, onError, urlWithoutProtocol } from '../utils'
+import { optStr, onError, urlWithoutProtocol, OptStr, isRecord, optArr, optNum } from '../utils'
 
 /** https://online.zakon.kz/Document/?doc_id=35619701 */
 type KzKtcExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: ReturnType<typeof optStr>
+	kkmSerialNumber: OptStr
 	/** Код ККМ, РНМ, регистрационный номер ККМ */
-	kkmFnsId: ReturnType<typeof optStr>
+	kkmFnsId: OptStr
 	/** ФП, фискальный признак ККМ */
-	fiscalId: ReturnType<typeof optStr>
+	fiscalId: OptStr
 	/** БИН, Бизнес-идентификационный номер организации */
-	orgId: ReturnType<typeof optStr>
+	orgId: OptStr
 }
 export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKtcExtraData }> {
-	const data = JSON.parse(rec.data)
-	const ticket = data.ticket
+	const data: Record<string, unknown> = JSON.parse(rec.data)
+	const ticket = isRecord(data.ticket) ? data.ticket : {}
 	const refData = parseKzKtcRefText(rec.refText)
 
 	// Фильтруем только товарные позиции (itemType === 1)
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const productItems = (ticket.items as any[]).filter(x => x.itemType === 1)
+	const productItems = optArr(ticket.items, []).filter(x => isRecord(x) && x.itemType === 1)
 
 	return {
 		common: {
-			title: makeKzKtcReceiptTitle(data.orgTitle),
-			totalSum: ticket.totalSum,
+			title: makeKzKtcReceiptTitle(optStr(data.orgTitle)),
+			totalSum: optNum(ticket.totalSum),
 			itemsCount: productItems.length,
-			placeName: data.orgTitle,
-			orgInn: data.orgId,
-			address: data.retailPlaceAddress,
-			cashierName: ticket.operator?.name,
-			shiftNumber: ticket.shiftNumber,
+			placeName: optStr(data.orgTitle),
+			orgInn: optStr(data.orgId),
+			address: optStr(data.retailPlaceAddress),
+			cashierName: isRecord(ticket.operator) ? optStr(ticket.operator.name) : undefined,
+			shiftNumber: optStr(ticket.shiftNumber),
 			taxOrgUrl: urlWithoutProtocol(rec.refText),
-			items: productItems.map(x => ({
-				name: x.commodity?.name,
-				quantity: x.commodity?.quantity,
-				price: x.commodity?.price,
-				sum: x.commodity?.sum,
-			})),
+			items: productItems.map(item => {
+				const x = isRecord(item) && isRecord(item.commodity) ? item : { name: item }
+				return {
+					name: optStr(x.name),
+					quantity: optNum(x.quantity),
+					price: optNum(x.price),
+					sum: optNum(x.sum),
+				}
+			}),
 			parseErrors: [],
 		},
 		kzKtc: {
@@ -67,7 +69,8 @@ function parseKzKtcRefText(refText: string): Record<string, string | null> | nul
 	}
 }
 
-export function makeKzKtcReceiptTitle(orgTitle: string): string {
+export function makeKzKtcReceiptTitle(orgTitle: OptStr): OptStr {
+	if (!orgTitle) return orgTitle
 	return orgTitle
 		.replace(/^товарищество с ограниченной ответственностью\s+/i, '')
 		.replace(/^"([^"]*)"$/, '$1')

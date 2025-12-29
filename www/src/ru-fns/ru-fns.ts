@@ -1,18 +1,18 @@
 import { Receipt, ReceiptData } from '../receipts'
-import { optStr } from '../utils'
+import { divBy100, isRecord, optArr, optNum, optStr, OptStr } from '../utils'
 
 type RuFnsExtraData = {
-	kktRegId: ReturnType<typeof optStr>
-	fiscalDriveNumber: ReturnType<typeof optStr>
-	fiscalDocumentNumber: ReturnType<typeof optStr>
-	fiscalDocumentSign: ReturnType<typeof optStr>
-	orgName: ReturnType<typeof optStr>
-	buyerPhoneOrAddress: ReturnType<typeof optStr>
-	sellerAddress: ReturnType<typeof optStr>
+	kktRegId: OptStr
+	fiscalDriveNumber: OptStr
+	fiscalDocumentNumber: OptStr
+	fiscalDocumentSign: OptStr
+	orgName: OptStr
+	buyerPhoneOrAddress: OptStr
+	sellerAddress: OptStr
 }
 export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFnsExtraData }> {
 	const data = JSON.parse(rec.data)
-	const receipt =
+	const receipt: Record<string, unknown> =
 		'ticket' in data
 			? data.ticket.document.receipt //FNS API version 2
 			: data.document.receipt //FNS API version 1
@@ -20,31 +20,33 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 	return {
 		common: {
 			title: makeRuFnsReceiptTitle(receipt) ?? '—',
-			totalSum: receipt.totalSum / 100,
-			itemsCount: receipt.items.length,
-			placeName: receipt.retailPlace,
-			orgInn: receipt.userInn,
-			address: receipt.retailPlaceAddress,
-			cashierName: receipt.operator,
-			shiftNumber: receipt.shiftNumber,
-			taxOrgUrl: receipt.fnsUrl,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			items: (receipt.items as any[]).map(x => ({
-				name: x.name,
-				quantity: x.quantity,
-				price: x.price / 100,
-				sum: x.sum / 100,
-			})),
+			totalSum: optNum(receipt.totalSum, divBy100),
+			itemsCount: optArr(receipt.items)?.length,
+			placeName: optStr(receipt.retailPlace),
+			orgInn: optStr(receipt.userInn),
+			address: optStr(receipt.retailPlaceAddress),
+			cashierName: optStr(receipt.operator),
+			shiftNumber: optStr(receipt.shiftNumber),
+			taxOrgUrl: optStr(receipt.fnsUrl),
+			items: optArr(receipt.items, []).map(item => {
+				const x = isRecord(item) ? item : { name: item }
+				return {
+					name: optStr(x.name),
+					quantity: optNum(x.quantity),
+					price: optNum(x.price, divBy100),
+					sum: optNum(x.sum, divBy100),
+				}
+			}),
 			parseErrors: [],
 		},
 		ruFns: {
-			kktRegId: receipt.kktRegId,
-			fiscalDriveNumber: receipt.fiscalDriveNumber ?? refData.fiscalNum,
-			fiscalDocumentNumber: receipt.fiscalDoc ?? refData.fiscalDocumentNumber,
-			fiscalDocumentSign: receipt.fiscalSign ?? refData.fiscalDocumentSign,
-			orgName: receipt.user,
-			buyerPhoneOrAddress: receipt.buyerPhoneOrAddress,
-			sellerAddress: receipt.sellerAddress,
+			kktRegId: optStr(receipt.kktRegId),
+			fiscalDriveNumber: optStr(receipt.fiscalDriveNumber ?? refData.fiscalNum),
+			fiscalDocumentNumber: optStr(receipt.fiscalDoc ?? refData.fiscalDocumentNumber),
+			fiscalDocumentSign: optStr(receipt.fiscalSign ?? refData.fiscalDocumentSign),
+			orgName: optStr(receipt.user),
+			buyerPhoneOrAddress: optStr(receipt.buyerPhoneOrAddress),
+			sellerAddress: optStr(receipt.sellerAddress),
 		},
 		raw: data,
 	}
