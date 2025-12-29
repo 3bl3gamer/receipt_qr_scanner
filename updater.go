@@ -54,11 +54,12 @@ func updateIter(db *sql.DB, domain2client map[string]receipts.Client, updatedRec
 
 func StartUpdater(db *sql.DB, domain2client map[string]receipts.Client, triggerChan chan struct{}, updatedReceiptIDsChan chan int64) error {
 	timer := time.NewTimer(200 * 365 * 24 * time.Hour) //timedelta can store ~292 years
+	domainCodes := slices.Collect(maps.Keys(domain2client))
 	for {
 		if err := updateIter(db, domain2client, updatedReceiptIDsChan); err != nil {
 			return merry.Wrap(err)
 		}
-		nextRetryAt, err := loadNextRetryTime(db)
+		nextRetryAt, err := loadNextRetryTime(db, domainCodes)
 		if err != nil {
 			return merry.Wrap(err)
 		}

@@ -386,12 +386,19 @@ func loadPendingReceipts(db *sql.DB, domainCodes []string, limit int64) ([]*Rece
 	return recs, nil
 }
 
-func loadNextRetryTime(db *sql.DB) (time.Time, error) {
+func loadNextRetryTime(db *sql.DB, domainCodes []string) (time.Time, error) {
+	args := make([]any, 0, len(domainCodes))
+	for _, code := range domainCodes {
+		args = append(args, code)
+	}
+
 	var nextRetryAt time.Time
 	err := db.QueryRow(`
 		SELECT next_retry_at FROM receipts
-		WHERE data IS NULL AND retries_left > 0
-		ORDER BY next_retry_at`).Scan(&nextRetryAt)
+		WHERE data IS NULL
+		  AND retries_left > 0
+		  AND domain IN (`+strings.Repeat(",?", len(domainCodes))[1:]+`)
+		ORDER BY next_retry_at`, args...).Scan(&nextRetryAt)
 	if err == sql.ErrNoRows {
 		return time.Date(2200, 12, 31, 23, 59, 59, 0, time.UTC), nil //timedelta can store ~292 years
 	}

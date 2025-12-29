@@ -32,7 +32,7 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 			shiftNumber: optStr(ticket.shiftNumber),
 			taxOrgUrl: urlWithoutProtocol(rec.refText),
 			items: productItems.map(item => {
-				const x = isRecord(item) && isRecord(item.commodity) ? item : { name: item }
+				const x = isRecord(item) && isRecord(item.commodity) ? item.commodity : { name: item }
 				return {
 					name: optStr(x.name),
 					quantity: optNum(x.quantity),
