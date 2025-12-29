@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"os"
 	"receipt_qr_scanner/kg_gns"
@@ -46,6 +47,7 @@ func main() {
 	flag.Var(&domainClientsToInit, "init-session", "init session for client, possible values: "+domainClientsToInit.JoinStrings(", "))
 	flag.Var(&domainsClientsToUse, "clients", "use only specified cliets (all used by default: "+domainsClientsToUse.JoinStrings(",")+")")
 	debugTSL := flag.Bool("debug-tls", false, "start HTTP server in TLS mode for debugging")
+	updateSearchKey := flag.Bool("update-search-key", false, "update all receipts search_key, VACUUM and exit")
 	flag.Parse()
 
 	if len(domainsClientsToUse.Values) == 0 {
@@ -61,6 +63,24 @@ func main() {
 		tsFmt = func(arg interface{}) string { return "" }
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05.000", FormatTimestamp: tsFmt})
+
+	// обновление search_key (если выбрано)
+	if *updateSearchKey {
+		db := openDB()
+
+		log.Info().Msg("updating...")
+		if err := updateAllSearchKeys(db, allDomains); err != nil {
+			log.Fatal().Stack().Err(err).Msg("")
+		}
+
+		log.Info().Msg("vacuuming...")
+		if _, err := db.Exec("VACUUM"); err != nil {
+			log.Fatal().Stack().Err(err).Msg("")
+		}
+
+		log.Info().Msg("search keys updated and database vacuumed")
+		os.Exit(0)
+	}
 
 	// инициализация одного клиента (если выбрано)
 	if domainClientsToInit.Value != nil {
@@ -97,15 +117,7 @@ func main() {
 	}
 
 	// DB
-	cfgDir, err := utils.MakeConfigDir()
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("")
-	}
-
-	db, err := setupDB(cfgDir)
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("")
-	}
+	db := openDB()
 	defer db.Close()
 
 	// запуск
@@ -121,4 +133,17 @@ func main() {
 	if err := StartHTTPServer(db, env, *serverAddr, *debugTSL, triggerChan, updatedReceiptIDsChan); err != nil {
 		log.Fatal().Stack().Err(err).Msg("")
 	}
+}
+
+func openDB() *sql.DB {
+	cfgDir, err := utils.MakeConfigDir()
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("")
+	}
+
+	db, err := setupDB(cfgDir)
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("")
+	}
+	return db
 }

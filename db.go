@@ -233,6 +233,53 @@ func setupDB(configDir string) (*sql.DB, error) {
 	return db, nil
 }
 
+func updateAllSearchKeys(db *sql.DB, allDomains []receipts.Domain) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return merry.Wrap(err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`SELECT id, ref_text, COALESCE(data, '') FROM receipts`)
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	count := 0
+	for rows.Next() {
+		var id int64
+		var refText string
+		var data string
+		err := rows.Scan(&id, &refText, &data)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		ref, err := receipts.ReceiptRefFromText(allDomains, refText)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		searchKey, err := makeReceiptSearchKey(ref, data)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		_, err = tx.Exec(`UPDATE receipts SET search_key = ? WHERE id = ?`, searchKey, id)
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		return merry.Wrap(err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return merry.Wrap(err)
+	}
+
+	log.Info().Int("count", count).Msg("updated search keys")
+	return nil
+}
+
 func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]string) {
 	switch obj := obj.(type) {
 	case map[string]interface{}:
@@ -264,7 +311,15 @@ func makeReceiptSearchKeyInner(valPrefix string, obj interface{}, items *[]strin
 	}
 }
 func makeReceiptSearchKey(ref receipts.ReceiptRef, dataStr string) (string, error) {
-	items := ref.SearchKeyItems()
+	items := []string{
+		"_domain:" + ref.Domain().Code,
+		"_currency:" + ref.Domain().CurrencySymbol,
+		"_flag:" + ref.Domain().FlagSymbol,
+		"_provider:" + ref.Domain().Provider.Name,
+	}
+
+	items = append(items, ref.SearchKeyItems()...)
+
 	if dataStr != "" {
 		var data interface{}
 		if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
@@ -272,6 +327,7 @@ func makeReceiptSearchKey(ref receipts.ReceiptRef, dataStr string) (string, erro
 		}
 		makeReceiptSearchKeyInner("", data, &items)
 	}
+
 	searchKey := strings.Join(items, " ")
 	searchKey = strings.ReplaceAll(searchKey, "\x00", `\0`) //https://www.sqlite.org/nulinstr.html
 	searchKey = strings.ToLower(searchKey)
@@ -455,7 +511,7 @@ func searchAndReadReceipts(db *sql.DB, filter []string, args []interface{}, sear
 	sql := `SELECT ` + receiptSQLFields + ` FROM receipts`
 	if searchQuery != "" {
 		filter = append(filter, `search_key LIKE ? ESCAPE '\'`)
-		args = append(args, "%"+escapeLike(searchQuery, `\`)+"%")
+		args = append(args, "%"+escapeLike(strings.ToLower(searchQuery), `\`)+"%")
 	}
 	if len(filter) > 0 {
 		sql += " WHERE " + strings.Join(filter, " AND ")

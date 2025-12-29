@@ -256,7 +256,9 @@ function ReceiptListItem({
 							{providerLabel}
 						</div>
 					)}
-					<div class="flag">{flagSymbol}</div>
+					<div class="flag">
+						<HighlightedText text={flagSymbol} searchQuery={searchQuery} />
+					</div>
 				</div>
 			</div>
 			<div class="main-info">
