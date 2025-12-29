@@ -1,4 +1,5 @@
-import { Receipt, ReceiptData } from '../receipts'
+import { Receipt } from '../api'
+import { ReceiptData } from '../receipts'
 import { isRecord, optArr, OptNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
 
 type KzJusExtraData = {

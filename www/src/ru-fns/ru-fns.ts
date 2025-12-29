@@ -1,5 +1,6 @@
-import { Receipt, ReceiptData } from '../receipts'
-import { divBy100, isRecord, optArr, optNum, optStr, OptStr } from '../utils'
+import { Receipt } from '../api'
+import { ReceiptData } from '../receipts'
+import { divBy100, isRecord, optArr, optNum, OptStr, optStr } from '../utils'
 
 type RuFnsExtraData = {
 	kktRegId: OptStr

@@ -1,22 +1,9 @@
-import { getKzKtcReceiptDataFrom } from 'kz-ktc/kz-ktc'
-import { getKzJusReceiptDataFrom } from 'kz-jus/kz-jus'
-import { getKgGnsReceiptDataFrom } from 'kg-gns/kg-gns'
+import { Receipt } from './api'
+import { getKgGnsReceiptDataFrom } from './kg-gns/kg-gns'
+import { getKzJusReceiptDataFrom } from './kz-jus/kz-jus'
+import { getKzKtcReceiptDataFrom } from './kz-ktc/kz-ktc'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
-import { OptNum, OptStr } from 'utils'
-
-export type Receipt = {
-	id: number
-	domain: string
-	savedAt: string
-	updatedAt: string
-	createdAt: string
-	refText: string
-	isCorrect: boolean
-	data: string
-	searchKey: string
-	retriesLeft: number
-	nextRetryAt: string
-}
+import { OptNum, OptStr } from './utils'
 
 export type ReceiptData<T> = {
 	common: CommonReceiptData

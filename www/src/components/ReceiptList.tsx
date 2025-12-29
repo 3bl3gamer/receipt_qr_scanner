@@ -1,12 +1,13 @@
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'preact/hooks'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { JSX } from 'preact/jsx-runtime'
+
+import { Receipt, ReceiptsSortMode } from '../api'
+import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 import { useReceiptsLoader } from '../hooks/useReceiptsLoader'
+import { getReceiptDataFrom } from '../receipts'
 import { dateStrAsYMDHM } from '../utils'
-import { Receipt, getReceiptDataFrom } from '../receipts'
 import { highlightedIfFound, HighlightedText } from './HighlightedText'
 import { ReceiptView } from './ReceiptView'
-import { ReceiptsSortMode } from '../api'
-import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 
 /**
  * Панель со списокм чеков.

@@ -1,5 +1,6 @@
-import { describe, it } from 'node:test'
 import test from 'node:assert/strict'
+import { describe, it } from 'node:test'
+
 import { searchBinary } from './utils'
 
 describe('searchBinary', () => {

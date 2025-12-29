@@ -1,10 +1,12 @@
 import { useEffect } from 'preact/hooks'
-import { dateStrAsYMDHM, OptStr } from '../utils'
-import { Receipt, getReceiptDataFrom, FullReceiptData } from '../receipts'
-import { HighlightedText } from './HighlightedText'
-import { DimmedKopeks } from './DimmedKopeks'
 import { JSX } from 'preact/jsx-runtime'
+
+import { Receipt } from '../api'
 import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
+import { FullReceiptData, getReceiptDataFrom } from '../receipts'
+import { dateStrAsYMDHM, OptStr } from '../utils'
+import { DimmedKopeks } from './DimmedKopeks'
+import { HighlightedText } from './HighlightedText'
 
 /**
  * Попап с данными из чека.

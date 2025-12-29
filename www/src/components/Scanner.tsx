@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
+
+import { saveReceipt } from '../api'
+import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 import { QRCamScanner } from '../QRCamScanner'
 import { dateStrAsYMDHM, onError } from '../utils'
-import { saveReceipt } from 'api'
-import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 
 type ScannedQRStatus = 'saving' | 'saved' | 'exists' | 'error'
 

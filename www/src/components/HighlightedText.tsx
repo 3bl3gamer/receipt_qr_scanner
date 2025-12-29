@@ -1,4 +1,5 @@
 import { JSX } from 'preact/jsx-runtime'
+
 import { isNil } from '../utils.js'
 
 /**

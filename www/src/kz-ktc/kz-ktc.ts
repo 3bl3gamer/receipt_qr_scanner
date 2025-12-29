@@ -1,5 +1,6 @@
-import { Receipt, ReceiptData } from '../receipts'
-import { optStr, onError, urlWithoutProtocol, OptStr, isRecord, optArr, optNum } from '../utils'
+import { Receipt } from '../api'
+import { ReceiptData } from '../receipts'
+import { isRecord, onError, optArr, optNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
 
 /** https://online.zakon.kz/Document/?doc_id=35619701 */
 type KzKtcExtraData = {

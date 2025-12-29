@@ -1,5 +1,6 @@
-import { Receipt, ReceiptData } from '../receipts'
-import { optStr, onError, urlWithoutProtocol, OptStr, optArr, optNum, divBy100, isRecord } from '../utils'
+import { Receipt } from '../api'
+import { ReceiptData } from '../receipts'
+import { divBy100, isRecord, onError, optArr, optNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
 
 type KgGnsExtraData = {
 	/** РН ККМ, регистрационный номер контрольно-кассовой машины */

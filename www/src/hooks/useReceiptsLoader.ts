@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
-import { onError, searchBinary, isAbortError } from '../utils'
-import { Receipt } from 'receipts'
-import { ApiError, fetchReceipts, makeReceiptsEventSource, ReceiptsSortMode } from 'api'
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
+
+import { ApiError, fetchReceipts, makeReceiptsEventSource, Receipt, ReceiptsSortMode } from '../api'
+import { isAbortError, onError, searchBinary } from '../utils'
 
 /**
  * Загружает/подгружает чеки частями, слушает серверные события обновления чеков.

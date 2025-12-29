@@ -1,10 +1,11 @@
 import './errors'
+import './index.css'
+
 import { render } from 'preact'
+
 import { ReceiptListPanel } from './components/ReceiptList'
 import { Scanner } from './components/Scanner'
 import { DomainsMetadataProvider } from './contexts/DomainsMetadataContext'
-
-import './index.css'
 
 if ('serviceWorker' in navigator) {
 	if (process.env.NODE_ENV === 'development') {

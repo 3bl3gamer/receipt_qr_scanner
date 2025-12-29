@@ -1,8 +1,20 @@
-import { Receipt } from 'receipts'
-
 export type ApiResponse<T> = ApiResponseOk<T> | ApiResponseErr
 export type ApiResponseOk<T> = { ok: true; result: T }
 export type ApiResponseErr = { ok: false; code: number; error: string; description: string }
+
+export type Receipt = {
+	id: number
+	domain: string
+	savedAt: string
+	updatedAt: string
+	createdAt: string
+	refText: string
+	isCorrect: boolean
+	data: string
+	searchKey: string
+	retriesLeft: number
+	nextRetryAt: string
+}
 
 export type ReceiptsSortMode = 'id' | 'created_at'
 

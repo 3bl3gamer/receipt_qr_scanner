@@ -1,5 +1,6 @@
 import test from 'node:assert/strict'
-import { suite as describe, it } from 'node:test'
+import { it, suite as describe } from 'node:test'
+
 import { makeRuFnsReceiptTitle } from './ru-fns'
 
 describe('makeReceiptTitle', () => {

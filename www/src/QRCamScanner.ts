@@ -1,9 +1,9 @@
-import { locate, QRLocation, Point } from './vendor/jsQR/src/locator'
-import { binarize } from './vendor/jsQR/src/binarizer'
-import { extract } from './vendor/jsQR/src/extractor'
-import { decode } from './vendor/jsQR/src/decoder/decoder'
-import { BitMatrix } from './vendor/jsQR/src/BitMatrix'
 import { mustBeNotNull } from './utils'
+import { binarize } from './vendor/jsQR/src/binarizer'
+import { BitMatrix } from './vendor/jsQR/src/BitMatrix'
+import { decode } from './vendor/jsQR/src/decoder/decoder'
+import { extract } from './vendor/jsQR/src/extractor'
+import { locate, Point, QRLocation } from './vendor/jsQR/src/locator'
 
 type VideoSettings = {
 	width: number
