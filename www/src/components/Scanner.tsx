@@ -4,6 +4,7 @@ import { saveReceipt } from '../api'
 import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 import { QRCamScanner } from '../QRCamScanner'
 import { dateStrAsYMDHM, onError } from '../utils'
+import { DeveloperModeIcon, ImageIcon, PasteIcon } from './icons'
 
 type ScannedQRStatus = 'saving' | 'saved' | 'exists' | 'error'
 
@@ -102,6 +103,13 @@ export function Scanner() {
 		fileInput.click()
 	}, [])
 
+	const onTextPaste = useCallback(async () => {
+		const text = prompt('Текст из QR-кода:')
+		if (text && text.trim()) {
+			onScannedText(text.trim())
+		}
+	}, [onScannedText])
+
 	// инициализация сканера
 	useEffect(() => {
 		if (!videoWrapRef.current) return
@@ -123,10 +131,13 @@ export function Scanner() {
 			</div>
 			<div ref={videoWrapRef} className="video-wrap" />
 			<button className="debug-mode-image" onClick={onDebugToggle}>
-				<img src="developer_mode_icon.svg" />
+				<DeveloperModeIcon />
 			</button>
 			<button className="open-image" onClick={onFileUpload}>
-				<img src="image_icon.svg" />
+				<ImageIcon />
+			</button>
+			<button className="paste-text" onClick={onTextPaste}>
+				<PasteIcon />
 			</button>
 		</>
 	)

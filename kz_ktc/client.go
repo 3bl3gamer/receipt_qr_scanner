@@ -92,7 +92,7 @@ func (c *Client) Init() error {
 func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error) (receipts.FetchReceiptResult, error) {
 	res := receipts.FetchReceiptResult{ShouldDecreaseRetries: false, Data: nil}
 
-	ref, err := receipts.CasetReceiptRefTo[ReceiptRef](iRef, Domain.Code)
+	ref, err := receipts.CastReceiptRefTo[ReceiptRef](iRef, Domain.Code)
 	if err != nil {
 		return res, err
 	}

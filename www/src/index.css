@@ -83,7 +83,8 @@ td[title] {
 }
 
 .debug-mode-image,
-.open-image {
+.open-image,
+.paste-text {
 	position: absolute;
 	width: 32px;
 	height: 32px;
@@ -92,9 +93,11 @@ td[title] {
 	border: none;
 	padding: 0;
 	background: none;
+	color: white;
 }
-.debug-mode-image img,
-.open-image img {
+.debug-mode-image svg,
+.open-image svg,
+.paste-text svg {
 	display: block;
 	width: 100%;
 	height: 100%;
@@ -104,6 +107,9 @@ td[title] {
 }
 .open-image {
 	right: 32px;
+}
+.paste-text {
+	right: 68px;
 }
 
 .receipt-side-panel {

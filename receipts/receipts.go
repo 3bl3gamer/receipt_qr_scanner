@@ -62,10 +62,10 @@ func ReceiptRefFromText(domains []Domain, refText string) (ReceiptRef, error) {
 	return nil, errors.Join(errs...)
 }
 
-// CasetReceiptRefTo кастует iRef в T
+// CastReceiptRefTo кастует iRef в T
 // (обычно — интерфейс receipts.ReceiptRef в конкретный например ru_fns.ReceiptRef),
 // дереференсит при необходимости.
-func CasetReceiptRefTo[T ReceiptRef](iRef any, domainCode string) (T, error) {
+func CastReceiptRefTo[T ReceiptRef](iRef any, domainCode string) (T, error) {
 	var zero T
 	switch r := iRef.(type) {
 	case T:

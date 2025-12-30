@@ -70,7 +70,7 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 		return res, merry.New("ru-fns: session is not ready")
 	}
 
-	ref, err := receipts.CasetReceiptRefTo[ReceiptRef](iRef, "ru-fns")
+	ref, err := receipts.CastReceiptRefTo[ReceiptRef](iRef, "ru-fns")
 	if err != nil {
 		return res, err
 	}
