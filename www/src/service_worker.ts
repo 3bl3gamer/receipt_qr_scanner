@@ -4,7 +4,7 @@
 export type {}
 declare let self: ServiceWorkerGlobalScope
 
-const CACHE_KEY = 'receipt_qr_scanner_v0.5.0'
+const CACHE_KEY = 'receipt_qr_scanner_v0.6.0'
 
 /*
 self.addEventListener('install', e => {
