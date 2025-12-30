@@ -1,6 +1,6 @@
 import { Receipt } from '../api'
 import { ReceiptData } from '../receipts'
-import { OptNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
+import { OptNum, OptStr, optStr } from '../utils'
 
 type KzTtcExtraData = {
 	/** ЗНМ, заводской номер ККМ */
@@ -53,7 +53,7 @@ export function getKzTtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzTtc: KzTt
 			address: parsed.address,
 			cashierName: undefined,
 			shiftNumber: undefined,
-			taxOrgUrl: urlWithoutProtocol(rec.refText),
+			taxOrgUrl: undefined,
 			items: parsed.items,
 			parseErrors: parsed.parseErrors,
 		},

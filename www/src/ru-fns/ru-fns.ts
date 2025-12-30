@@ -20,7 +20,7 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 	const refData = parseRefText(rec.refText)
 	return {
 		common: {
-			title: makeRuFnsReceiptTitle(receipt) ?? '—',
+			title: makeRuFnsReceiptTitle(receipt),
 			totalSum: optNum(receipt.totalSum, divBy100),
 			itemsCount: optArr(receipt.items)?.length,
 			placeName: optStr(receipt.retailPlace),
@@ -67,7 +67,7 @@ function parseRefText(refText: string): Record<string, string | null> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function makeRuFnsReceiptTitle(recData: Record<string, any> | null): string | null {
+export function makeRuFnsReceiptTitle(recData: Record<string, any> | null): OptStr {
 	if (recData !== null) {
 		let t: string | undefined
 		let placeName = ''
@@ -106,10 +106,11 @@ export function makeRuFnsReceiptTitle(recData: Record<string, any> | null): stri
 		return (
 			(placeName.length > userName.length || userNameIsActualName ? placeName : userName) ||
 			placeFullName ||
-			userName
+			userName ||
+			undefined
 		)
 	}
-	return null
+	return undefined
 
 	function isLikePersonName(name: string): boolean {
 		name = name.trim().replace(/^(ип|индивидуальный предприниматель)\s+/i, '')

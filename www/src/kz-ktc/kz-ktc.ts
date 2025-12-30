@@ -1,6 +1,6 @@
 import { Receipt } from '../api'
 import { ReceiptData } from '../receipts'
-import { isRecord, onError, optArr, optNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
+import { isRecord, onError, optArr, optNum, OptStr, optStr } from '../utils'
 
 /** https://online.zakon.kz/Document/?doc_id=35619701 */
 type KzKtcExtraData = {
@@ -32,7 +32,7 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 			address: optStr(data.retailPlaceAddress),
 			cashierName: isRecord(ticket.operator) ? optStr(ticket.operator.name) : undefined,
 			shiftNumber: optStr(ticket.shiftNumber),
-			taxOrgUrl: urlWithoutProtocol(rec.refText),
+			taxOrgUrl: undefined,
 			items: productItems.map(item => {
 				const x = isRecord(item) && isRecord(item.commodity) ? item.commodity : { name: item }
 				return {

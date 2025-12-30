@@ -403,6 +403,10 @@ td[title] {
 	word-break: break-word;
 }
 
+.receipt-view .qr-code-content {
+	word-break: break-all;
+}
+
 .receipt-view .receipt-raw-data {
 	max-width: 100%;
 	overflow-x: auto;

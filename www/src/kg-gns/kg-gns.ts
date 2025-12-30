@@ -1,6 +1,6 @@
 import { Receipt } from '../api'
 import { ReceiptData } from '../receipts'
-import { divBy100, isRecord, onError, optArr, optNum, OptStr, optStr, urlWithoutProtocol } from '../utils'
+import { divBy100, isRecord, onError, optArr, optNum, OptStr, optStr } from '../utils'
 
 type KgGnsExtraData = {
 	/** РН ККМ, регистрационный номер контрольно-кассовой машины */
@@ -27,7 +27,7 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 			address: optStr(data_crData.locationAddress),
 			cashierName: optStr(data_crData.cashierName),
 			shiftNumber: optStr(data_crData.shiftNumber),
-			taxOrgUrl: urlWithoutProtocol(rec.refText),
+			taxOrgUrl: undefined,
 			items: optArr(data.items, []).map(item => {
 				const x = isRecord(item) ? item : { name: item }
 				return {

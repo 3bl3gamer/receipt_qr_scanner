@@ -62,6 +62,14 @@ export function ReceiptView({
 
 				<ReceiptParseErrors data={data} />
 
+				<h3>Значение QR-кода</h3>
+				<p class="qr-code-content">
+					{/^https?:\/\//.test(receipt.refText) ? (
+						<a href={receipt.refText}>{receipt.refText}</a>
+					) : (
+						receipt.refText
+					)}
+				</p>
 				<ProviderResponse receipt={receipt} data={data} searchQuery={searchQuery} />
 
 				<h3>Значение для поиска</h3>
