@@ -321,11 +321,15 @@ func makeReceiptSearchKey(ref receipts.ReceiptRef, dataStr string) (string, erro
 	items = append(items, ref.SearchKeyItems()...)
 
 	if dataStr != "" {
-		var data interface{}
-		if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
-			return "", merry.Wrap(err)
+		if dataStr[0] == '<' {
+			items = append(items, dataStr) //TODO: better items
+		} else {
+			var data interface{}
+			if err := json.Unmarshal([]byte(dataStr), &data); err != nil {
+				return "", merry.Wrap(err)
+			}
+			makeReceiptSearchKeyInner("", data, &items)
 		}
-		makeReceiptSearchKeyInner("", data, &items)
 	}
 
 	searchKey := strings.Join(items, " ")

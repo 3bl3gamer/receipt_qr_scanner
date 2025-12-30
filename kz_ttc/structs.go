@@ -1,11 +1,11 @@
-package kz_ktc
+package kz_ttc
 
 import (
 	"fmt"
 	"net/url"
+	"receipt_qr_scanner/kz_ktc"
 	"receipt_qr_scanner/receipts"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,13 +13,13 @@ import (
 )
 
 var Domain = receipts.Domain{
-	Code:           "kz-ktc",
+	Code:           "kz-ttc",
 	CurrencySymbol: "₸",
 	FlagSymbol:     "🇰🇿",
 	Provider: receipts.Provider{
-		Name:       "ОФД Казахтелеком",
-		ShortLabel: "К",
-		Color:      "#0072BB",
+		Name:       "ОФД Транстелеком",
+		ShortLabel: "Т",
+		Color:      "#7caf6d",
 	},
 	ParseReceiptRef: func(refText string) (receipts.ReceiptRef, error) {
 		return NewReceiptRef(refText)
@@ -43,46 +43,8 @@ type ReceiptRef struct {
 	data ReceiptRefData
 }
 
-type ReceiptRefData struct {
-	// ФП, фискальный признак ККМ (возможно нужно сохранять нули в начале).
-	// Поле так называется в ответе kz-ktc
-	FiscalID string
-	// Код ККМ, РНМ, регистрационный номер ККМ (нужно сохранять нули в начале).
-	// Поле так называется в ответе kz-ktc
-	KkmFnsId  string
-	Sum       float64
-	CreatedAt time.Time
-}
-
-func (d ReceiptRefData) SearchKeyItems() []string {
-	return []string{
-		"_created_at:" + d.CreatedAt.Format("2006-01-02 15:04"),
-		"_fiscal_id:" + d.FiscalID,
-		"_kkm_fns_id:" + d.KkmFnsId,
-		"_sum:" + strconv.FormatFloat(d.Sum, 'f', 2, 64),
-	}
-}
-
-func (d *ReceiptRefData) FillFromQuery(query url.Values) error {
-	var err error
-	d.FiscalID, err = receipts.ReadString(query, "i")
-	if err != nil {
-		return merry.Wrap(err)
-	}
-	d.KkmFnsId, err = receipts.ReadString(query, "f")
-	if err != nil {
-		return merry.Wrap(err)
-	}
-	d.Sum, err = receipts.ReadFloat64(query, "s")
-	if err != nil {
-		return merry.Wrap(err)
-	}
-	d.CreatedAt, err = receipts.ReadTime(query, "t")
-	if err != nil {
-		return merry.Wrap(err)
-	}
-	return nil
-}
+// формат тот же, что и в kz_ktc
+type ReceiptRefData = kz_ktc.ReceiptRefData
 
 func (r ReceiptRef) String() string {
 	return fmt.Sprintf("Ref{%s:%s}", r.Domain().Code, r.text)
@@ -120,13 +82,13 @@ func (r ReceiptRef) SearchKeyItems() []string {
 }
 
 func parseRefText(refText string) (*ReceiptRefData, error) {
-	// http://consumer.oofd.kz?i=123456789&f=010101012345&s=1600.00&t=20240309T123456
+	// http://ofd1.kz/t/?i=123456789012&f=010101234567&s=1230.00&t=20240309T123456
 	u, err := url.Parse(refText)
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
 
-	if u.Host != "consumer.oofd.kz" {
+	if u.Host != "ofd1.kz" {
 		return nil, merry.Errorf("unexpected host: %s", u.Host)
 	}
 

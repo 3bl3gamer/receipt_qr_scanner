@@ -4,4 +4,9 @@ GlobalRegistrator.register({
 	url: 'http://localhost:3000',
 	width: 1920,
 	height: 1080,
+	settings: {
+		disableCSSFileLoading: true,
+		disableJavaScriptFileLoading: true,
+		handleDisabledFileLoadingAsSuccess: true,
+	},
 })

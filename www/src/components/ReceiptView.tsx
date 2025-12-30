@@ -351,6 +351,10 @@ function ProviderResponse({
 }) {
 	const { domainsMetadata } = useDomainsMetadata()
 	const providerName = domainsMetadata.get(receipt.domain)?.providerName
+	const rawData =
+		typeof data?.raw === 'string' //
+			? data.raw
+			: JSON.stringify(data?.raw, null, '  ')
 
 	return (
 		<>
@@ -358,7 +362,7 @@ function ProviderResponse({
 				Ответ <HighlightedText text={providerName} searchQuery={searchQuery} />
 			</h3>
 			<pre class="receipt-raw-data">
-				<HighlightedText text={JSON.stringify(data?.raw, null, '  ')} searchQuery={searchQuery} />
+				<HighlightedText text={rawData} searchQuery={searchQuery} />
 			</pre>
 		</>
 	)

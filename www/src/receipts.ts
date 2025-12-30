@@ -2,6 +2,7 @@ import { Receipt } from './api'
 import { getKgGnsReceiptDataFrom } from './kg-gns/kg-gns'
 import { getKzJusReceiptDataFrom } from './kz-jus/kz-jus'
 import { getKzKtcReceiptDataFrom } from './kz-ktc/kz-ktc'
+import { getKzTtcReceiptDataFrom } from './kz-ttc/kz-ttc'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
 import { OptNum, OptStr } from './utils'
 
@@ -38,5 +39,6 @@ export function getReceiptDataFrom(rec: Receipt) {
 	if (rec.domain === 'kg-gns') return getKgGnsReceiptDataFrom(rec)
 	if (rec.domain === 'kz-ktc') return getKzKtcReceiptDataFrom(rec)
 	if (rec.domain === 'kz-jus') return getKzJusReceiptDataFrom(rec)
+	if (rec.domain === 'kz-ttc') return getKzTtcReceiptDataFrom(rec)
 	return null
 }
