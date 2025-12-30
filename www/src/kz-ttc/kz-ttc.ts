@@ -49,6 +49,7 @@ export function getKzTtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzTtc: KzTt
 			itemsCount: parsed.items.length,
 			placeName: parsed.orgName,
 			orgInn: parsed.orgId,
+			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
 			address: parsed.address,
 			cashierName: undefined,
 			shiftNumber: undefined,

@@ -25,6 +25,7 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 			itemsCount: optArr(receipt.items)?.length,
 			placeName: optStr(receipt.retailPlace),
 			orgInn: optStr(receipt.userInn),
+			orgInnLabel: { text: 'ИНН', title: 'Идентификационный номер налогоплательщика' },
 			address: optStr(receipt.retailPlaceAddress),
 			cashierName: optStr(receipt.operator),
 			shiftNumber: optStr(receipt.shiftNumber),

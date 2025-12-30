@@ -18,6 +18,7 @@ export type CommonReceiptData = {
 	itemsCount: OptNum
 	placeName: OptStr
 	orgInn: OptStr
+	orgInnLabel: { text: string; title: OptStr }
 	address: OptStr
 	cashierName: OptStr
 	shiftNumber: OptStr

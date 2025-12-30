@@ -28,6 +28,7 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 			itemsCount: productItems.length,
 			placeName: optStr(data.orgTitle),
 			orgInn: optStr(data.orgId),
+			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
 			address: optStr(data.retailPlaceAddress),
 			cashierName: isRecord(ticket.operator) ? optStr(ticket.operator.name) : undefined,
 			shiftNumber: optStr(ticket.shiftNumber),

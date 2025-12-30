@@ -53,6 +53,7 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 			itemsCount: parsed.items.length,
 			placeName: parsed.orgName,
 			orgInn: parsed.orgId,
+			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
 			address: undefined,
 			cashierName: '№' + parsed.cashierCode,
 			shiftNumber: parsed.shiftNumber,

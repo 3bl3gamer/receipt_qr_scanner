@@ -23,6 +23,7 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 			itemsCount: optArr(data.items)?.length,
 			placeName: optStr(data_crData.locationName),
 			orgInn: optStr(data.tin),
+			orgInnLabel: { text: 'ИНН', title: 'Идентификационный номер налогоплательщика' },
 			address: optStr(data_crData.locationAddress),
 			cashierName: optStr(data_crData.cashierName),
 			shiftNumber: optStr(data_crData.shiftNumber),

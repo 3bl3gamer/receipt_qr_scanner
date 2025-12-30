@@ -118,59 +118,65 @@ function ReceiptDates({ receipt, searchQuery }: { receipt: Receipt; searchQuery:
  * Информация о месте покупки (кассир, смена, ИНН, адрес).
  */
 function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
+	if (!data) return null
+
 	return (
 		<div class="receipt-place-info">
 			<table>
 				<tbody>
-					<tr>
-						<td>Кассир</td>
-						<td class="operator">
-							<HighlightedText text={data?.common.cashierName} searchQuery={searchQuery} />
-						</td>
-					</tr>
-					<tr>
-						<td>Смена</td>
-						<td class="shift-number">
-							<HighlightedText text={data?.common.shiftNumber} searchQuery={searchQuery} />
-						</td>
-					</tr>
-				</tbody>
-				<tbody class="user-section">
-					{data && 'ruFns' in data ? (
+					{data.common.cashierName && (
+						<tr>
+							<td>Кассир</td>
+							<td class="operator">
+								<HighlightedText text={data.common.cashierName} searchQuery={searchQuery} />
+							</td>
+						</tr>
+					)}
+					{data.common.shiftNumber && (
+						<tr>
+							<td>Смена</td>
+							<td class="shift-number">
+								<HighlightedText text={data.common.shiftNumber} searchQuery={searchQuery} />
+							</td>
+						</tr>
+					)}
+					{'ruFns' in data ? (
 						<>
 							<tr>
-								<td>Пользователь</td>
+								<td>Организация</td>
 								<td>
 									<HighlightedText text={data.ruFns.orgName} searchQuery={searchQuery} />
 								</td>
 							</tr>
 							<tr>
-								<td>Его ИНН</td>
 								<td>
-									<HighlightedText text={data?.common.orgInn} searchQuery={searchQuery} />
+									Её <TextWithTitle {...data.common.orgInnLabel} />
+								</td>
+								<td>
+									<HighlightedText text={data.common.orgInn} searchQuery={searchQuery} />
 								</td>
 							</tr>
 						</>
 					) : (
 						<tr>
-							<td>ИНН</td>
 							<td>
-								<HighlightedText text={data?.common.orgInn} searchQuery={searchQuery} />
+								<TextWithTitle {...data.common.orgInnLabel} />
+							</td>
+							<td>
+								<HighlightedText text={data.common.orgInn} searchQuery={searchQuery} />
 							</td>
 						</tr>
 					)}
-				</tbody>
-				<tbody>
 					<tr>
 						<td>Место расчёта</td>
 						<td class="retail-place">
-							<HighlightedText text={data?.common.placeName} searchQuery={searchQuery} />
+							<HighlightedText text={data.common.placeName} searchQuery={searchQuery} />
 						</td>
 					</tr>
 					<tr>
 						<td>Адрес расчёта</td>
 						<td class="retail-place-address">
-							<HighlightedText text={data?.common.address} searchQuery={searchQuery} />
+							<HighlightedText text={data.common.address} searchQuery={searchQuery} />
 						</td>
 					</tr>
 				</tbody>
@@ -387,4 +393,8 @@ function Link({
 			<HighlightedText text={text} searchQuery={searchQuery} />
 		</a>
 	)
+}
+
+function TextWithTitle({ text, title }: { text: string; title: OptStr }): JSX.Element {
+	return <span title={title}>{text}</span>
 }
