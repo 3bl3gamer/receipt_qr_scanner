@@ -93,6 +93,8 @@ func parseRefText(refText string) (*ReceiptRefData, error) {
 	}
 
 	var data ReceiptRefData
-	data.FillFromQuery(u.Query())
+	if err := data.FillFromQuery(u.Query()); err != nil {
+		return nil, merry.Wrap(err)
+	}
 	return &data, nil
 }
