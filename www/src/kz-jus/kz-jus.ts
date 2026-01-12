@@ -217,6 +217,11 @@ export function parseKzJusReceipt(lines: unknown[]): ParsedReceipt {
 			continue
 		}
 
+		// GTIN (Global Trade Item Number / Глобальный номер товарной продукции)
+		if (/^GTIN:\s*\d+$/i.test(text) && i === lastItemQuantityLineI + 1) {
+			continue
+		}
+
 		// строки-разделители
 		if (text.match(/^[-*=]+$/)) {
 			lastSeparatorLineI = i
