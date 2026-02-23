@@ -17,7 +17,7 @@ func TestBuildAPIURL(t *testing.T) {
 				Sum:       1600.12,
 				CreatedAt: time.Date(2024, 3, 9, 12, 34, 56, 0, time.UTC),
 			},
-			wantURL: "https://consumer.oofd.kz/api/tickets/get-by-url?f=010101012345&i=0123456789&s=1600.12&t=20240309T123456",
+			wantURL: "https://consumer.oofd.kz/api/consumer-proxy/api/tickets/get-by-url?f=010101012345&i=0123456789&s=1600.12&t=20240309T123456",
 		},
 	}
 

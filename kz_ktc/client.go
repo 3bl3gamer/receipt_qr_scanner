@@ -99,7 +99,7 @@ func (c *Client) FetchReceipt(iRef receipts.ReceiptRef, onIsCorrect func() error
 
 	checkCertExpiration(c.customCert)
 
-	// https://consumer.oofd.kz/api/tickets/get-by-url?t={t}&i={i}&f={f}&s={s}
+	// https://consumer.oofd.kz/api/consumer-proxy/api/tickets/get-by-url?t={t}&i={i}&f={f}&s={s}
 	apiURL := makeAPIURL(ref.data)
 
 	req, err := http.NewRequest("GET", apiURL, nil)
@@ -151,7 +151,7 @@ func makeAPIURL(data ReceiptRefData) string {
 	params.Set("f", data.KkmFnsId)
 	params.Set("s", sumStr)
 
-	return fmt.Sprintf("https://consumer.oofd.kz/api/tickets/get-by-url?%s", params.Encode())
+	return fmt.Sprintf("https://consumer.oofd.kz/api/consumer-proxy/api/tickets/get-by-url?%s", params.Encode())
 }
 
 // Проверка срока действия сертификата
