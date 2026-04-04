@@ -8,8 +8,8 @@ describe('makeReceiptTitle', () => {
 		test.strictEqual(makeRuFnsReceiptTitle(data), dest)
 	}
 
-	it('should return null for empty data', () => {
-		check(null, null)
+	it('should return undefined for empty data', () => {
+		check(undefined, null)
 	})
 	it('should use cleaned place name', () => {
 		check('test', { retailPlace: 'test' })
