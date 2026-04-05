@@ -4,6 +4,7 @@ import { getKzJusReceiptDataFrom } from './kz-jus/kz-jus'
 import { getKzKtcReceiptDataFrom } from './kz-ktc/kz-ktc'
 import { getKzBeeReceiptDataFrom } from './kz-bee/kz-bee'
 import { getKzTtcReceiptDataFrom } from './kz-ttc/kz-ttc'
+import { getKzWfdReceiptDataFrom } from './kz-wfd/kz-wfd'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
 import { OptNum, OptStr } from './utils'
 
@@ -43,5 +44,6 @@ export function getReceiptDataFrom(rec: Receipt) {
 	if (rec.domain === 'kz-jus') return getKzJusReceiptDataFrom(rec)
 	if (rec.domain === 'kz-ttc') return getKzTtcReceiptDataFrom(rec)
 	if (rec.domain === 'kz-bee') return getKzBeeReceiptDataFrom(rec)
+	if (rec.domain === 'kz-wfd') return getKzWfdReceiptDataFrom(rec)
 	return null
 }

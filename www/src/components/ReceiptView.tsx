@@ -315,6 +315,23 @@ function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null;
 		items.push(['Кассир', 'Код кассира', data.kzJus.cashierCode])
 	}
 
+	if ('kzBee' in data) {
+		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzBee.kkmSerialNumber])
+		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzBee.kkmFnsId])
+		items.push(['ФП', 'Фискальный признак', data.kzBee.fiscalId])
+		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzBee.orgId])
+	}
+
+	if ('kzWfd' in data) {
+		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzWfd.kkmSerialNumber])
+		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzWfd.kkmFnsId])
+		items.push(['ИНК', 'Идентификационный номер кассы', data.kzWfd.kkmInkNumber])
+		items.push(['ФП', 'Фискальный признак', data.kzWfd.fiscalId])
+		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzWfd.orgId])
+		items.push(['Чек №', 'Порядковый номер чека', data.kzWfd.receiptNumber])
+		items.push(['Кассир', 'Код кассира', data.kzWfd.cashierCode])
+	}
+
 	if (items.length === 0) return null
 
 	return (

@@ -43,7 +43,7 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 	const data: Record<string, unknown> = JSON.parse(rec.data)
 	const lines = optArr(isRecord(data.data) ? data.data.ticket : undefined, [])
 
-	const parsed = parseKzJusReceipt(lines)
+	const parsed = parseKzJusReceipt_shared(lines)
 	const refData = parseKzJusRefText(rec.refText)
 
 	return {
@@ -74,7 +74,7 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 	}
 }
 
-export function parseKzJusReceipt(lines: unknown[]): ParsedReceipt {
+export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 	const result: ParsedReceipt = {
 		orgName: undefined,
 		orgId: undefined,

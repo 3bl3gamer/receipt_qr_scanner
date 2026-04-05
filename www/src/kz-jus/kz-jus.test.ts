@@ -1,7 +1,7 @@
 import test from 'node:assert/strict'
 import { it, suite as describe } from 'node:test'
 
-import { makeKzJusReceiptTitle, parseKzJusReceipt } from './kz-jus'
+import { makeKzJusReceiptTitle, parseKzJusReceipt_shared } from './kz-jus'
 
 describe('makeKzJusReceiptTitle', () => {
 	function check(dest: unknown, data: string) {
@@ -32,7 +32,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: '1 (Штука) x 1\u00A0800,00₸                = 1\u00A0800,00₸', style: 0 },
 			{ text: 'БАРЛЫҒЫ/ИТОГО:12\u00A0900,00₸', style: 1 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result, {
 			orgName: 'ТОО "KG PARTNERS (КЕЙ ДЖИ ПАРТНЕРС)"',
@@ -62,7 +62,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: '1 (Штука) x 5\u00A0500,00₸ = 5\u00A0500,00₸', style: 0 },
 			{ text: 'БАРЛЫҒЫ/ИТОГО:10\u00A0450,00₸', style: 1 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result.items, [
 			{ name: 'Двойной чизбургер', quantity: 1, price: 1800.0, sum: 1800.0 },
@@ -80,7 +80,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: '2,5 (Литр) x 450,00₸ = 1\u00A0125,00₸', style: 0 },
 			{ text: 'БАРЛЫҒЫ/ИТОГО:1\u00A0125,00₸', style: 1 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result.items, [
 			{ name: 'Молоко 3.2%', quantity: 2.5, price: 450.0, sum: 1125.0 },
@@ -97,7 +97,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: '1 (Штука) x 200,00₸ = 200,00₸', style: 0 },
 			{ text: 'БАРЛЫҒЫ/ИТОГО:300,00₸', style: 1 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result.items, [{ name: 'Valid item', quantity: 1, price: 200, sum: 200 }])
 		test.deepStrictEqual(result.parseErrors, ['Не распознана строка 3: "1 (Штука) x 100,00₸ = 100,00₸"'])
@@ -109,7 +109,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: 'Item 1', style: 0 },
 			{ text: '1 (Штука) x 100,00₸ = 100,00₸', style: 0 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result, {
 			orgName: 'ТОО "MINIMAL"',
@@ -141,7 +141,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: 'INVALID', style: 0 },
 			{ text: 'БАРЛЫҒЫ/ИТОГО:300,00₸', style: 1 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.strictEqual(result.orgName, 'ТОО "STORE"')
 		test.strictEqual(result.orgId, '123456789012')
@@ -170,7 +170,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: undefined },
 			{ text: 'БАРЛЫҒЫ/ИТОГО:100,00₸' },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result.parseErrors, [
 			'Неккоректная строка 2: null',
@@ -221,7 +221,7 @@ describe('parseKzJusReceipt', () => {
 			{ text: '  Сканируй этот чек с помощью приложения Amian  ', style: 0 },
 			{ text: '     и участвуй в розыгрыше ценных призов!      ', style: 0 },
 		]
-		const result = parseKzJusReceipt(lines)
+		const result = parseKzJusReceipt_shared(lines)
 
 		test.deepStrictEqual(result, {
 			orgName: 'АДК-КСФ',
