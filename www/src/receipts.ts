@@ -5,6 +5,7 @@ import { getKzJusReceiptDataFrom } from './kz-jus/kz-jus'
 import { getKzKtcReceiptDataFrom } from './kz-ktc/kz-ktc'
 import { getKzTtcReceiptDataFrom } from './kz-ttc/kz-ttc'
 import { getKzWfdReceiptDataFrom } from './kz-wfd/kz-wfd'
+import { getKzWipReceiptDataFrom } from './kz-wip/kz-wip'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
 import { OptNum, OptStr } from './utils'
 
@@ -56,6 +57,7 @@ const domainParsersMap = {
 	'kz-ttc': getKzTtcReceiptDataFrom,
 	'kz-bee': getKzBeeReceiptDataFrom,
 	'kz-wfd': getKzWfdReceiptDataFrom,
+	'kz-wip': getKzWipReceiptDataFrom,
 }
 
 export function getReceiptDataFrom(rec: Receipt): FullReceiptData | null {

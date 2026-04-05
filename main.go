@@ -10,6 +10,7 @@ import (
 	"receipt_qr_scanner/kz_ktc"
 	"receipt_qr_scanner/kz_ttc"
 	"receipt_qr_scanner/kz_wfd"
+	"receipt_qr_scanner/kz_wip"
 	"receipt_qr_scanner/receipts"
 	"receipt_qr_scanner/ru_fns"
 	"receipt_qr_scanner/utils"
@@ -27,6 +28,7 @@ var allDomains = []receipts.Domain{
 	kz_ttc.Domain,
 	kz_bee.Domain,
 	kz_wfd.Domain,
+	kz_wip.Domain,
 }
 
 func main() {
