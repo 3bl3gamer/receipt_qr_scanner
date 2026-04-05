@@ -68,6 +68,7 @@ func buildFetchURL(data ReceiptRefData) string {
 	params.Set("f", data.KkmFnsId)
 	params.Set("s", sumStr)
 	params.Set("t", dateStr)
+	params.Set("captcha_token", "1") //это отключает капчу. мде
 
 	return fmt.Sprintf("https://ofd1.kz/t/?%s", params.Encode())
 }
