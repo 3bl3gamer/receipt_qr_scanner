@@ -37,7 +37,6 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 					sum: optNum(x.goodCost, divBy100),
 				}
 			}),
-			parseErrors: [],
 		},
 		kgGns: {
 			kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber),
@@ -45,6 +44,7 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 			fiscalDocumentNumber: optStr(data.fdNumber ?? refData?.fiscalDocumentNumber),
 			fiscalDocumentSign: optStr(data.documentFiscalMark ?? refData?.fiscalDocumentSign),
 		},
+		parseErrors: [],
 		raw: data,
 	}
 }

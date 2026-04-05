@@ -1,8 +1,8 @@
 import { Receipt } from './api'
 import { getKgGnsReceiptDataFrom } from './kg-gns/kg-gns'
+import { getKzBeeReceiptDataFrom } from './kz-bee/kz-bee'
 import { getKzJusReceiptDataFrom } from './kz-jus/kz-jus'
 import { getKzKtcReceiptDataFrom } from './kz-ktc/kz-ktc'
-import { getKzBeeReceiptDataFrom } from './kz-bee/kz-bee'
 import { getKzTtcReceiptDataFrom } from './kz-ttc/kz-ttc'
 import { getKzWfdReceiptDataFrom } from './kz-wfd/kz-wfd'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
@@ -10,6 +10,7 @@ import { OptNum, OptStr } from './utils'
 
 export type ReceiptData<T> = {
 	common: CommonReceiptData
+	parseErrors: string[]
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	raw: any
 } & T
@@ -31,7 +32,6 @@ export type CommonReceiptData = {
 		price: OptNum
 		sum: OptNum
 	}[]
-	parseErrors: string[]
 }
 
 export type FullReceiptData = Exclude<ReturnType<typeof getReceiptDataFrom>, null>

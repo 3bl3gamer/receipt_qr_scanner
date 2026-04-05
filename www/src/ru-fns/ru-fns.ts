@@ -39,7 +39,6 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 					sum: optNum(x.sum, divBy100),
 				}
 			}),
-			parseErrors: [],
 		},
 		ruFns: {
 			kktRegId: optStr(receipt.kktRegId),
@@ -50,6 +49,7 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 			buyerPhoneOrAddress: optStr(receipt.buyerPhoneOrAddress),
 			sellerAddress: optStr(receipt.sellerAddress),
 		},
+		parseErrors: [],
 		raw: data,
 	}
 }

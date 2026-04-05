@@ -238,7 +238,7 @@ function ReceiptListItem({
 	const providerName = domainMetadata?.providerName
 	const providerCountClass = domainMetadata?.isSoleInCountry ? 'sole-in-country' : 'one-of-many-in-country'
 
-	const hasParseErrors = data && data.common.parseErrors.length > 0
+	const hasParseErrors = data && data.parseErrors.length > 0
 
 	return (
 		<div ref={itemRef} class={classes.join(' ')} onClick={onClickInner}>

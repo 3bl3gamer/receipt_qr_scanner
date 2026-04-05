@@ -1,4 +1,5 @@
 import { Receipt } from '../api'
+import { parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { isRecord, optArr, OptNum, OptStr, optStr } from '../utils'
 
@@ -44,7 +45,7 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 	const lines = optArr(isRecord(data.data) ? data.data.ticket : undefined, [])
 
 	const parsed = parseKzJusReceipt_shared(lines)
-	const refData = parseKzJusRefText(rec.refText)
+	const refData = parseKzRefText(rec.refText)
 
 	return {
 		common: {
@@ -59,17 +60,17 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 			shiftNumber: parsed.shiftNumber,
 			taxOrgUrl: undefined,
 			items: parsed.items,
-			parseErrors: parsed.parseErrors,
 		},
 		kzJus: {
 			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
-			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.registrationNumber),
+			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
 			kkmInkNumber: optStr(parsed.kkmInkNumber),
 			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
 			orgId: optStr(parsed.orgId),
 			receiptNumber: optStr(parsed.receiptNumber),
 			cashierCode: optStr(parsed.cashierCode),
 		},
+		parseErrors: parsed.parseErrors,
 		raw: data,
 	}
 }
@@ -255,21 +256,6 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 /** "4 920,50" -> "4920.50" -> 4920.5 */
 function parseKzAmount(str: string): number {
 	return parseFloat(str.replace(/[\s\u00A0]/g, '').replace(',', '.'))
-}
-
-function parseKzJusRefText(refText: string): Record<string, string | null> | null {
-	try {
-		const url = new URL(refText)
-		const params = url.searchParams
-		return {
-			fiscalId: params.get('i'),
-			registrationNumber: params.get('f'),
-			sum: params.get('s'),
-			createdAt: params.get('t'),
-		}
-	} catch {
-		return null
-	}
 }
 
 export function makeKzJusReceiptTitle(orgName: OptStr): OptStr {

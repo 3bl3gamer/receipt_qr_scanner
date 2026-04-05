@@ -1,4 +1,5 @@
 import { Receipt } from '../api'
+import { parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { OptNum, OptStr, optStr } from '../utils'
 
@@ -36,7 +37,7 @@ type ParsedReceipt = {
 
 export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<{ kzBee: KzBeeExtraData }> {
 	const parsed = parseKzBeeReceipt(rec.data)
-	const refData = parseKzBeeRefText(rec.refText)
+	const refData = parseKzRefText(rec.refText)
 
 	return {
 		common: {
@@ -51,7 +52,6 @@ export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<{ kzBee: KzBe
 			shiftNumber: undefined,
 			taxOrgUrl: undefined,
 			items: parsed.items,
-			parseErrors: parsed.parseErrors,
 		},
 		kzBee: {
 			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
@@ -59,6 +59,7 @@ export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<{ kzBee: KzBe
 			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
 			orgId: optStr(parsed.orgId),
 		},
+		parseErrors: parsed.parseErrors,
 		raw: rec.data,
 	}
 }
@@ -185,20 +186,6 @@ function getItemName(li: Element): OptStr {
 	}
 	const trimmed = name.trim()
 	return trimmed || undefined
-}
-
-function parseKzBeeRefText(refText: string): Record<string, string | null> | null {
-	try {
-		const url = new URL(refText)
-		return {
-			fiscalId: url.searchParams.get('i'),
-			kkmFnsId: url.searchParams.get('f'),
-			sum: url.searchParams.get('s'),
-			createdAt: url.searchParams.get('t'),
-		}
-	} catch {
-		return null
-	}
 }
 
 export function makeKzBeeReceiptTitle(orgName: OptStr): OptStr {

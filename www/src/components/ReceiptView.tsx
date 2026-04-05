@@ -356,14 +356,14 @@ function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null;
  * Ошибки парсинга чека
  */
 function ReceiptParseErrors({ data }: { data: FullReceiptData | null }) {
-	if (!data || data.common.parseErrors.length === 0) {
+	if (!data || data.parseErrors.length === 0) {
 		return null
 	}
 
 	return (
 		<div class="receipt-parse-errors">
 			<h3>Ошибки парсинга</h3>
-			<pre>{data.common.parseErrors.join('\n')}</pre>
+			<pre>{data.parseErrors.join('\n')}</pre>
 		</div>
 	)
 }

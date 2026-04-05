@@ -1,4 +1,5 @@
 import { Receipt } from '../api'
+import { parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { isRecord, optArr, OptNum, OptStr, optStr } from '../utils'
 
@@ -47,7 +48,7 @@ export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<{ kzWfd: KzWf
 	const lines = optArr(data.ticket, [])
 
 	const parsed = parseKzWfdReceipt(lines)
-	const refData = parseKzWfdRefText(rec.refText)
+	const refData = parseKzRefText(rec.refText)
 
 	return {
 		common: {
@@ -62,17 +63,17 @@ export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<{ kzWfd: KzWf
 			shiftNumber: parsed.shiftNumber,
 			taxOrgUrl: parsed.taxOrgUrl,
 			items: parsed.items,
-			parseErrors: parsed.parseErrors,
 		},
 		kzWfd: {
 			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
-			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.registrationNumber),
+			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
 			kkmInkNumber: optStr(parsed.kkmInkNumber),
 			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
 			orgId: optStr(parsed.orgId),
 			receiptNumber: optStr(parsed.receiptNumber),
 			cashierCode: optStr(parsed.cashierCode),
 		},
+		parseErrors: parsed.parseErrors,
 		raw: data,
 	}
 }
@@ -357,20 +358,6 @@ function parseKzAmount(str: string): number | undefined {
 	const cleaned = str.replace(/[\s\u00A0]/g, '').replace(',', '.')
 	const num = parseFloat(cleaned)
 	return isNaN(num) ? undefined : num
-}
-
-function parseKzWfdRefText(refText: string): Record<string, string | null> | null {
-	try {
-		const url = new URL(refText)
-		return {
-			fiscalId: url.searchParams.get('i'),
-			registrationNumber: url.searchParams.get('f'),
-			sum: url.searchParams.get('s'),
-			createdAt: url.searchParams.get('t'),
-		}
-	} catch {
-		return null
-	}
 }
 
 export function makeKzWfdReceiptTitle(orgName: OptStr): OptStr {

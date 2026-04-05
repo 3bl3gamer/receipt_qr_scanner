@@ -1,6 +1,7 @@
 import { Receipt } from '../api'
+import { parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
-import { isRecord, onError, optArr, optNum, OptStr, optStr } from '../utils'
+import { isRecord, optArr, optNum, OptStr, optStr } from '../utils'
 
 /** https://online.zakon.kz/Document/?doc_id=35619701 */
 type KzKtcExtraData = {
@@ -16,7 +17,7 @@ type KzKtcExtraData = {
 export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKtcExtraData }> {
 	const data: Record<string, unknown> = JSON.parse(rec.data)
 	const ticket = isRecord(data.ticket) ? data.ticket : {}
-	const refData = parseKzKtcRefText(rec.refText)
+	const refData = parseKzRefText(rec.refText)
 
 	// Фильтруем только товарные позиции (itemType === 1)
 	const productItems = optArr(ticket.items, []).filter(x => isRecord(x) && x.itemType === 1)
@@ -42,7 +43,6 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 					sum: optNum(x.sum),
 				}
 			}),
-			parseErrors: [],
 		},
 		kzKtc: {
 			kkmSerialNumber: optStr(data.kkmSerialNumber),
@@ -50,24 +50,8 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 			fiscalId: optStr(ticket.fiscalId ?? refData?.fiscalId),
 			orgId: optStr(data.orgId),
 		},
+		parseErrors: [],
 		raw: data,
-	}
-}
-
-function parseKzKtcRefText(refText: string): Record<string, string | null> | null {
-	let url: URL
-	try {
-		url = new URL(refText)
-	} catch (ex) {
-		onError(ex)
-		return null
-	}
-	const params = url.searchParams
-	return {
-		fiscalId: params.get('i'),
-		kkmFnsId: params.get('f'),
-		sum: params.get('s'),
-		createdAt: params.get('t'),
 	}
 }
 
