@@ -7,9 +7,10 @@ type RuFnsExtraData = {
 	ru_fiscalDriveNumber: OptStr
 	ru_fiscalDocumentNumber: OptStr
 	ru_fiscalDocumentSign: OptStr
-	ru_orgName: OptStr
-	ru_buyerPhoneOrAddress: OptStr
-	ru_sellerAddress: OptStr
+	ru_orgInn: OptStr
+	ru_buyerPhoneNumber: OptStr
+	ru_buyerEMailAddress: OptStr
+	ru_sellerEMailAddress: OptStr
 }
 export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<RuFnsExtraData> {
 	const data = JSON.parse(rec.data)
@@ -18,18 +19,18 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<RuFnsExtraDat
 			? data.ticket.document.receipt //FNS API version 2
 			: data.document.receipt //FNS API version 1
 	const refData = parseRefText(rec.refText)
+
+	const buyerPhoneNumbers: string[] = []
+	const buyerEMailAddresses: string[] = []
+	for (const item of [optStr(receipt.buyerPhoneOrAddress), optStr(receipt.buyerAddress)])
+		if (item) {
+			;(item.includes('@') ? buyerEMailAddresses : buyerPhoneNumbers).push(item)
+		}
+
 	return {
 		common: {
 			title: makeRuFnsReceiptTitle(receipt),
-			totalSum: optNum(receipt.totalSum, divBy100),
-			itemsCount: optArr(receipt.items)?.length,
-			placeName: optStr(receipt.retailPlace),
-			orgInn: optStr(receipt.userInn),
-			orgInnLabel: { text: 'ИНН', title: 'Идентификационный номер налогоплательщика' },
-			address: optStr(receipt.retailPlaceAddress),
-			cashierName: optStr(receipt.operator),
-			shiftNumber: optStr(receipt.shiftNumber),
-			taxOrgUrl: optStr(receipt.fnsUrl),
+
 			items: optArr(receipt.items, []).map(item => {
 				const x = isRecord(item) ? item : { name: item }
 				return {
@@ -39,15 +40,29 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<RuFnsExtraDat
 					sum: optNum(x.sum, divBy100),
 				}
 			}),
+			itemsCount: optArr(receipt.items)?.length,
+			totalSum: optNum(receipt.totalSum, divBy100),
+
+			orgName: optStr(receipt.user),
+			placeName: optStr(receipt.retailPlace),
+			placeAddress: optStr(receipt.retailPlaceAddress),
+
+			cashierName: optStr(receipt.operator),
+			cashierCode: undefined,
+			shiftNumber: optStr(receipt.shiftNumber),
+
+			taxOrgUrl: optStr(receipt.fnsUrl),
+			checkOrgUrl: undefined,
 		},
 		extra: {
 			ru_kktRegId: optStr(receipt.kktRegId),
 			ru_fiscalDriveNumber: optStr(receipt.fiscalDriveNumber ?? refData.fiscalNum),
 			ru_fiscalDocumentNumber: optStr(receipt.fiscalDoc ?? refData.fiscalDocumentNumber),
 			ru_fiscalDocumentSign: optStr(receipt.fiscalSign ?? refData.fiscalDocumentSign),
-			ru_orgName: optStr(receipt.user),
-			ru_buyerPhoneOrAddress: optStr(receipt.buyerPhoneOrAddress),
-			ru_sellerAddress: optStr(receipt.sellerAddress),
+			ru_orgInn: optStr(receipt.userInn),
+			ru_buyerPhoneNumber: buyerPhoneNumbers.join(', ') || undefined,
+			ru_buyerEMailAddress: buyerEMailAddresses.join(', ') || undefined,
+			ru_sellerEMailAddress: optStr(receipt.sellerAddress),
 		},
 		parseErrors: [],
 		raw: data,

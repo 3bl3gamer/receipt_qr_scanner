@@ -103,3 +103,7 @@ export function arrCount<T>(arr: T[], filter: (x: T) => boolean): number {
 	for (let i = 0; i < arr.length; i++) if (filter(arr[i])) count++
 	return count
 }
+
+export function arrIncludesUntyped(arr: unknown[], item: unknown): boolean {
+	return arr.includes(item)
+}

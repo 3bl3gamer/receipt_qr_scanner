@@ -4,7 +4,7 @@ import { JSX } from 'preact/jsx-runtime'
 import { Receipt } from '../api'
 import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 import { FullReceiptData, getReceiptDataFrom } from '../receipts'
-import { dateStrAsYMDHM, OptStr, UnionToIntersection } from '../utils'
+import { arrIncludesUntyped, dateStrAsYMDHM, OptStr, UnionToIntersection } from '../utils'
 import { DimmedKopeks } from './DimmedKopeks'
 import { HighlightedText } from './HighlightedText'
 
@@ -57,7 +57,6 @@ export function ReceiptView({
 				<ReceiptDates receipt={receipt} searchQuery={searchQuery} />
 				<ReceiptPlaceInfo data={data} searchQuery={searchQuery} />
 				<ReceiptContacts data={data} searchQuery={searchQuery} />
-
 				<ReceiptExtraInfoTable data={data} searchQuery={searchQuery} />
 
 				<ReceiptParseErrors data={data} />
@@ -80,6 +79,41 @@ export function ReceiptView({
 		</div>
 	)
 }
+
+const extraLabels: Record<keyof UnionToIntersection<FullReceiptData['extra']>, [string, string | null]> = {
+	ru_kktRegId: ['РН ККТ', 'Регистрационный номер ККТ'],
+	ru_fiscalDriveNumber: ['ФН №', 'Заводской номер фискального накопителя'],
+	ru_fiscalDocumentNumber: ['ФД №', 'Порядковй номер фискального документа'],
+	ru_fiscalDocumentSign: ['ФП', 'Фискальный признак документа'],
+	ru_orgInn: ['ИНН', 'Идентификационный номер налогоплательщика'],
+	ru_buyerPhoneNumber: ['Телефон покупателя', null],
+	ru_buyerEMailAddress: ['Е-мейл покупателя', null],
+	ru_sellerEMailAddress: ['Е-мейл продавца', null],
+
+	kg_kktRegNumber: ['РН ККМ', 'Регистрационный номер ККМ'],
+	kg_fiscalModuleSerialNumber: ['ФМ №', 'Серийный номер фискального модуля'],
+	kg_fiscalDocumentNumber: ['ФД №', 'Номер фискального документа'],
+	kg_fiscalDocumentSign: ['ФПД', 'Фискальный признак документа'],
+	kg_orgInn: ['ИНН', 'Идентификационный номер налогоплательщика'],
+
+	kz_kkmSerialNumber: ['ЗНМ', 'Заводской номер ККМ'],
+	kz_kkmFnsId: ['РН ККМ', 'Регистрационный номер ККМ'],
+	kz_fiscalId: ['ФП', 'Фискальный признак ККМ'],
+	kz_orgId: ['БИН', 'Бизнес-идентификационный номер организации'],
+	kz_kkmInkNumber: ['ИНК', 'Идентификационный номер кассы'],
+	kz_receiptNumber: ['Чек №', 'Порядковый номер чека'],
+}
+
+const orgIdNumberPropNames = [
+	'ru_orgInn', //
+	'kg_orgInn',
+	'kz_orgId',
+] satisfies (keyof typeof extraLabels)[]
+const contactsPropNames = [
+	'ru_buyerPhoneNumber',
+	'ru_buyerEMailAddress',
+	'ru_sellerEMailAddress',
+] satisfies (keyof typeof extraLabels)[]
 
 /**
  * Даты чека (создан, считан, обновлён).
@@ -128,15 +162,23 @@ function ReceiptDates({ receipt, searchQuery }: { receipt: Receipt; searchQuery:
 function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
 	if (!data) return null
 
+	const extra = data && (data.extra as UnionToIntersection<typeof data.extra>)
+
+	const cashierTitle = (
+		(data.common.cashierCode ? '№' + data.common.cashierCode : '') +
+		' ' +
+		(data.common.cashierName ?? '')
+	).trim()
+
 	return (
 		<div class="receipt-place-info">
 			<table>
 				<tbody>
-					{data.common.cashierName && (
+					{cashierTitle && (
 						<tr>
 							<td>Кассир</td>
 							<td class="operator">
-								<HighlightedText text={data.common.cashierName} searchQuery={searchQuery} />
+								<HighlightedText text={cashierTitle} searchQuery={searchQuery} />
 							</td>
 						</tr>
 					)}
@@ -148,33 +190,31 @@ function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null;
 							</td>
 						</tr>
 					)}
-					{'ru_orgName' in data.extra ? (
-						<>
-							<tr>
-								<td>Организация</td>
-								<td>
-									<HighlightedText text={data.extra.ru_orgName} searchQuery={searchQuery} />
-								</td>
-							</tr>
-							<tr>
-								<td>
-									Её <TextWithTitle {...data.common.orgInnLabel} />
-								</td>
-								<td>
-									<HighlightedText text={data.common.orgInn} searchQuery={searchQuery} />
-								</td>
-							</tr>
-						</>
-					) : (
+					{data.common.orgName && (
 						<tr>
+							<td>Организация</td>
 							<td>
-								<TextWithTitle {...data.common.orgInnLabel} />
-							</td>
-							<td>
-								<HighlightedText text={data.common.orgInn} searchQuery={searchQuery} />
+								<HighlightedText text={data.common.orgName} searchQuery={searchQuery} />
 							</td>
 						</tr>
 					)}
+					{orgIdNumberPropNames.map(orgIdPropName => {
+						if (!extra[orgIdPropName]) return null
+						return (
+							<tr key={orgIdPropName}>
+								<td>
+									{data.common.orgName ? 'Её ' : ''}{' '}
+									<TextWithTitle
+										text={extraLabels[orgIdPropName][0]}
+										title={extraLabels[orgIdPropName][1] ?? undefined}
+									/>
+								</td>
+								<td>
+									<HighlightedText text={extra[orgIdPropName]} searchQuery={searchQuery} />
+								</td>
+							</tr>
+						)
+					})}
 					<tr>
 						<td>Место расчёта</td>
 						<td class="retail-place">
@@ -184,7 +224,7 @@ function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null;
 					<tr>
 						<td>Адрес расчёта</td>
 						<td class="retail-place-address">
-							<HighlightedText text={data.common.address} searchQuery={searchQuery} />
+							<HighlightedText text={data.common.placeAddress} searchQuery={searchQuery} />
 						</td>
 					</tr>
 				</tbody>
@@ -197,33 +237,44 @@ function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null;
  * Контактная информация (телефоны, e-mail, сайт ФНС).
  */
 function ReceiptContacts({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
-	const extra = data && (data.extra as UnionToIntersection<typeof data.extra>)
+	const extra =
+		data &&
+		(data.extra as Pick<UnionToIntersection<typeof data.extra>, (typeof contactsPropNames)[number]>)
+
 	return (
 		<div class="receipt-contacts">
 			<table>
 				<tbody>
-					{extra?.ru_buyerPhoneOrAddress && (
+					{extra?.ru_buyerEMailAddress && (
 						<tr>
-							<td>
-								{extra.ru_buyerPhoneOrAddress.includes('@')
-									? 'Е-мейл покупателя'
-									: 'Телефон покупателя'}
-							</td>
+							<td>Е-мейл покупателя</td>
 							<td>
 								<Link
-									text={extra.ru_buyerPhoneOrAddress}
+									text={extra.ru_buyerEMailAddress}
 									protocol="mailto:"
 									searchQuery={searchQuery}
 								/>
 							</td>
 						</tr>
 					)}
-					{extra?.ru_sellerAddress && (
+					{extra?.ru_buyerPhoneNumber && (
+						<tr>
+							<td>Телефон покупателя</td>
+							<td>
+								<Link
+									text={extra.ru_buyerPhoneNumber}
+									protocol="tel:"
+									searchQuery={searchQuery}
+								/>
+							</td>
+						</tr>
+					)}
+					{extra?.ru_sellerEMailAddress && (
 						<tr>
 							<td>Е-мейл продавца</td>
 							<td>
 								<Link
-									text={extra.ru_sellerAddress}
+									text={extra.ru_sellerEMailAddress}
 									protocol="mailto:"
 									searchQuery={searchQuery}
 								/>
@@ -232,9 +283,17 @@ function ReceiptContacts({ data, searchQuery }: { data: FullReceiptData | null; 
 					)}
 					{data?.common.taxOrgUrl && (
 						<tr>
-							<td>Сайт для проверки</td>
+							<td>Сайт налоговой</td>
 							<td class="tax-org-url">
 								<Link text={data.common.taxOrgUrl} searchQuery={searchQuery} />
+							</td>
+						</tr>
+					)}
+					{data?.common.checkOrgUrl && (
+						<tr>
+							<td>Сайт для проверки</td>
+							<td class="tax-org-url">
+								<Link text={data.common.checkOrgUrl} searchQuery={searchQuery} />
 							</td>
 						</tr>
 					)}
@@ -277,40 +336,19 @@ function ReceiptItem({
 	)
 }
 
-const extraLabels: Record<keyof UnionToIntersection<FullReceiptData['extra']>, [string, string]> = {
-	ru_orgName: ['TODO', 'TODO'],
-	ru_buyerPhoneOrAddress: ['TODO', 'TODO'],
-	ru_sellerAddress: ['TODO', 'TODO'],
-	ru_kktRegId: ['РН ККТ', 'Регистрационный номер ККТ'],
-	ru_fiscalDriveNumber: ['ФН №', 'Заводской номер фискального накопителя'],
-	ru_fiscalDocumentNumber: ['ФД №', 'Порядковй номер фискального документа'],
-	ru_fiscalDocumentSign: ['ФП', 'Фискальный признак документа'],
-
-	kg_kktRegNumber: ['РН ККМ', 'Регистрационный номер ККМ'],
-	kg_fiscalModuleSerialNumber: ['ФМ №', 'Серийный номер фискального модуля'],
-	kg_fiscalDocumentNumber: ['ФД №', 'Номер фискального документа'],
-	kg_fiscalDocumentSign: ['ФПД', 'Фискальный признак документа'],
-
-	kz_kkmSerialNumber: ['ЗНМ', 'Заводской номер ККМ'],
-	kz_kkmFnsId: ['РН ККМ', 'Регистрационный номер ККМ'],
-	kz_fiscalId: ['ФП', 'Фискальный признак ККМ'],
-	kz_orgId: ['БИН', 'Бизнес-идентификационный номер организации'],
-	kz_kkmInkNumber: ['ИНК', 'Идентификационный номер кассы'],
-	kz_receiptNumber: ['Чек №', 'Порядковый номер чека'],
-	kz_cashierCode: ['Кассир', 'Код кассира'],
-}
-
 /**
  * Доп.данные чека.
  */
 function ReceiptExtraInfoTable({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
 	if (!data) return null
 
-	const items: [string, string, OptStr][] = []
+	const items: [string, string | null, OptStr][] = []
 
 	const extra = data && (data.extra as UnionToIntersection<typeof data.extra>)
 	let attr: keyof typeof extra
 	for (attr in extra) {
+		if (arrIncludesUntyped(orgIdNumberPropNames, attr)) continue
+		if (arrIncludesUntyped(contactsPropNames, attr)) continue
 		const [name, title] = extraLabels[attr]
 		items.push([name, title, extra[attr]])
 	}
@@ -318,12 +356,12 @@ function ReceiptExtraInfoTable({ data, searchQuery }: { data: FullReceiptData | 
 	if (items.length === 0) return null
 
 	return (
-		<div class="receipt-info">
+		<div class="receipt-remaining-info">
 			<table>
 				<tbody>
 					{items.map(([name, title, value], i) => (
 						<tr key={i}>
-							<td title={title}>{name}</td>
+							<td title={title ?? undefined}>{name}</td>
 							<td>
 								<HighlightedText text={value} searchQuery={searchQuery} />
 							</td>

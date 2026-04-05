@@ -16,23 +16,34 @@ export type ReceiptData<T extends Record<string, unknown>> = {
 	raw: any
 }
 
-export type CommonReceiptData = {
+type CommonReceiptData = {
+	/** Заголовок для интерфейса (название магазина/организации без лишних префиксов типа "Магазин", "ООО" и т.д.) */
 	title: OptStr
-	totalSum: OptNum
-	itemsCount: OptNum
-	placeName: OptStr
-	orgInn: OptStr
-	orgInnLabel: { text: string; title: OptStr }
-	address: OptStr
-	cashierName: OptStr
-	shiftNumber: OptStr
-	taxOrgUrl: OptStr
+
 	items: {
 		name: OptStr
 		quantity: OptNum
 		price: OptNum
 		sum: OptNum
 	}[]
+	/** На случай, если items не получилось распарсить, но общее кол-во известно */
+	itemsCount: OptNum
+	totalSum: OptNum
+
+	/** Название оргианизции (ООО МТС / ИП Иванов / ...) */
+	orgName: OptStr
+	/** Назвние места продажи (Магазин Такой-то / Аптека Такая-то / ...) */
+	placeName: OptStr
+	placeAddress: OptStr
+
+	cashierName: OptStr
+	cashierCode: OptStr
+	shiftNumber: OptStr
+
+	/** Адрес сайта налоговой (nalog.gov.ru) */
+	taxOrgUrl: OptStr
+	/** Адрес сайта для проверки подобных чеков (consumer.wofd.kz) */
+	checkOrgUrl: OptStr
 }
 
 export type FullReceiptData = ReturnType<(typeof domainParsersMap)[keyof typeof domainParsersMap]>

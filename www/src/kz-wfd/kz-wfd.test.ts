@@ -148,7 +148,7 @@ describe('parseKzWfdReceipt', () => {
 			kkmFnsId: '010105432100',
 			totalSum: 10900,
 			address: 'г.Астана, Сарыаркинский район, ул. Абая, д. 15',
-			taxOrgUrl: 'consumer.wofd.kz',
+			checkOrgUrl: 'consumer.wofd.kz',
 			items: [
 				{
 					name: '4820 PREMIUM КОРМ ДЛЯ КОШЕК ГОВЯДИНА&РИС\\СУХОЙ РАЦИОН ДЛЯ ВЗРОСЛЫХ КОШЕК 1,5 кг',
@@ -190,7 +190,7 @@ describe('parseKzWfdReceipt', () => {
 			kkmFnsId: undefined,
 			totalSum: 500,
 			address: undefined,
-			taxOrgUrl: undefined,
+			checkOrgUrl: undefined,
 			items: [],
 			parseErrors: [],
 		})

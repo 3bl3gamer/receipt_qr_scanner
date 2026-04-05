@@ -276,7 +276,7 @@ function ReceiptListItem({
 			</div>
 			<div class="sub-info">
 				<div class="retail_place_address">
-					<HighlightedText text={data?.common.address} searchQuery={searchQuery} />
+					<HighlightedText text={data?.common.placeAddress} searchQuery={searchQuery} />
 				</div>
 			</div>
 			<div class="sub-info">

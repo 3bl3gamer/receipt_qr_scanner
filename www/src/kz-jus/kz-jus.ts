@@ -16,8 +16,6 @@ type KzJusExtraData = {
 	kz_orgId: OptStr
 	/** Порядковый номер чека */
 	kz_receiptNumber: OptStr
-	/** Код кассира */
-	kz_cashierCode: OptStr
 }
 
 type ParsedReceipt = {
@@ -50,16 +48,21 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<KzJusExtraDat
 	return {
 		common: {
 			title: makeKzJusReceiptTitle(parsed.orgName),
+
+			items: parsed.items,
 			totalSum: parsed.totalSum,
 			itemsCount: parsed.items.length,
+
+			orgName: undefined,
 			placeName: parsed.orgName,
-			orgInn: parsed.orgId,
-			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
-			address: undefined,
-			cashierName: '№' + parsed.cashierCode,
+			placeAddress: undefined,
+
+			cashierName: undefined,
+			cashierCode: parsed.cashierCode,
 			shiftNumber: parsed.shiftNumber,
+
 			taxOrgUrl: undefined,
-			items: parsed.items,
+			checkOrgUrl: undefined,
 		},
 		extra: {
 			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
@@ -68,7 +71,6 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<KzJusExtraDat
 			kz_fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
 			kz_orgId: optStr(parsed.orgId),
 			kz_receiptNumber: optStr(parsed.receiptNumber),
-			kz_cashierCode: optStr(parsed.cashierCode),
 		},
 		parseErrors: parsed.parseErrors,
 		raw: data,

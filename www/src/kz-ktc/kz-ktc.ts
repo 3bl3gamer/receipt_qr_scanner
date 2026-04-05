@@ -25,15 +25,7 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<KzKtcExtraDat
 	return {
 		common: {
 			title: makeKzKtcReceiptTitle(optStr(data.orgTitle)),
-			totalSum: optNum(ticket.totalSum),
-			itemsCount: productItems.length,
-			placeName: optStr(data.orgTitle),
-			orgInn: optStr(data.orgId),
-			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
-			address: optStr(data.retailPlaceAddress),
-			cashierName: isRecord(ticket.operator) ? optStr(ticket.operator.name) : undefined,
-			shiftNumber: optStr(ticket.shiftNumber),
-			taxOrgUrl: undefined,
+
 			items: productItems.map(item => {
 				const x = isRecord(item) && isRecord(item.commodity) ? item.commodity : { name: item }
 				return {
@@ -43,6 +35,19 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<KzKtcExtraDat
 					sum: optNum(x.sum),
 				}
 			}),
+			itemsCount: productItems.length,
+			totalSum: optNum(ticket.totalSum),
+
+			orgName: undefined,
+			placeName: optStr(data.orgTitle),
+			placeAddress: optStr(data.retailPlaceAddress),
+
+			cashierName: isRecord(ticket.operator) ? optStr(ticket.operator.name) : undefined,
+			cashierCode: undefined,
+			shiftNumber: optStr(ticket.shiftNumber),
+
+			taxOrgUrl: undefined,
+			checkOrgUrl: undefined,
 		},
 		extra: {
 			kz_kkmSerialNumber: optStr(data.kkmSerialNumber),

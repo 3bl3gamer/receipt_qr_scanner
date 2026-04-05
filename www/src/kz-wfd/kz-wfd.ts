@@ -16,8 +16,6 @@ type KzWfdExtraData = {
 	kz_orgId: OptStr
 	/** Порядковый номер чека */
 	kz_receiptNumber: OptStr
-	/** Код кассира */
-	kz_cashierCode: OptStr
 }
 
 type ParsedReceipt = {
@@ -32,7 +30,7 @@ type ParsedReceipt = {
 	kkmFnsId: OptStr
 	totalSum: OptNum
 	address: OptStr
-	taxOrgUrl: OptStr
+	checkOrgUrl: OptStr
 	items: Array<{
 		name: OptStr
 		quantity: OptNum
@@ -53,16 +51,21 @@ export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<KzWfdExtraDat
 	return {
 		common: {
 			title: makeKzWfdReceiptTitle(parsed.orgName),
-			totalSum: parsed.totalSum,
-			itemsCount: parsed.items.length,
-			placeName: parsed.orgName,
-			orgInn: parsed.orgId,
-			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
-			address: parsed.address,
-			cashierName: '№' + parsed.cashierCode,
-			shiftNumber: parsed.shiftNumber,
-			taxOrgUrl: parsed.taxOrgUrl,
+
 			items: parsed.items,
+			itemsCount: parsed.items.length,
+			totalSum: parsed.totalSum,
+
+			orgName: undefined,
+			placeName: parsed.orgName,
+			placeAddress: parsed.address,
+
+			cashierName: undefined,
+			cashierCode: parsed.cashierCode,
+			shiftNumber: parsed.shiftNumber,
+
+			taxOrgUrl: undefined,
+			checkOrgUrl: parsed.checkOrgUrl,
 		},
 		extra: {
 			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
@@ -71,7 +74,6 @@ export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<KzWfdExtraDat
 			kz_fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
 			kz_orgId: optStr(parsed.orgId),
 			kz_receiptNumber: optStr(parsed.receiptNumber),
-			kz_cashierCode: optStr(parsed.cashierCode),
 		},
 		parseErrors: parsed.parseErrors,
 		raw: data,
@@ -91,7 +93,7 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 		kkmFnsId: undefined,
 		totalSum: undefined,
 		address: undefined,
-		taxOrgUrl: undefined,
+		checkOrgUrl: undefined,
 		items: [],
 		parseErrors: [],
 	}
@@ -317,7 +319,7 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 
 			const siteMatch = text.match(/^Сайт:\s*(\S+)/i)
 			if (siteMatch) {
-				result.taxOrgUrl = siteMatch[1]
+				result.checkOrgUrl = siteMatch[1]
 				continue
 			}
 

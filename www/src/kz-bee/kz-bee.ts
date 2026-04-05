@@ -42,16 +42,21 @@ export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<KzBeeExtraDat
 	return {
 		common: {
 			title: makeKzBeeReceiptTitle(parsed.orgName),
-			totalSum: parsed.totalSum,
-			itemsCount: parsed.items.length,
-			placeName: parsed.orgName,
-			orgInn: parsed.orgId,
-			orgInnLabel: { text: 'БИН', title: 'Бизнес-идентификационный номер организации' },
-			address: parsed.address,
-			cashierName: undefined,
-			shiftNumber: undefined,
-			taxOrgUrl: undefined,
+
 			items: parsed.items,
+			itemsCount: parsed.items.length,
+			totalSum: parsed.totalSum,
+
+			orgName: undefined,
+			placeName: parsed.orgName,
+			placeAddress: parsed.address,
+
+			cashierName: undefined,
+			cashierCode: undefined,
+			shiftNumber: undefined,
+
+			taxOrgUrl: undefined,
+			checkOrgUrl: undefined,
 		},
 		extra: {
 			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
