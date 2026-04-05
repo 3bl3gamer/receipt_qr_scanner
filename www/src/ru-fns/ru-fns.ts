@@ -3,15 +3,15 @@ import { ReceiptData } from '../receipts'
 import { divBy100, isRecord, optArr, optNum, OptStr, optStr } from '../utils'
 
 type RuFnsExtraData = {
-	kktRegId: OptStr
-	fiscalDriveNumber: OptStr
-	fiscalDocumentNumber: OptStr
-	fiscalDocumentSign: OptStr
-	orgName: OptStr
-	buyerPhoneOrAddress: OptStr
-	sellerAddress: OptStr
+	ru_kktRegId: OptStr
+	ru_fiscalDriveNumber: OptStr
+	ru_fiscalDocumentNumber: OptStr
+	ru_fiscalDocumentSign: OptStr
+	ru_orgName: OptStr
+	ru_buyerPhoneOrAddress: OptStr
+	ru_sellerAddress: OptStr
 }
-export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFnsExtraData }> {
+export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<RuFnsExtraData> {
 	const data = JSON.parse(rec.data)
 	const receipt: Record<string, unknown> =
 		'ticket' in data
@@ -40,14 +40,14 @@ export function getRuFnsReceiptDataFrom(rec: Receipt): ReceiptData<{ ruFns: RuFn
 				}
 			}),
 		},
-		ruFns: {
-			kktRegId: optStr(receipt.kktRegId),
-			fiscalDriveNumber: optStr(receipt.fiscalDriveNumber ?? refData.fiscalNum),
-			fiscalDocumentNumber: optStr(receipt.fiscalDoc ?? refData.fiscalDocumentNumber),
-			fiscalDocumentSign: optStr(receipt.fiscalSign ?? refData.fiscalDocumentSign),
-			orgName: optStr(receipt.user),
-			buyerPhoneOrAddress: optStr(receipt.buyerPhoneOrAddress),
-			sellerAddress: optStr(receipt.sellerAddress),
+		extra: {
+			ru_kktRegId: optStr(receipt.kktRegId),
+			ru_fiscalDriveNumber: optStr(receipt.fiscalDriveNumber ?? refData.fiscalNum),
+			ru_fiscalDocumentNumber: optStr(receipt.fiscalDoc ?? refData.fiscalDocumentNumber),
+			ru_fiscalDocumentSign: optStr(receipt.fiscalSign ?? refData.fiscalDocumentSign),
+			ru_orgName: optStr(receipt.user),
+			ru_buyerPhoneOrAddress: optStr(receipt.buyerPhoneOrAddress),
+			ru_sellerAddress: optStr(receipt.sellerAddress),
 		},
 		parseErrors: [],
 		raw: data,

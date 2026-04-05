@@ -4,15 +4,15 @@ import { divBy100, isRecord, onError, optArr, optNum, OptStr, optStr } from '../
 
 type KgGnsExtraData = {
 	/** РН ККМ, регистрационный номер контрольно-кассовой машины */
-	kktRegNumber: OptStr
+	kg_kktRegNumber: OptStr
 	/** ФМ, серийный номер фискального модуля */
-	fiscalModuleSerialNumber: OptStr
+	kg_fiscalModuleSerialNumber: OptStr
 	/** ФД, номер фискального документа */
-	fiscalDocumentNumber: OptStr
+	kg_fiscalDocumentNumber: OptStr
 	/** ФПД, фискальный признак документа */
-	fiscalDocumentSign: OptStr
+	kg_fiscalDocumentSign: OptStr
 }
-export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGnsExtraData }> {
+export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<KgGnsExtraData> {
 	const data: Record<string, unknown> = JSON.parse(rec.data)
 	const data_crData = isRecord(data.crData) ? data.crData : {}
 	const refData = parseKgGnsRefText(rec.refText)
@@ -38,11 +38,11 @@ export function getKgGnsReceiptDataFrom(rec: Receipt): ReceiptData<{ kgGns: KgGn
 				}
 			}),
 		},
-		kgGns: {
-			kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber),
-			fiscalModuleSerialNumber: optStr(data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber),
-			fiscalDocumentNumber: optStr(data.fdNumber ?? refData?.fiscalDocumentNumber),
-			fiscalDocumentSign: optStr(data.documentFiscalMark ?? refData?.fiscalDocumentSign),
+		extra: {
+			kg_kktRegNumber: optStr(data.crRegisterNumber ?? refData?.kktRegNumber),
+			kg_fiscalModuleSerialNumber: optStr(data.fnSerialNumber ?? refData?.fiscalModuleSerialNumber),
+			kg_fiscalDocumentNumber: optStr(data.fdNumber ?? refData?.fiscalDocumentNumber),
+			kg_fiscalDocumentSign: optStr(data.documentFiscalMark ?? refData?.fiscalDocumentSign),
 		},
 		parseErrors: [],
 		raw: data,

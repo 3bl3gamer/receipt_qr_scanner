@@ -6,15 +6,15 @@ import { isRecord, optArr, optNum, OptStr, optStr } from '../utils'
 /** https://online.zakon.kz/Document/?doc_id=35619701 */
 type KzKtcExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: OptStr
+	kz_kkmSerialNumber: OptStr
 	/** Код ККМ, РНМ, регистрационный номер ККМ */
-	kkmFnsId: OptStr
+	kz_kkmFnsId: OptStr
 	/** ФП, фискальный признак ККМ */
-	fiscalId: OptStr
+	kz_fiscalId: OptStr
 	/** БИН, Бизнес-идентификационный номер организации */
-	orgId: OptStr
+	kz_orgId: OptStr
 }
-export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKtcExtraData }> {
+export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<KzKtcExtraData> {
 	const data: Record<string, unknown> = JSON.parse(rec.data)
 	const ticket = isRecord(data.ticket) ? data.ticket : {}
 	const refData = parseKzRefText(rec.refText)
@@ -44,11 +44,11 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzKtc: KzKt
 				}
 			}),
 		},
-		kzKtc: {
-			kkmSerialNumber: optStr(data.kkmSerialNumber),
-			kkmFnsId: optStr(data.kkmFnsId ?? refData?.kkmFnsId),
-			fiscalId: optStr(ticket.fiscalId ?? refData?.fiscalId),
-			orgId: optStr(data.orgId),
+		extra: {
+			kz_kkmSerialNumber: optStr(data.kkmSerialNumber),
+			kz_kkmFnsId: optStr(data.kkmFnsId ?? refData?.kkmFnsId),
+			kz_fiscalId: optStr(ticket.fiscalId ?? refData?.fiscalId),
+			kz_orgId: optStr(data.orgId),
 		},
 		parseErrors: [],
 		raw: data,

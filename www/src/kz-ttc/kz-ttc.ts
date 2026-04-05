@@ -5,15 +5,15 @@ import { OptNum, OptStr, optStr } from '../utils'
 
 type KzTtcExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: OptStr
+	kz_kkmSerialNumber: OptStr
 	/** РНМ, регистрационный номер ККМ */
-	kkmFnsId: OptStr
+	kz_kkmFnsId: OptStr
 	/** ФП, фискальный признак */
-	fiscalId: OptStr
+	kz_fiscalId: OptStr
 	/** БИН, бизнес-идентификационный номер организации */
-	orgId: OptStr
+	kz_orgId: OptStr
 	/** Порядковый номер чека */
-	receiptNumber: OptStr
+	kz_receiptNumber: OptStr
 }
 
 type ParsedReceipt = {
@@ -39,7 +39,7 @@ type ParsedReceipt = {
 	parseErrors: string[]
 }
 
-export function getKzTtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzTtc: KzTtcExtraData }> {
+export function getKzTtcReceiptDataFrom(rec: Receipt): ReceiptData<KzTtcExtraData> {
 	const parsed = parseKzTtcReceipt(rec.data)
 	const refData = parseKzRefText(rec.refText)
 
@@ -57,12 +57,12 @@ export function getKzTtcReceiptDataFrom(rec: Receipt): ReceiptData<{ kzTtc: KzTt
 			taxOrgUrl: undefined,
 			items: parsed.items,
 		},
-		kzTtc: {
-			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
-			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
-			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
-			orgId: optStr(parsed.orgId),
-			receiptNumber: optStr(parsed.receiptNumber),
+		extra: {
+			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
+			kz_kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
+			kz_fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
+			kz_orgId: optStr(parsed.orgId),
+			kz_receiptNumber: optStr(parsed.receiptNumber),
 		},
 		parseErrors: parsed.parseErrors,
 		raw: rec.data,

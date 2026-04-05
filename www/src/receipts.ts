@@ -8,12 +8,13 @@ import { getKzWfdReceiptDataFrom } from './kz-wfd/kz-wfd'
 import { getRuFnsReceiptDataFrom } from './ru-fns/ru-fns'
 import { OptNum, OptStr } from './utils'
 
-export type ReceiptData<T> = {
+export type ReceiptData<T extends Record<string, unknown>> = {
 	common: CommonReceiptData
+	extra: T
 	parseErrors: string[]
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	raw: any
-} & T
+}
 
 export type CommonReceiptData = {
 	title: OptStr
@@ -34,16 +35,21 @@ export type CommonReceiptData = {
 	}[]
 }
 
-export type FullReceiptData = Exclude<ReturnType<typeof getReceiptDataFrom>, null>
+export type FullReceiptData = ReturnType<(typeof domainParsersMap)[keyof typeof domainParsersMap]>
 
-export function getReceiptDataFrom(rec: Receipt) {
+const domainParsersMap = {
+	'ru-fns': getRuFnsReceiptDataFrom,
+	'kg-gns': getKgGnsReceiptDataFrom,
+	'kz-ktc': getKzKtcReceiptDataFrom,
+	'kz-jus': getKzJusReceiptDataFrom,
+	'kz-ttc': getKzTtcReceiptDataFrom,
+	'kz-bee': getKzBeeReceiptDataFrom,
+	'kz-wfd': getKzWfdReceiptDataFrom,
+}
+
+export function getReceiptDataFrom(rec: Receipt): FullReceiptData | null {
 	if (!rec.data) return null
-	if (rec.domain === 'ru-fns') return getRuFnsReceiptDataFrom(rec)
-	if (rec.domain === 'kg-gns') return getKgGnsReceiptDataFrom(rec)
-	if (rec.domain === 'kz-ktc') return getKzKtcReceiptDataFrom(rec)
-	if (rec.domain === 'kz-jus') return getKzJusReceiptDataFrom(rec)
-	if (rec.domain === 'kz-ttc') return getKzTtcReceiptDataFrom(rec)
-	if (rec.domain === 'kz-bee') return getKzBeeReceiptDataFrom(rec)
-	if (rec.domain === 'kz-wfd') return getKzWfdReceiptDataFrom(rec)
-	return null
+	const parser = domainParsersMap[rec.domain as keyof typeof domainParsersMap]
+	if (!parser) return null
+	return parser(rec)
 }

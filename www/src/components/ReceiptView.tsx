@@ -4,7 +4,7 @@ import { JSX } from 'preact/jsx-runtime'
 import { Receipt } from '../api'
 import { useDomainsMetadata } from '../contexts/DomainsMetadataContext'
 import { FullReceiptData, getReceiptDataFrom } from '../receipts'
-import { dateStrAsYMDHM, OptStr } from '../utils'
+import { dateStrAsYMDHM, OptStr, UnionToIntersection } from '../utils'
 import { DimmedKopeks } from './DimmedKopeks'
 import { HighlightedText } from './HighlightedText'
 
@@ -58,7 +58,7 @@ export function ReceiptView({
 				<ReceiptPlaceInfo data={data} searchQuery={searchQuery} />
 				<ReceiptContacts data={data} searchQuery={searchQuery} />
 
-				<ReceiptInfoTable data={data} searchQuery={searchQuery} />
+				<ReceiptExtraInfoTable data={data} searchQuery={searchQuery} />
 
 				<ReceiptParseErrors data={data} />
 
@@ -148,12 +148,12 @@ function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null;
 							</td>
 						</tr>
 					)}
-					{'ruFns' in data ? (
+					{'ru_orgName' in data.extra ? (
 						<>
 							<tr>
 								<td>Организация</td>
 								<td>
-									<HighlightedText text={data.ruFns.orgName} searchQuery={searchQuery} />
+									<HighlightedText text={data.extra.ru_orgName} searchQuery={searchQuery} />
 								</td>
 							</tr>
 							<tr>
@@ -197,32 +197,33 @@ function ReceiptPlaceInfo({ data, searchQuery }: { data: FullReceiptData | null;
  * Контактная информация (телефоны, e-mail, сайт ФНС).
  */
 function ReceiptContacts({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
+	const extra = data && (data.extra as UnionToIntersection<typeof data.extra>)
 	return (
 		<div class="receipt-contacts">
 			<table>
 				<tbody>
-					{data && 'ruFns' in data && data.ruFns.buyerPhoneOrAddress && (
+					{extra?.ru_buyerPhoneOrAddress && (
 						<tr>
 							<td>
-								{data.ruFns.buyerPhoneOrAddress.includes('@')
+								{extra.ru_buyerPhoneOrAddress.includes('@')
 									? 'Е-мейл покупателя'
 									: 'Телефон покупателя'}
 							</td>
 							<td>
 								<Link
-									text={data.ruFns.buyerPhoneOrAddress}
+									text={extra.ru_buyerPhoneOrAddress}
 									protocol="mailto:"
 									searchQuery={searchQuery}
 								/>
 							</td>
 						</tr>
 					)}
-					{data && 'ruFns' in data && data.ruFns.sellerAddress && (
+					{extra?.ru_sellerAddress && (
 						<tr>
 							<td>Е-мейл продавца</td>
 							<td>
 								<Link
-									text={data.ruFns.sellerAddress}
+									text={extra.ru_sellerAddress}
 									protocol="mailto:"
 									searchQuery={searchQuery}
 								/>
@@ -276,60 +277,42 @@ function ReceiptItem({
 	)
 }
 
+const extraLabels: Record<keyof UnionToIntersection<FullReceiptData['extra']>, [string, string]> = {
+	ru_orgName: ['TODO', 'TODO'],
+	ru_buyerPhoneOrAddress: ['TODO', 'TODO'],
+	ru_sellerAddress: ['TODO', 'TODO'],
+	ru_kktRegId: ['РН ККТ', 'Регистрационный номер ККТ'],
+	ru_fiscalDriveNumber: ['ФН №', 'Заводской номер фискального накопителя'],
+	ru_fiscalDocumentNumber: ['ФД №', 'Порядковй номер фискального документа'],
+	ru_fiscalDocumentSign: ['ФП', 'Фискальный признак документа'],
+
+	kg_kktRegNumber: ['РН ККМ', 'Регистрационный номер ККМ'],
+	kg_fiscalModuleSerialNumber: ['ФМ №', 'Серийный номер фискального модуля'],
+	kg_fiscalDocumentNumber: ['ФД №', 'Номер фискального документа'],
+	kg_fiscalDocumentSign: ['ФПД', 'Фискальный признак документа'],
+
+	kz_kkmSerialNumber: ['ЗНМ', 'Заводской номер ККМ'],
+	kz_kkmFnsId: ['РН ККМ', 'Регистрационный номер ККМ'],
+	kz_fiscalId: ['ФП', 'Фискальный признак ККМ'],
+	kz_orgId: ['БИН', 'Бизнес-идентификационный номер организации'],
+	kz_kkmInkNumber: ['ИНК', 'Идентификационный номер кассы'],
+	kz_receiptNumber: ['Чек №', 'Порядковый номер чека'],
+	kz_cashierCode: ['Кассир', 'Код кассира'],
+}
+
 /**
  * Доп.данные чека.
  */
-function ReceiptInfoTable({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
+function ReceiptExtraInfoTable({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
 	if (!data) return null
 
 	const items: [string, string, OptStr][] = []
 
-	if ('ruFns' in data) {
-		items.push(['РН ККТ', 'Регистрационный номер ККТ', data.ruFns.kktRegId])
-		items.push(['ФН №', 'Заводской номер фискального накопителя', data.ruFns.fiscalDriveNumber])
-		items.push(['ФД №', 'Порядковй номер фискального документа', data.ruFns.fiscalDocumentNumber])
-		items.push(['ФП', 'Фискальный признак документа', data.ruFns.fiscalDocumentSign])
-	}
-
-	if ('kgGns' in data) {
-		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kgGns.kktRegNumber])
-		items.push(['ФМ №', 'Серийный номер фискального модуля', data.kgGns.fiscalModuleSerialNumber])
-		items.push(['ФД №', 'Номер фискального документа', data.kgGns.fiscalDocumentNumber])
-		items.push(['ФПД', 'Фискальный признак документа', data.kgGns.fiscalDocumentSign])
-	}
-
-	if ('kzKtc' in data) {
-		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzKtc.kkmSerialNumber])
-		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzKtc.kkmFnsId])
-		items.push(['ФП', 'Фискальный признак ККМ', data.kzKtc.fiscalId])
-		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzKtc.orgId])
-	}
-
-	if ('kzJus' in data) {
-		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzJus.kkmSerialNumber])
-		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzJus.kkmFnsId])
-		items.push(['ИНК', 'Идентификационный номер кассы', data.kzJus.kkmInkNumber])
-		items.push(['ФП', 'Фискальный признак ККМ', data.kzJus.fiscalId])
-		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzJus.orgId])
-		items.push(['Чек №', 'Порядковый номер чека', data.kzJus.receiptNumber])
-		items.push(['Кассир', 'Код кассира', data.kzJus.cashierCode])
-	}
-
-	if ('kzBee' in data) {
-		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzBee.kkmSerialNumber])
-		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzBee.kkmFnsId])
-		items.push(['ФП', 'Фискальный признак', data.kzBee.fiscalId])
-		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzBee.orgId])
-	}
-
-	if ('kzWfd' in data) {
-		items.push(['ЗНМ', 'Заводской номер ККМ', data.kzWfd.kkmSerialNumber])
-		items.push(['РН ККМ', 'Регистрационный номер ККМ', data.kzWfd.kkmFnsId])
-		items.push(['ИНК', 'Идентификационный номер кассы', data.kzWfd.kkmInkNumber])
-		items.push(['ФП', 'Фискальный признак', data.kzWfd.fiscalId])
-		items.push(['БИН', 'Бизнес-идентификационный номер организации', data.kzWfd.orgId])
-		items.push(['Чек №', 'Порядковый номер чека', data.kzWfd.receiptNumber])
-		items.push(['Кассир', 'Код кассира', data.kzWfd.cashierCode])
+	const extra = data && (data.extra as UnionToIntersection<typeof data.extra>)
+	let attr: keyof typeof extra
+	for (attr in extra) {
+		const [name, title] = extraLabels[attr]
+		items.push([name, title, extra[attr]])
 	}
 
 	if (items.length === 0) return null

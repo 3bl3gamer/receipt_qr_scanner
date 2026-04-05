@@ -5,19 +5,19 @@ import { isRecord, optArr, OptNum, OptStr, optStr } from '../utils'
 
 type KzWfdExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: OptStr
+	kz_kkmSerialNumber: OptStr
 	/** РНМ, регистрационный номер ККМ */
-	kkmFnsId: OptStr
+	kz_kkmFnsId: OptStr
 	/** КСН/ИНК, идентификационный номер кассы */
-	kkmInkNumber: OptStr
+	kz_kkmInkNumber: OptStr
 	/** ФП, фискальный признак */
-	fiscalId: OptStr
+	kz_fiscalId: OptStr
 	/** БИН, бизнес-идентификационный номер организации */
-	orgId: OptStr
+	kz_orgId: OptStr
 	/** Порядковый номер чека */
-	receiptNumber: OptStr
+	kz_receiptNumber: OptStr
 	/** Код кассира */
-	cashierCode: OptStr
+	kz_cashierCode: OptStr
 }
 
 type ParsedReceipt = {
@@ -42,7 +42,7 @@ type ParsedReceipt = {
 	parseErrors: string[]
 }
 
-export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<{ kzWfd: KzWfdExtraData }> {
+export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<KzWfdExtraData> {
 	const data: Record<string, unknown> = JSON.parse(rec.data)
 	// в kz-wfd поле ticket лежит на верхнем уровне (не под data)
 	const lines = optArr(data.ticket, [])
@@ -64,14 +64,14 @@ export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<{ kzWfd: KzWf
 			taxOrgUrl: parsed.taxOrgUrl,
 			items: parsed.items,
 		},
-		kzWfd: {
-			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
-			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
-			kkmInkNumber: optStr(parsed.kkmInkNumber),
-			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
-			orgId: optStr(parsed.orgId),
-			receiptNumber: optStr(parsed.receiptNumber),
-			cashierCode: optStr(parsed.cashierCode),
+		extra: {
+			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
+			kz_kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
+			kz_kkmInkNumber: optStr(parsed.kkmInkNumber),
+			kz_fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
+			kz_orgId: optStr(parsed.orgId),
+			kz_receiptNumber: optStr(parsed.receiptNumber),
+			kz_cashierCode: optStr(parsed.cashierCode),
 		},
 		parseErrors: parsed.parseErrors,
 		raw: data,

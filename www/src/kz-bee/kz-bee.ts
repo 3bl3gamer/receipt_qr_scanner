@@ -5,13 +5,13 @@ import { OptNum, OptStr, optStr } from '../utils'
 
 type KzBeeExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: OptStr
+	kz_kkmSerialNumber: OptStr
 	/** РНМ, регистрационный номер ККМ */
-	kkmFnsId: OptStr
+	kz_kkmFnsId: OptStr
 	/** ФП, фискальный признак */
-	fiscalId: OptStr
+	kz_fiscalId: OptStr
 	/** БИН, бизнес-идентификационный номер организации */
-	orgId: OptStr
+	kz_orgId: OptStr
 }
 
 type ParsedReceipt = {
@@ -35,7 +35,7 @@ type ParsedReceipt = {
 	parseErrors: string[]
 }
 
-export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<{ kzBee: KzBeeExtraData }> {
+export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<KzBeeExtraData> {
 	const parsed = parseKzBeeReceipt(rec.data)
 	const refData = parseKzRefText(rec.refText)
 
@@ -53,11 +53,11 @@ export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<{ kzBee: KzBe
 			taxOrgUrl: undefined,
 			items: parsed.items,
 		},
-		kzBee: {
-			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
-			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
-			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
-			orgId: optStr(parsed.orgId),
+		extra: {
+			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
+			kz_kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
+			kz_fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
+			kz_orgId: optStr(parsed.orgId),
 		},
 		parseErrors: parsed.parseErrors,
 		raw: rec.data,

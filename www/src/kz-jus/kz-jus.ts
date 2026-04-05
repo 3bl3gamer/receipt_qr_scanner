@@ -5,19 +5,19 @@ import { isRecord, optArr, OptNum, OptStr, optStr } from '../utils'
 
 type KzJusExtraData = {
 	/** ЗНМ, заводской номер ККМ */
-	kkmSerialNumber: OptStr
+	kz_kkmSerialNumber: OptStr
 	/** Код ККМ, РНМ, регистрационный номер ККМ */
-	kkmFnsId: OptStr
+	kz_kkmFnsId: OptStr
 	/** КСН/ИНК, идентификационный номер кассы */
-	kkmInkNumber: OptStr
+	kz_kkmInkNumber: OptStr
 	/** ФП, фискальный признак ККМ */
-	fiscalId: OptStr
+	kz_fiscalId: OptStr
 	/** БИН, бизнес-идентификационный номер организации */
-	orgId: OptStr
+	kz_orgId: OptStr
 	/** Порядковый номер чека */
-	receiptNumber: OptStr
+	kz_receiptNumber: OptStr
 	/** Код кассира */
-	cashierCode: OptStr
+	kz_cashierCode: OptStr
 }
 
 type ParsedReceipt = {
@@ -40,7 +40,7 @@ type ParsedReceipt = {
 	parseErrors: string[]
 }
 
-export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJusExtraData }> {
+export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<KzJusExtraData> {
 	const data: Record<string, unknown> = JSON.parse(rec.data)
 	const lines = optArr(isRecord(data.data) ? data.data.ticket : undefined, [])
 
@@ -61,14 +61,14 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<{ kzJus: KzJu
 			taxOrgUrl: undefined,
 			items: parsed.items,
 		},
-		kzJus: {
-			kkmSerialNumber: optStr(parsed.kkmSerialNumber),
-			kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
-			kkmInkNumber: optStr(parsed.kkmInkNumber),
-			fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
-			orgId: optStr(parsed.orgId),
-			receiptNumber: optStr(parsed.receiptNumber),
-			cashierCode: optStr(parsed.cashierCode),
+		extra: {
+			kz_kkmSerialNumber: optStr(parsed.kkmSerialNumber),
+			kz_kkmFnsId: optStr(parsed.kkmFnsId ?? refData?.kkmFnsId),
+			kz_kkmInkNumber: optStr(parsed.kkmInkNumber),
+			kz_fiscalId: optStr(parsed.fiscalId ?? refData?.fiscalId),
+			kz_orgId: optStr(parsed.orgId),
+			kz_receiptNumber: optStr(parsed.receiptNumber),
+			kz_cashierCode: optStr(parsed.cashierCode),
 		},
 		parseErrors: parsed.parseErrors,
 		raw: data,
