@@ -95,7 +95,7 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 
 	const unusedLines: { index: number; text: string }[] = []
 	let lastSeparatorLineI = -1
-	let lastItemQuantityLineI = -1
+	let lastItemRelatedLineI = -1
 	let nonEmptyLinesCount = 0
 
 	lineLoop: for (let i = 0; i < lines.length; i++) {
@@ -177,6 +177,7 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 		const totalAmountItemsLabels = [
 			'төленген сома/сумма оплаты',
 			'банковская карта:',
+			'наличные:',
 			'қайтарым сомасы/сумма сдачи',
 			'жеңілдік сомасы/сумма скидки',
 			'үстеме сомасы/сумма наценки',
@@ -201,7 +202,7 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 			/^(\d+(?:[.,]\d+)?)\s*\(([^)]+)\)\s*x\s*([\d\s]+[,.]?\d*)\s*₸\s*=\s*([\d\s]+[,.]?\d*)\s*₸$/,
 		)
 		if (itemMatch) {
-			lastItemQuantityLineI = i
+			lastItemRelatedLineI = i
 			const lastUnused = unusedLines.at(-1)
 			if (lastUnused?.index === i - 1) {
 				unusedLines.pop()
@@ -215,13 +216,16 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 			}
 		}
 
-		// НДС товара
-		if (/^НДС\s+([\d\s]+[,.]?\d*)\s*₸$/i.test(text) && i === lastItemQuantityLineI + 1) {
+		// GTIN (Global Trade Item Number / Глобальный номер товарной продукции)
+		// NTIN (National Trade Item Number / Национальный номер товарной продукции)
+		if (/^[GN]TIN:\s*\d+$/i.test(text) && i === lastItemRelatedLineI + 1) {
+			lastItemRelatedLineI = i
 			continue
 		}
 
-		// GTIN (Global Trade Item Number / Глобальный номер товарной продукции)
-		if (/^GTIN:\s*\d+$/i.test(text) && i === lastItemQuantityLineI + 1) {
+		// НДС товара
+		if (/^НДС\s+([\d\s]+[,.]?\d*)\s*₸$/i.test(text) && i === lastItemRelatedLineI + 1) {
+			lastItemRelatedLineI = i
 			continue
 		}
 

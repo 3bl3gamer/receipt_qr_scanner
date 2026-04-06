@@ -173,6 +173,38 @@ describe('parseKzJusReceipt', () => {
 		test.deepStrictEqual(result.totalSum, 100)
 	})
 
+	it('should skip GTIN, NTIN and НДС lines after item quantity line', () => {
+		const lines = [
+			{ text: 'ТОО "damdala"', style: 0 },
+			{ text: 'СЭНДВИЧ С КУРИЦЕЙ И СЫРОМ ЧЕДДЕР 170ГР ШТ', style: 0 },
+			{ text: '2 (Штука) x 1\u00A0690,00₸                = 3\u00A0380,00₸', style: 0 },
+			{ text: 'GTIN: 4870205035062', style: 0 },
+			{ text: 'NTIN: 0040032612321', style: 0 },
+			{ text: '                                    НДС  466,21₸', style: 0 },
+			{ text: 'СЭНДВИЧ С ТУНЦОМ 160ГР 1ШТ', style: 0 },
+			{ text: '1 (Штука) x 1\u00A0590,00₸                = 1\u00A0590,00₸', style: 0 },
+			{ text: 'GTIN: 4870205050546', style: 0 },
+			{ text: 'NTIN: 0040032599912', style: 0 },
+			{ text: '                                    НДС  219,31₸', style: 0 },
+			{ text: '------------------------------------------------', style: 0 },
+			{ text: 'Төленген сома/Сумма оплаты             5\u00A0000,00₸', style: 0 },
+			{ text: '    Наличные:                          4\u00A0970,00₸', style: 0 },
+			{ text: 'Қайтарым сомасы/Сумма сдачи               30,00₸', style: 0 },
+			{ text: 'Жеңілдік сомасы/Сумма скидки               0,00₸', style: 0 },
+			{ text: 'үстеме сомасы/Сумма наценки                0,00₸', style: 0 },
+			{ text: 'ҚҚС сомасы/Сумма НДС                     685,52₸', style: 0 },
+			{ text: 'БАРЛЫҒЫ/ИТОГО: 4\u00A0970,00₸', style: 1 },
+		]
+		const result = parseKzJusReceipt_shared(lines)
+
+		test.deepStrictEqual(result.items, [
+			{ name: 'СЭНДВИЧ С КУРИЦЕЙ И СЫРОМ ЧЕДДЕР 170ГР ШТ', quantity: 2, price: 1690, sum: 3380 },
+			{ name: 'СЭНДВИЧ С ТУНЦОМ 160ГР 1ШТ', quantity: 1, price: 1590, sum: 1590 },
+		])
+		test.strictEqual(result.totalSum, 4970)
+		test.deepStrictEqual(result.parseErrors, [])
+	})
+
 	it('should parse real receipt #1', () => {
 		const lines = [
 			{ text: '                    АДК-КСФ                     ', style: 0 },

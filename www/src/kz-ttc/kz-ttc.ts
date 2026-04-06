@@ -151,7 +151,10 @@ export function parseKzTtcReceipt(html: string): ParsedReceipt {
 			return
 		}
 
-		const itemText = itemDiv.textContent || ''
+		// клонируем и удаляем <b> (коды товаров), чтобы они не попали в числа
+		const itemDivClone = itemDiv.cloneNode(true) as Element
+		itemDivClone.querySelectorAll('b').forEach(b => b.remove())
+		const itemText = itemDivClone.textContent || ''
 
 		// числа могу быть и спробелами/переносами: "3 960.00 x 0.5 кг = 1 980.00"
 		const match = itemText.match(
@@ -165,7 +168,7 @@ export function parseKzTtcReceipt(html: string): ParsedReceipt {
 				quantity: parseKzAmount(match[2]),
 				sum: parseKzAmount(match[3]),
 			})
-		} else {
+		} else if (name || !itemText.includes('Коррекция округления')) {
 			result.parseErrors.push(`Товар ${index + 1}: не распознан формат "${itemText.slice(0, 50)}"`)
 		}
 	})

@@ -332,6 +332,74 @@ describe('parseKzTtcReceipt', () => {
 		})
 	})
 
+	it('should ignore <b> product codes in item price parsing', () => {
+		const htmlData = `<!DOCTYPE html>
+<html>
+<body>
+<div class="ready_ticket">
+  <div class="ticket_body">
+    <ol class="ready_ticket__items_list">
+      <li>
+        <span class="wb-all">КУС ВКУС БРОЙЛЕР</span>
+        <div class="ready_ticket__item">
+          <b>83465</b>
+          2 785.00 x
+          1.022
+          кг
+          = 2 846.27
+          <div>ҚҚС қоса алғанда / в т.ч НДС(16.0%): 392.59</div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>`
+		const result = parseKzTtcReceipt(htmlData)
+
+		test.deepStrictEqual(result.items, [
+			{
+				name: 'КУС ВКУС БРОЙЛЕР',
+				price: 2785,
+				quantity: 1.022,
+				sum: 2846.27,
+			},
+		])
+		test.deepStrictEqual(result.parseErrors, [])
+	})
+
+	it('should skip "Коррекция округления" items without error', () => {
+		const htmlData = `<!DOCTYPE html>
+<html>
+<body>
+<div class="ready_ticket">
+  <div class="ticket_body">
+    <ol class="ready_ticket__items_list">
+      <li>
+        <span class="wb-all">Товар один</span>
+        <div class="ready_ticket__item">100.00 x 1 шт = 100.00</div>
+      </li>
+      <li>
+        <div class="ready_ticket__item">Коррекция округления (Жеңілдік /скидка) 0.27</div>
+      </li>
+      <li>
+        <span class="wb-all">Товар два</span>
+        <div class="ready_ticket__item">200.00 x 2 шт = 400.00</div>
+      </li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>`
+		const result = parseKzTtcReceipt(htmlData)
+
+		test.deepStrictEqual(result.items, [
+			{ name: 'Товар один', price: 100, quantity: 1, sum: 100 },
+			{ name: 'Товар два', price: 200, quantity: 2, sum: 400 },
+		])
+		test.deepStrictEqual(result.parseErrors, [])
+	})
+
 	it('should handle missing fields gracefully', () => {
 		const htmlData = `<!DOCTYPE html>
 <html>
