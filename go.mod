@@ -8,14 +8,14 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 )
 
 require (
 	github.com/ansel1/merry/v2 v2.0.1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )

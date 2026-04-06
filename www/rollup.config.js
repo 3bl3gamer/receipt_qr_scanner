@@ -16,12 +16,6 @@ export default async function (commandOptions) {
 				assetFileNames: isProd ? '[name].[hash][extname]' : '[name][extname]',
 				sourcemap: true,
 			},
-			jsx: {
-				mode: 'classic',
-				factory: 'h',
-				fragment: 'Fragment',
-				importSource: 'preact',
-			},
 			plugins: [
 				css({ name: 'bundle.css' }),
 				!isProd &&
