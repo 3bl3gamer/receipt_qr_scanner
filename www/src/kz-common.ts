@@ -33,7 +33,12 @@ export function makeKzReceiptTitle(orgName: OptStr): OptStr {
 	cleaned = cleaned.replace(/^товарищество с ограниченной ответственностью\s+/i, '')
 	cleaned = cleaned.replace(/^ТОО\s+/i, '')
 
+	cleaned = cleaned.replace(/^АКЦИОНЕРНОЕ ОБЩЕСТВО\s+/i, '')
+
 	cleaned = cleaned.replace(/^"([^"]*)"$/, '$1')
+
+	// `"ТОО "Название"` -> `ТОО "Название"`
+	if (/^"[^"]+\s"[^"]+"$/.test(cleaned)) cleaned = cleaned.slice(1)
 
 	return cleaned.trim()
 }
