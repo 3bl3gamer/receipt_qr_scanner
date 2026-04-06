@@ -1,5 +1,5 @@
 import { Receipt } from '../api'
-import { parseKzRefText } from '../kz-common'
+import { makeKzReceiptTitle, parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { OptNum, OptStr, optStr } from '../utils'
 
@@ -41,7 +41,7 @@ export function getKzBeeReceiptDataFrom(rec: Receipt): ReceiptData<KzBeeExtraDat
 
 	return {
 		common: {
-			title: makeKzBeeReceiptTitle(parsed.orgName),
+			title: makeKzReceiptTitle(parsed.orgName),
 
 			items: parsed.items,
 			itemsCount: parsed.items.length,
@@ -191,18 +191,6 @@ function getItemName(li: Element): OptStr {
 	}
 	const trimmed = name.trim()
 	return trimmed || undefined
-}
-
-export function makeKzBeeReceiptTitle(orgName: OptStr): OptStr {
-	if (!orgName) return orgName
-
-	let cleaned = orgName.trim()
-	cleaned = cleaned.replace(/^товарищество с ограниченной ответственностью\s+/i, '')
-	cleaned = cleaned.replace(/^ТОО\s+/i, '')
-
-	cleaned = cleaned.replace(/^"([^"]*)"$/, '$1')
-
-	return cleaned.trim()
 }
 
 /** "4 920,50" or "3180.00" -> 4920.5 */

@@ -82,8 +82,8 @@ function parseKgGnsRefText(refText: string): Record<string, string | null> | nul
 export function makeKgGnsReceiptTitle(locationName: OptStr): OptStr {
 	if (!locationName) return locationName
 	return locationName
-		.replace(/^осоо(?=\W)/i, '')
-		.replace(/^магазин\s/i, '')
+		.replace(/^осоо\s+/i, '')
+		.replace(/^магазин\s+/i, '')
 		.replace(/^"([^"]*)"$/, '$1')
 		.trim()
 }

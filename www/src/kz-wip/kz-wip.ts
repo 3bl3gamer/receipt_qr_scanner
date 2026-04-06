@@ -1,5 +1,5 @@
 import { Receipt } from '../api'
-import { parseKzRefText } from '../kz-common'
+import { makeKzReceiptTitle, parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { isRecord, optArr, OptNum, optNum, OptStr, optStr } from '../utils'
 
@@ -45,7 +45,7 @@ export function getKzWipReceiptDataFrom(rec: Receipt): ReceiptData<KzWipExtraDat
 
 	return {
 		common: {
-			title: makeKzWipReceiptTitle(parsed.orgName),
+			title: makeKzReceiptTitle(parsed.orgName),
 
 			items: parsed.items,
 			itemsCount: parsed.items.length,
@@ -154,13 +154,4 @@ export function parseKzWipReceipt(data: Record<string, unknown>): ParsedReceipt 
 	result.shareLink = optStr(ticket.share_link)
 
 	return result
-}
-
-export function makeKzWipReceiptTitle(orgName: OptStr): OptStr {
-	if (!orgName) return orgName
-	return orgName
-		.replace(/^ТОО\s+/i, '')
-		.replace(/^Товарищество с ограниченной ответственностью\s+/i, '')
-		.replace(/^"([^"]*)"$/, '$1')
-		.trim()
 }

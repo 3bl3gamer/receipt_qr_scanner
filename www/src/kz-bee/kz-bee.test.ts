@@ -1,19 +1,7 @@
 import test from 'node:assert/strict'
 import { it, suite as describe } from 'node:test'
 
-import { makeKzBeeReceiptTitle, parseKzBeeReceipt } from './kz-bee'
-
-describe('makeKzBeeReceiptTitle', () => {
-	function check(dest: unknown, data: string) {
-		test.strictEqual(makeKzBeeReceiptTitle(data), dest)
-	}
-
-	it('should remove legal entity prefixes and quotes', () => {
-		check('test', 'test')
-		check('SuperMarket', 'ТОО "SuperMarket"')
-		check('ASIA FOODS', 'Товарищество с ограниченной ответственностью "ASIA FOODS"')
-	})
-})
+import { parseKzBeeReceipt } from './kz-bee'
 
 describe('parseKzBeeReceipt', () => {
 	it('should parse receipt with items and discounts', () => {

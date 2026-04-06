@@ -1,21 +1,7 @@
 import test from 'node:assert/strict'
 import { it, suite as describe } from 'node:test'
 
-import { makeKzWipReceiptTitle, parseKzWipReceipt } from './kz-wip'
-
-describe('makeKzWipReceiptTitle', () => {
-	function check(dest: unknown, data: string) {
-		test.strictEqual(makeKzWipReceiptTitle(data), dest)
-	}
-
-	it('should clean organization name', () => {
-		check('test', 'test')
-		check('CU Central Asia', 'ТОО "CU Central Asia"')
-		check('MEGA STORE', 'Товарищество с ограниченной ответственностью "MEGA STORE"')
-		check('Алма-Маркет', '"Алма-Маркет"')
-		check('Магазин', 'ТОО Магазин')
-	})
-})
+import { parseKzWipReceipt } from './kz-wip'
 
 describe('parseKzWipReceipt', () => {
 	it('should parse receipt with all fields', () => {

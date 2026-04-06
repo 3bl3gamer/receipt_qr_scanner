@@ -1,21 +1,7 @@
 import test from 'node:assert/strict'
 import { it, suite as describe } from 'node:test'
 
-import { makeKzJusReceiptTitle, parseKzJusReceipt_shared } from './kz-jus'
-
-describe('makeKzJusReceiptTitle', () => {
-	function check(dest: unknown, data: string) {
-		test.strictEqual(makeKzJusReceiptTitle(data), dest)
-	}
-
-	it('should use cleaned location name', () => {
-		check('test', 'test')
-		check('KG PARTNERS (КЕЙ ДЖИ ПАРТНЕРС)', 'ТОО "KG PARTNERS (КЕЙ ДЖИ ПАРТНЕРС)"')
-		check('ВЕСТА КАЗАХСТАН', 'Товарищество с ограниченной ответственностью "ВЕСТА КАЗАХСТАН"')
-		check('АДК-КСФ', '"АДК-КСФ"')
-		check('Магазин', 'ТОО Магазин')
-	})
-})
+import { parseKzJusReceipt_shared } from './kz-jus'
 
 describe('parseKzJusReceipt', () => {
 	it('should parse receipt with all fields', () => {

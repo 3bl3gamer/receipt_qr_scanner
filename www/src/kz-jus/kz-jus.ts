@@ -1,5 +1,5 @@
 import { Receipt } from '../api'
-import { parseKzRefText } from '../kz-common'
+import { makeKzReceiptTitle, parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { isRecord, optArr, OptNum, OptStr, optStr } from '../utils'
 
@@ -47,7 +47,7 @@ export function getKzJusReceiptDataFrom(rec: Receipt): ReceiptData<KzJusExtraDat
 
 	return {
 		common: {
-			title: makeKzJusReceiptTitle(parsed.orgName),
+			title: makeKzReceiptTitle(parsed.orgName),
 
 			items: parsed.items,
 			totalSum: parsed.totalSum,
@@ -258,13 +258,4 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 /** "4 920,50" -> "4920.50" -> 4920.5 */
 function parseKzAmount(str: string): number {
 	return parseFloat(str.replace(/[\s\u00A0]/g, '').replace(',', '.'))
-}
-
-export function makeKzJusReceiptTitle(orgName: OptStr): OptStr {
-	if (!orgName) return orgName
-	return orgName
-		.replace(/^ТОО\s+/i, '')
-		.replace(/^Товарищество с ограниченной ответственностью\s+/i, '')
-		.replace(/^"([^"]*)"$/, '$1')
-		.trim()
 }

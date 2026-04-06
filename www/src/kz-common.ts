@@ -1,4 +1,4 @@
-import { onError } from './utils'
+import { onError, OptStr } from './utils'
 
 export type KzRefText = {
 	/** ФП, фискальный признак ККМ (поле так называется в ответе kz-ktc) */
@@ -24,4 +24,16 @@ export function parseKzRefText(refText: string): KzRefText | null {
 		sum: params.get('s'),
 		createdAt: params.get('t'),
 	}
+}
+
+export function makeKzReceiptTitle(orgName: OptStr): OptStr {
+	if (!orgName) return orgName
+
+	let cleaned = orgName.trim()
+	cleaned = cleaned.replace(/^товарищество с ограниченной ответственностью\s+/i, '')
+	cleaned = cleaned.replace(/^ТОО\s+/i, '')
+
+	cleaned = cleaned.replace(/^"([^"]*)"$/, '$1')
+
+	return cleaned.trim()
 }

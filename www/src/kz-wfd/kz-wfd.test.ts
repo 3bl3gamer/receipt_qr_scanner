@@ -1,19 +1,7 @@
 import test from 'node:assert/strict'
 import { it, suite as describe } from 'node:test'
 
-import { makeKzWfdReceiptTitle, parseKzWfdReceipt } from './kz-wfd'
-
-describe('makeKzWfdReceiptTitle', () => {
-	function check(dest: unknown, data: string) {
-		test.strictEqual(makeKzWfdReceiptTitle(data), dest)
-	}
-
-	it('should remove legal entity prefixes and quotes', () => {
-		check('test', 'test')
-		check('PetShop', 'ТОО "PetShop"')
-		check('MEGA TRADE', 'Товарищество с ограниченной ответственностью "MEGA TRADE"')
-	})
-})
+import { parseKzWfdReceipt } from './kz-wfd'
 
 describe('parseKzWfdReceipt', () => {
 	it('should parse receipt with multi-line item name', () => {

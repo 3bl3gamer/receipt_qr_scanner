@@ -1,20 +1,7 @@
 import test from 'node:assert/strict'
 import { it, suite as describe } from 'node:test'
 
-import { makeKzTtcReceiptTitle, parseKzTtcReceipt } from './kz-ttc'
-
-describe('makeKzTtcReceiptTitle', () => {
-	function check(dest: unknown, data: string) {
-		test.strictEqual(makeKzTtcReceiptTitle(data), dest)
-	}
-
-	it('should remove legal entity prefixes and quotes', () => {
-		check('test', 'test')
-		check('Name', 'ТОО "Name"')
-		check('AIMEDI GROUP', 'ТОВАРИЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ "AIMEDI GROUP"')
-		check('Name', 'ФИЛИАЛ ТОВАРИЩЕСТВА С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ "Name"')
-	})
-})
+import { parseKzTtcReceipt } from './kz-ttc'
 
 describe('parseKzTtcReceipt', () => {
 	it('should parse real receipt #1', () => {

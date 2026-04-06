@@ -1,5 +1,5 @@
 import { Receipt } from '../api'
-import { parseKzRefText } from '../kz-common'
+import { makeKzReceiptTitle, parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { isRecord, optArr, OptNum, OptStr, optStr } from '../utils'
 
@@ -50,7 +50,7 @@ export function getKzWfdReceiptDataFrom(rec: Receipt): ReceiptData<KzWfdExtraDat
 
 	return {
 		common: {
-			title: makeKzWfdReceiptTitle(parsed.orgName),
+			title: makeKzReceiptTitle(parsed.orgName),
 
 			items: parsed.items,
 			itemsCount: parsed.items.length,
@@ -360,13 +360,4 @@ function parseKzAmount(str: string): number | undefined {
 	const cleaned = str.replace(/[\s\u00A0]/g, '').replace(',', '.')
 	const num = parseFloat(cleaned)
 	return isNaN(num) ? undefined : num
-}
-
-export function makeKzWfdReceiptTitle(orgName: OptStr): OptStr {
-	if (!orgName) return orgName
-	return orgName
-		.replace(/^ТОО\s+/i, '')
-		.replace(/^Товарищество с ограниченной ответственностью\s+/i, '')
-		.replace(/^"([^"]*)"$/, '$1')
-		.trim()
 }

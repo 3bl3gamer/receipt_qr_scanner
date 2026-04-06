@@ -1,5 +1,5 @@
 import { Receipt } from '../api'
-import { parseKzRefText } from '../kz-common'
+import { makeKzReceiptTitle, parseKzRefText } from '../kz-common'
 import { ReceiptData } from '../receipts'
 import { isRecord, optArr, optNum, OptStr, optStr } from '../utils'
 
@@ -24,7 +24,7 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<KzKtcExtraDat
 
 	return {
 		common: {
-			title: makeKzKtcReceiptTitle(optStr(data.orgTitle)),
+			title: makeKzReceiptTitle(optStr(data.orgTitle)),
 
 			items: productItems.map(item => {
 				const x = isRecord(item) && isRecord(item.commodity) ? item.commodity : { name: item }
@@ -58,12 +58,4 @@ export function getKzKtcReceiptDataFrom(rec: Receipt): ReceiptData<KzKtcExtraDat
 		parseErrors: [],
 		raw: data,
 	}
-}
-
-export function makeKzKtcReceiptTitle(orgTitle: OptStr): OptStr {
-	if (!orgTitle) return orgTitle
-	return orgTitle
-		.replace(/^товарищество с ограниченной ответственностью\s+/i, '')
-		.replace(/^"([^"]*)"$/, '$1')
-		.trim()
 }
