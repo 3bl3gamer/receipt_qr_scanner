@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"maps"
+	"receipt_qr_scanner/kz_wip_proxy"
 	"receipt_qr_scanner/receipts"
 	"slices"
 	"time"
@@ -14,12 +15,12 @@ import (
 func updateIter(db *sql.DB, domain2client map[string]receipts.Client, updatedReceiptIDsChan chan int64) error {
 	domainCodes := slices.Collect(maps.Keys(domain2client))
 
-	receipts, err := loadPendingReceipts(db, domainCodes, 5)
+	pendingReceipts, err := loadPendingReceipts(db, domainCodes, 5)
 	if err != nil {
 		return merry.Wrap(err)
 	}
 
-	for _, rec := range receipts {
+	for _, rec := range pendingReceipts {
 		log.Info().Str("ref", rec.Ref.String()).Msg("fetching receipt")
 
 		client, ok := domain2client[rec.Ref.Domain().Code]
@@ -36,16 +37,47 @@ func updateIter(db *sql.DB, domain2client map[string]receipts.Client, updatedRec
 			return merry.Wrap(err)
 		})
 
-		if err == nil {
-			log.Info().Str("ref", rec.Ref.String()).Msg("got receipt data")
-			if err := saveRecieptData(db, rec.Ref, res.Data); err != nil {
-				return merry.Wrap(err)
-			}
-		} else {
+		if err != nil {
 			log.Warn().Err(err).Str("ref", rec.Ref.String()).Msg("receipt error")
 			if err := saveReceiptFailure(db, rec.Ref, res.ShouldDecreaseRetries); err != nil {
 				return merry.Wrap(err)
 			}
+			updatedReceiptIDsChan <- rec.ID
+			continue
+		}
+
+		// редирект (прокси-чек) — заменяем запись
+		if res.RedirectRefText != "" {
+			log.Info().Str("ref", rec.Ref.String()).Str("redirect", res.RedirectRefText).Msg("receipt redirect")
+
+			newRef, parseErr := receipts.ReceiptRefFromText(allDomains, res.RedirectRefText)
+			if parseErr != nil {
+				log.Warn().Err(parseErr).Str("ref", rec.Ref.String()).Str("redirect", res.RedirectRefText).Msg("redirect ref parse failed")
+				if err := saveReceiptFailure(db, rec.Ref, true); err != nil {
+					return merry.Wrap(err)
+				}
+			} else if newRef.Domain().Code == kz_wip_proxy.Domain.Code {
+				log.Warn().Err(parseErr).Str("ref", rec.Ref.String()).Str("redirect", res.RedirectRefText).Msg("redirect ref domain cycle")
+				if err := saveReceiptFailure(db, rec.Ref, true); err != nil {
+					return merry.Wrap(err)
+				}
+			} else {
+				if err := replaceReceiptRef(db, rec.Ref, newRef); err != nil {
+					if merry.Is(err, ErrReceiptRedirectDuplicate) {
+						log.Info().Str("ref", rec.Ref.String()).Msg("redirect target already exists, marked as failed")
+					} else {
+						return merry.Wrap(err)
+					}
+				}
+			}
+
+			updatedReceiptIDsChan <- rec.ID
+			continue
+		}
+
+		log.Info().Str("ref", rec.Ref.String()).Msg("got receipt data")
+		if err := saveRecieptData(db, rec.Ref, res.Data); err != nil {
+			return merry.Wrap(err)
 		}
 		updatedReceiptIDsChan <- rec.ID
 	}

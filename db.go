@@ -371,6 +371,60 @@ func saveRecieptRef(db *sql.DB, ref receipts.ReceiptRef) (int64, error) {
 	return rowID, nil
 }
 
+var ErrReceiptRedirectDuplicate = merry.New("redirect target receipt already exists")
+
+// replaceReceiptRef заменяет чек с oldRef на newRef, очищает данные, ресетит таймстампы
+// (аналог удаления+вставки, но с сохранением ID).
+// Если чек с newRef уже есть, ничего не заменяет, только помечает oldRef как неудачный (retries_left = 0).
+// Нужно для замены прокси-чеков (kz-wip-proxy) на реальные.
+func replaceReceiptRef(db *sql.DB, oldRef receipts.ReceiptRef, newRef receipts.ReceiptRef) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return merry.Wrap(err)
+	}
+	defer tx.Rollback()
+
+	// проверяем, существует ли чек с таким же unique_key
+	var existingID int64
+	err = tx.QueryRow(`SELECT id FROM receipts WHERE unique_key = ?`, newRef.UniqueKey()).Scan(&existingID)
+	if err == nil {
+		// дубликат найден — помечаем прокси-чек как неудачный
+		_, err = tx.Exec(`
+			UPDATE receipts SET retries_left = 0, updated_at = CURRENT_TIMESTAMP
+			WHERE unique_key = ?`, oldRef.UniqueKey())
+		if err != nil {
+			return merry.Wrap(err)
+		}
+		if err := tx.Commit(); err != nil {
+			return merry.Wrap(err)
+		}
+		return ErrReceiptRedirectDuplicate.Here()
+	} else if err != sql.ErrNoRows {
+		return merry.Wrap(err)
+	}
+
+	// заменяем прокси-запись на реальную (сохраняем тот же ID)
+	searchKey, err := makeReceiptSearchKey(newRef, "")
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	_, err = tx.Exec(`
+		UPDATE receipts
+		SET domain = ?, unique_key = ?, ref_text = ?, created_at = ?,
+		    search_key = ?, is_correct = NULL, data = NULL,
+		    retries_left = 10, next_retry_at = CURRENT_TIMESTAMP,
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE unique_key = ?`,
+		newRef.Domain().Code, newRef.UniqueKey(), newRef.RefText(),
+		newRef.CreatedAt(), searchKey, oldRef.UniqueKey())
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	return merry.Wrap(tx.Commit())
+}
+
 func saveReceiptFailure(db *sql.DB, ref receipts.ReceiptRef, decreaseRetries bool) error {
 	_, err := db.Exec(`
 		UPDATE receipts

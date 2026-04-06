@@ -9,6 +9,7 @@ var ErrResponseDataMalformed = merry.New("response data malformed")
 type FetchReceiptResult struct {
 	ShouldDecreaseRetries bool
 	Data                  []byte
+	RedirectRefText       string // если не пустой, нужно пересохранить чек с новым ref_text (см. kz-wip-proxy)
 }
 
 type Client interface {

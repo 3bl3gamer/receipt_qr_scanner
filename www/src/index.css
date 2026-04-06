@@ -212,7 +212,7 @@ td[title] {
 
 .receipt-list-item .provider .provider-label {
 	display: inline-block;
-	width: 14px;
+	min-width: 14px;
 	height: 14px;
 	margin-right: 3px;
 	border-radius: 4px;
