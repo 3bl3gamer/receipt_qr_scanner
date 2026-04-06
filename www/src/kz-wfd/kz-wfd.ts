@@ -103,6 +103,7 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 	const unusedLines: { index: number; text: string }[] = []
 	let lastSeparatorLineI = -1
 	let lastItemQuantityLineI = -1
+	let lastItemRelatedLineI = -1
 	let nonEmptyLinesCount = 0
 	// Метка: следующая непустая строка — номер чека
 	let expectReceiptNumber = false
@@ -208,6 +209,7 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 		)
 		if (itemMatch) {
 			lastItemQuantityLineI = i
+			lastItemRelatedLineI = i
 			// Все накопленные строки — это название товара (может быть на нескольких строках)
 			if (unusedLines.length > 0) {
 				const name = unusedLines.map(l => l.text).join(' ')
@@ -223,7 +225,14 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 		}
 
 		// GTIN / NTIN после строки с кол-вом товара
-		if (/^[GN]TIN:\s*\d+$/i.test(text) && i - lastItemQuantityLineI <= 2) {
+		if (/^[GN]TIN:\s*\d+$/i.test(text) && i === lastItemRelatedLineI + 1) {
+			lastItemRelatedLineI = i
+			continue
+		}
+
+		// ҚҚС/НДС товара
+		if (/^ҚҚС\/НДС\s+([\d\s\u00A0]+[,.]?\d*)\s*₸$/i.test(text) && i === lastItemRelatedLineI + 1) {
+			lastItemRelatedLineI = i
 			continue
 		}
 

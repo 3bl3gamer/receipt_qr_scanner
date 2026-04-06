@@ -155,6 +155,30 @@ describe('parseKzWfdReceipt', () => {
 		})
 	})
 
+	it('should skip ҚҚС/НДС lines after item quantity line', () => {
+		const lines = [
+			{ text: 'ТОО "РЕСТОРАН"', style: 0 },
+			{ text: '*********************************************** ', style: 0 },
+			{ text: 'Рамадан Биф Сет', style: 0 },
+			{ text: '2 (Дана/Штука) x 4\u00A0000,00₸           = 8\u00A0000,00₸', style: 0 },
+			{ text: '                              ҚҚС/НДС  1\u00A0103,45₸', style: 0 },
+			{ text: 'Рамадан Чикен Сет', style: 0 },
+			{ text: '1 (Дана/Штука) x 4\u00A0000,00₸           = 4\u00A0000,00₸', style: 0 },
+			{ text: '                                ҚҚС/НДС  551,72₸', style: 0 },
+			{ text: '------------------------------------------------', style: 0 },
+			{ text: 'БАРЛЫҒЫ/ИТОГО:', style: 1 },
+			{ text: '12\u00A0000,00₸', style: 1 },
+		]
+		const result = parseKzWfdReceipt(lines)
+
+		test.deepStrictEqual(result.items, [
+			{ name: 'Рамадан Биф Сет', quantity: 2, price: 4000, sum: 8000 },
+			{ name: 'Рамадан Чикен Сет', quantity: 1, price: 4000, sum: 4000 },
+		])
+		test.strictEqual(result.totalSum, 12000)
+		test.deepStrictEqual(result.parseErrors, [])
+	})
+
 	it('should handle missing fields gracefully', () => {
 		const lines = [
 			{ text: 'Простой Магазин', style: 0 },
