@@ -204,39 +204,6 @@ td[title] {
 	font-weight: bold;
 }
 
-.receipt-list-item .provider {
-	position: relative;
-	display: flex;
-	align-items: center;
-}
-
-.receipt-list-item .provider .provider-label {
-	display: inline-block;
-	min-width: 14px;
-	height: 14px;
-	margin-right: 3px;
-	border-radius: 4px;
-	font-size: 11px;
-	font-weight: bold;
-	line-height: 14px;
-	text-align: center;
-	color: white;
-	transition: opacity 0.1s ease;
-}
-
-.receipt-list-item .provider.one-of-many-in-country .provider-label {
-	opacity: 0.8;
-}
-.receipt-list-item .provider.sole-in-country .provider-label {
-	position: absolute;
-	right: 100%;
-	opacity: 0;
-}
-
-.receipt-list-item .provider:hover .provider-label {
-	opacity: 1;
-}
-
 .receipt-list-item .main-info {
 	display: flex;
 	justify-content: space-between;
@@ -369,6 +336,13 @@ td[title] {
 	margin-bottom: 24px;
 	font-size: 120%;
 	font-weight: bold;
+}
+
+.receipt-view .receipt-provder-info {
+	margin-bottom: 24px;
+}
+.receipt-view .receipt-provder-info .receipt-provider-icons-wrap {
+	display: inline-block;
 }
 
 .receipt-view .receipt-dates {

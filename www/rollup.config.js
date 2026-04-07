@@ -71,19 +71,21 @@ export default async function (commandOptions) {
 }
 
 function css({ name }) {
-	let style = null
+	const styles = {}
 	return {
 		name: 'css',
 		transform(code, id) {
 			if (!id.endsWith('.css')) return
-			if (style !== null) throw new Error('multiple css files not supported here')
-			style = code
+			styles[id] = code
 			return ''
 		},
-		generateBundle(_opts) {
-			if (style === null) return
-			this.emitFile({ type: 'asset', name, source: style })
-			style = null
+		generateBundle(_opts, _bundle) {
+			const moduleIds = new Set(this.getModuleIds())
+			for (const key of Object.keys(styles)) {
+				if (!moduleIds.has(key)) delete styles[key]
+			}
+			if (Object.keys(styles).length === 0) return
+			this.emitFile({ type: 'asset', name, source: Object.values(styles).join('\n\n\n') })
 		},
 	}
 }

@@ -7,6 +7,7 @@ import { useReceiptsLoader } from '../hooks/useReceiptsLoader'
 import { getReceiptDataFrom } from '../receipts'
 import { dateStrAsYMDHM } from '../utils'
 import { highlightedIfFound, HighlightedText } from './HighlightedText'
+import { ReceiptProviderIcons } from './ReceiptProvider'
 import { ReceiptView } from './ReceiptView'
 
 /**
@@ -229,14 +230,7 @@ function ReceiptListItem({
 		onClick(receipt)
 	}, [onClick, receipt])
 
-	const flagSymbol = domainsMetadata.get(receipt.domain)?.flagSymbol
 	const currencySuffix = data ? ' ' + (domainsMetadata.get(receipt.domain)?.currencySymbol ?? '?') : ''
-
-	const domainMetadata = domainsMetadata.get(receipt.domain)
-	const providerLabel = domainMetadata?.providerShortLabel
-	const providerColor = domainMetadata?.providerColor
-	const providerName = domainMetadata?.providerName
-	const providerCountClass = domainMetadata?.isSoleInCountry ? 'sole-in-country' : 'one-of-many-in-country'
 
 	const hasParseErrors = data && data.parseErrors.length > 0
 
@@ -251,16 +245,12 @@ function ReceiptListItem({
 					)}
 					<HighlightedText text={data?.common.title} searchQuery={searchQuery} />
 				</div>
-				<div class={`provider ${providerCountClass} icon-with-title`} title={providerName}>
-					{providerLabel && (
-						<div class="provider-label" style={{ backgroundColor: providerColor }}>
-							{providerLabel}
-						</div>
-					)}
-					<div class="flag">
-						<HighlightedText text={flagSymbol} searchQuery={searchQuery} />
-					</div>
-				</div>
+				<ReceiptProviderIcons
+					receipt={receipt}
+					searchQuery={searchQuery}
+					fadeSoleInCountrLabel={true}
+					size="small"
+				/>
 			</div>
 			<div class="main-info">
 				<time class="created_at">

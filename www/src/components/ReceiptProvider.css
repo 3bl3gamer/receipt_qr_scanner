@@ -1,0 +1,45 @@
+.receipt-provider-icons {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.receipt-provider-icons .provider-label {
+	display: inline-block;
+	min-width: 18px;
+	height: 18px;
+	margin-right: 3px;
+	border-radius: 5px;
+	font-size: 15px;
+	font-weight: bold;
+	line-height: 18px;
+	text-align: center;
+	color: white;
+	transition: opacity 0.1s ease;
+}
+.receipt-provider-icons.small .provider-label {
+	min-width: 14px;
+	height: 14px;
+	font-size: 11px;
+	line-height: 14px;
+	border-radius: 4px;
+}
+
+.receipt-provider-icons .flag {
+	font-size: 19px;
+}
+.receipt-provider-icons.small .flag {
+	font-size: 16px;
+}
+
+.receipt-provider-icons:not(.fade-label) .provider-label {
+	opacity: 0.8;
+}
+.receipt-provider-icons.fade-label .provider-label {
+	position: absolute;
+	right: 100%;
+	opacity: 0;
+}
+.receipt-provider-icons:hover .provider-label {
+	opacity: 1;
+}

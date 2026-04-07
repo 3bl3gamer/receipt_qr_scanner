@@ -7,6 +7,7 @@ import { FullReceiptData, getReceiptDataFrom } from '../receipts'
 import { arrIncludesUntyped, dateStrAsYMDHM, OptStr, UnionToIntersection } from '../utils'
 import { DimmedKopeks } from './DimmedKopeks'
 import { HighlightedText } from './HighlightedText'
+import { ReceiptProviderIcons } from './ReceiptProvider'
 
 /**
  * Попап с данными из чека.
@@ -58,6 +59,7 @@ export function ReceiptView({
 				<ReceiptPlaceInfo data={data} searchQuery={searchQuery} />
 				<ReceiptContacts data={data} searchQuery={searchQuery} />
 				<ReceiptExtraInfoTable data={data} searchQuery={searchQuery} />
+				<ReceiptProviderTitle receipt={receipt} searchQuery={searchQuery} />
 
 				<ReceiptParseErrors data={data} />
 
@@ -69,12 +71,32 @@ export function ReceiptView({
 						receipt.refText
 					)}
 				</p>
-				<ProviderResponse receipt={receipt} data={data} searchQuery={searchQuery} />
+				<ProviderResponse data={data} searchQuery={searchQuery} />
 
 				<h3>Значение для поиска</h3>
 				<pre class="receipt-seach-key">
 					<HighlightedText text={receipt.searchKey} searchQuery={searchQuery} />
 				</pre>
+			</div>
+		</div>
+	)
+}
+
+function ReceiptProviderTitle({ receipt, searchQuery }: { receipt: Receipt; searchQuery: string }) {
+	const { domainsMetadata } = useDomainsMetadata()
+	const metadata = domainsMetadata.get(receipt.domain)
+	const providerName = metadata?.providerName
+
+	return (
+		<div class="receipt-provder-info">
+			Сервис проверки: <HighlightedText text={providerName} searchQuery={searchQuery} />{' '}
+			<div class="receipt-provider-icons-wrap">
+				<ReceiptProviderIcons
+					receipt={receipt}
+					searchQuery={searchQuery}
+					fadeSoleInCountrLabel={false}
+					size="normal"
+				/>
 			</div>
 		</div>
 	)
@@ -392,17 +414,7 @@ function ReceiptParseErrors({ data }: { data: FullReceiptData | null }) {
 /**
  * Провайдер и его ответ
  */
-function ProviderResponse({
-	receipt,
-	data,
-	searchQuery,
-}: {
-	receipt: Receipt
-	data: FullReceiptData | null
-	searchQuery: string
-}) {
-	const { domainsMetadata } = useDomainsMetadata()
-	const providerName = domainsMetadata.get(receipt.domain)?.providerName
+function ProviderResponse({ data, searchQuery }: { data: FullReceiptData | null; searchQuery: string }) {
 	const rawData =
 		typeof data?.raw === 'string' //
 			? data.raw
@@ -410,9 +422,7 @@ function ProviderResponse({
 
 	return (
 		<>
-			<h3>
-				Ответ <HighlightedText text={providerName} searchQuery={searchQuery} />
-			</h3>
+			<h3>Ответ сервера</h3>
 			<pre class="receipt-raw-data">
 				<HighlightedText text={rawData} searchQuery={searchQuery} />
 			</pre>
