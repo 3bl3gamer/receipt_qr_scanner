@@ -203,17 +203,30 @@ export function parseKzJusReceipt_shared(lines: unknown[]): ParsedReceipt {
 		)
 		if (itemMatch) {
 			lastItemRelatedLineI = i
-			const lastUnused = unusedLines.at(-1)
-			if (lastUnused?.index === i - 1) {
-				unusedLines.pop()
+			// Название товара может занимать несколько строк — собираем все подряд идущие
+			// неиспользованные строки перед строкой с количеством
+			const nameParts: string[] = []
+			while (unusedLines.length > 0) {
+				const expectedIndex = i - 1 - nameParts.length
+				const lastUnused = unusedLines.at(-1)!
+				if (lastUnused.index === expectedIndex) {
+					nameParts.unshift(lastUnused.text)
+					unusedLines.pop()
+				} else {
+					break
+				}
+			}
+			if (nameParts.length > 0) {
 				result.items.push({
-					name: lastUnused.text,
+					name: nameParts.join(' '),
 					quantity: parseFloat(itemMatch[1].replace(',', '.')),
 					price: parseKzAmount(itemMatch[3]),
 					sum: parseKzAmount(itemMatch[4]),
 				})
-				continue
+			} else {
+				result.parseErrors.push(`Не распознана строка ${i + 1}: "${text}"`)
 			}
+			continue
 		}
 
 		// GTIN (Global Trade Item Number / Глобальный номер товарной продукции)
