@@ -144,7 +144,12 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 			continue
 		}
 
-		// Метка "номер чека" — значение на следующей строке
+		// Номер чека: метка + значение на одной строке или на двух
+		const receiptNumberInlineMatch = text.match(/^Чектің реттік нөмірі\/Порядковый номер чека\s+(\S+)$/i)
+		if (receiptNumberInlineMatch) {
+			result.receiptNumber = receiptNumberInlineMatch[1]
+			continue
+		}
 		if (/^Чектің реттік нөмірі\/Порядковый номер чека$/i.test(text)) {
 			expectReceiptNumber = true
 			continue
@@ -236,20 +241,25 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 			continue
 		}
 
-		// "БАРЛЫҒЫ/ИТОГО:" — общая сумма (style:1), значение на следующей строке
-		if (/^БАРЛЫҒЫ\/ИТОГО:$/i.test(text)) {
-			// Ищем следующую непустую строку с суммой
-			for (let j = i + 1; j < lines.length; j++) {
-				const nextLine = lines[j]
-				if (isRecord(nextLine) && typeof nextLine.text === 'string') {
-					const nextText = nextLine.text.trim()
-					if (nextText === '') continue
-					const amountMatch = nextText.match(/^([\d\s\u00A0]+[,.]?\d*)\s*₸$/)
-					if (amountMatch) {
-						result.totalSum = parseKzAmount(amountMatch[1])
-						i = j // перемещаемся к обработанной строке
+		// "БАРЛЫҒЫ/ИТОГО:" — общая сумма; значение может быть на той же или на следующей строке
+		if (/^БАРЛЫҒЫ\/ИТОГО:/i.test(text)) {
+			const inlineMatch = text.match(/^БАРЛЫҒЫ\/ИТОГО:\s*([\d\s\u00A0]+[,.]?\d*)\s*₸$/i)
+			if (inlineMatch) {
+				result.totalSum = parseKzAmount(inlineMatch[1])
+			} else {
+				// Ищем следующую непустую строку с суммой
+				for (let j = i + 1; j < lines.length; j++) {
+					const nextLine = lines[j]
+					if (isRecord(nextLine) && typeof nextLine.text === 'string') {
+						const nextText = nextLine.text.trim()
+						if (nextText === '') continue
+						const amountMatch = nextText.match(/^([\d\s\u00A0]+[,.]?\d*)\s*₸$/)
+						if (amountMatch) {
+							result.totalSum = parseKzAmount(amountMatch[1])
+							i = j // перемещаемся к обработанной строке
+						}
+						break
 					}
-					break
 				}
 			}
 			continue
@@ -266,6 +276,7 @@ export function parseKzWfdReceipt(lines: unknown[]): ParsedReceipt {
 			'жалпы жеңілдік сомасы',
 			'жалпы үстеме сомасы',
 			'ққс сомасы/сумма ндс',
+			'ққс жалпы сомасы',
 		]
 		const lower = text.toLocaleLowerCase()
 		let isPayment = false
